@@ -282,7 +282,7 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
         navigate(`/post/${post.id}`);
       }}
     >
-      <div className="aspect-square relative overflow-hidden">
+      <div className="aspect-[4/5] relative overflow-hidden">
         {post.media_url ? (
           <img 
             src={post.media_url} 
@@ -313,7 +313,7 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
         navigate(`/video/${video.id}`);
       }}
     >
-      <div className="aspect-[3/4] relative overflow-hidden bg-black/5">
+      <div className="aspect-[9/16] relative overflow-hidden bg-black/5">
         {video.thumbnail_url ? (
           <img 
             src={video.thumbnail_url} 
@@ -321,9 +321,11 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
           />
         ) : video.video_url ? (
-          <div className="w-full h-full bg-muted/20 flex items-center justify-center">
-            <MessageCircle className="h-8 w-8 text-muted-foreground/30" />
-          </div>
+          <video 
+            src={video.video_url} 
+            className="w-full h-full object-cover" 
+            preload="metadata"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <MessageCircle className="h-8 w-8 text-muted-foreground/30" />
@@ -607,7 +609,7 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
               <p className="text-center text-sm">Follow this account to see their posts.</p>
             </div>
           ) : posts.length > 0 ? (
-            <div className="grid grid-cols-3 gap-3 px-4 sm:px-6">
+            <div className="grid grid-cols-3 gap-1.5 px-4 sm:px-6">
               {posts.map((post) => <PostCard key={post.id} post={post} />)}
             </div>
           ) : (
@@ -626,7 +628,7 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
               <p className="text-center text-sm">Follow this account to see their videos.</p>
             </div>
           ) : videos.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 px-4 sm:px-6">
+            <div className="grid grid-cols-2 gap-1.5 px-4 sm:px-6">
               {videos.map((video) => <VideoCard key={video.id} video={video} />)}
             </div>
           ) : (

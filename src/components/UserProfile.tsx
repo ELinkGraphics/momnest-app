@@ -159,7 +159,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
     return (
       <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300" onClick={handlePostClick}>
-        <div className="aspect-square relative overflow-hidden">
+        <div className="aspect-[4/5] relative overflow-hidden">
           {post.media_url ? (
             <img 
               src={post.media_url} 
@@ -190,7 +190,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
     return (
       <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300" onClick={handleVideoClick}>
-        <div className="aspect-[3/4] relative overflow-hidden bg-black/5">
+        <div className="aspect-[9/16] relative overflow-hidden bg-black/5">
           {video.thumbnail_url ? (
             <img 
               src={video.thumbnail_url} 
@@ -198,9 +198,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
             />
           ) : video.video_url ? (
-            <div className="w-full h-full bg-muted/20 flex items-center justify-center">
-              <VideoIcon className="h-8 w-8 text-muted-foreground/30" />
-            </div>
+            <video 
+              src={video.video_url} 
+              className="w-full h-full object-cover" 
+              preload="metadata"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <VideoIcon className="h-8 w-8 text-muted-foreground/30" />
@@ -495,7 +497,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
           {/* Posts Tab */}
           <TabsContent value="posts">
             {userPosts.length > 0 ? (
-              <div className="grid grid-cols-3 gap-3 px-4 sm:px-6">
+              <div className="grid grid-cols-3 gap-1.5 px-4 sm:px-6">
                 {userPosts.map((post) => <PostCard key={post.id} post={post} />)}
               </div>
             ) : (
@@ -514,7 +516,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
           {/* Videos Tab */}
           <TabsContent value="videos">
             {userVideos.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4 px-4 sm:px-6">
+              <div className="grid grid-cols-2 gap-1.5 px-4 sm:px-6">
                 {userVideos.map((video) => <VideoCard key={video.id} video={video} />)}
               </div>
             ) : (
@@ -538,7 +540,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 <PostCardSkeleton />
               </div>
             ) : savedPosts.length > 0 ? (
-              <div className="grid grid-cols-3 gap-3 px-4 sm:px-6">
+              <div className="grid grid-cols-3 gap-1.5 px-4 sm:px-6">
                 {savedPosts.map((post) => <PostCard key={post.id} post={post} />)}
               </div>
             ) : (
