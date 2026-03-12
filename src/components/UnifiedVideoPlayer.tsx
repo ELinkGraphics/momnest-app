@@ -176,7 +176,7 @@ export const UnifiedVideoPlayer = memo<UnifiedVideoPlayerProps>(({
             
             {/* Inner elements */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
+              <div className="w-3 h-3 bg-card rounded-full animate-pulse" />
             </div>
           </div>
         </div>
@@ -213,7 +213,7 @@ export const UnifiedVideoPlayer = memo<UnifiedVideoPlayerProps>(({
                       triggerHaptic('success');
                     }
                   }}
-                  className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white border-2 border-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all duration-200 z-10"
+                  className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-card border-2 border-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all duration-200 z-10"
                   aria-label={`Follow ${video.user.name}`}
                 >
                   {followState === 'visible' ? (
@@ -242,7 +242,7 @@ export const UnifiedVideoPlayer = memo<UnifiedVideoPlayerProps>(({
           {video.tags && video.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {video.tags.slice(0, 4).map((tag) => (
-                <span key={tag} className="text-xs px-2 py-0.5 bg-white/20 text-white rounded-full">
+                <span key={tag} className="text-xs px-2 py-0.5 bg-card/20 text-white rounded-full">
                   #{tag}
                 </span>
               ))}
@@ -262,7 +262,7 @@ export const UnifiedVideoPlayer = memo<UnifiedVideoPlayerProps>(({
             "relative w-14 h-14 rounded-full backdrop-blur-md border flex items-center justify-center group-active:scale-95 transition-all duration-200 shadow-lg",
             isLiked 
               ? "bg-red-500/20 border-red-500/30 shadow-red-500/25" 
-              : "bg-white/15 border-white/20 hover:bg-white/25"
+              : "bg-card/15 border-white/20 hover:bg-card/25"
           )}>
             <Heart 
               className={cn(
@@ -285,7 +285,7 @@ export const UnifiedVideoPlayer = memo<UnifiedVideoPlayerProps>(({
           onClick={handleAction}
           className="group flex flex-col items-center gap-1 transition-all duration-200 active:bg-transparent"
         >
-          <div className="w-14 h-14 rounded-full bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center group-active:scale-95 hover:bg-white/25 transition-all duration-200 shadow-lg active:bg-white/15">
+          <div className="w-14 h-14 rounded-full bg-card/15 backdrop-blur-md border border-white/20 flex items-center justify-center group-active:scale-95 hover:bg-card/25 transition-all duration-200 shadow-lg active:bg-card/15">
             <MessageCircle className="w-7 h-7 text-white group-active:text-primary transition-colors" />
           </div>
           <span className="text-white text-xs font-medium drop-shadow-sm">{formatCount(video.stats.comments)}</span>
@@ -295,7 +295,7 @@ export const UnifiedVideoPlayer = memo<UnifiedVideoPlayerProps>(({
           onClick={() => setShowShareMenu(true)}
           className="group flex flex-col items-center gap-1 transition-all duration-200 active:bg-transparent"
         >
-          <div className="w-14 h-14 rounded-full bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center group-active:scale-95 hover:bg-white/25 transition-all duration-200 shadow-lg active:bg-white/15">
+          <div className="w-14 h-14 rounded-full bg-card/15 backdrop-blur-md border border-white/20 flex items-center justify-center group-active:scale-95 hover:bg-card/25 transition-all duration-200 shadow-lg active:bg-card/15">
             <Share className="w-7 h-7 text-white group-active:text-primary transition-colors" />
           </div>
           <span className="text-white text-xs font-medium drop-shadow-sm">{formatCount(video.stats.shares)}</span>
@@ -309,7 +309,7 @@ export const UnifiedVideoPlayer = memo<UnifiedVideoPlayerProps>(({
             "w-14 h-14 rounded-full backdrop-blur-md border flex items-center justify-center group-active:scale-95 transition-all duration-200 shadow-lg",
             isSaved 
               ? "bg-yellow-500/20 border-yellow-500/30 shadow-yellow-500/25" 
-              : "bg-white/15 border-white/20 hover:bg-white/25"
+              : "bg-card/15 border-white/20 hover:bg-card/25"
           )}>
             <Bookmark className={cn(
               "w-7 h-7 transition-all duration-200",
@@ -323,7 +323,7 @@ export const UnifiedVideoPlayer = memo<UnifiedVideoPlayerProps>(({
           className={cn(
             "w-14 h-14 rounded-full backdrop-blur-md border flex items-center justify-center active:scale-95 transition-all duration-200 shadow-lg",
             isMuted 
-              ? "bg-white/15 border-white/20 hover:bg-white/25" 
+              ? "bg-card/15 border-white/20 hover:bg-card/25" 
               : "bg-blue-500/20 border-blue-500/30 shadow-blue-500/25"
           )}
         >

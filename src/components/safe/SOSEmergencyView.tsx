@@ -44,7 +44,7 @@ export const SOSEmergencyView: React.FC = () => {
       icon: Plus,
       urgency: 'critical' as const,
       description: 'For urgent health-related issues.',
-      color: 'bg-white hover:bg-gray-50',
+      color: 'bg-card hover:bg-muted/30',
       gradient: 'from-white to-gray-50'
     },
     {
@@ -179,7 +179,7 @@ export const SOSEmergencyView: React.FC = () => {
               <Button
                 key={type.id}
                 onClick={() => handleSOSPress(type.id)}
-                className={`${type.color} ${type.id === 'medical' ? 'text-gray-800' : 'text-white'} h-20 flex flex-col items-center justify-center gap-2 font-semibold shadow-2xl transition-all transform active:scale-95 border-0 hover:shadow-[0_0_30px_rgba(239,68,68,0.6)] hover:scale-105 relative overflow-hidden heart-pulse`}
+                className={`${type.color} ${type.id === 'medical' ? 'text-foreground' : 'text-white'} h-20 flex flex-col items-center justify-center gap-2 font-semibold shadow-2xl transition-all transform active:scale-95 border-0 hover:shadow-[0_0_30px_rgba(239,68,68,0.6)] hover:scale-105 relative overflow-hidden heart-pulse`}
                 style={{
                   boxShadow: type.id === 'emergency' 
                     ? '0 0 25px rgba(239, 68, 68, 0.5), 0 8px 32px rgba(0, 0, 0, 0.3)' 
@@ -191,7 +191,7 @@ export const SOSEmergencyView: React.FC = () => {
                 }}
                 aria-label={`Send ${type.label} SOS alert`}
               >
-                <div className={`p-2 rounded-full backdrop-blur-sm shadow-lg ${type.id === 'medical' ? 'bg-red-500' : 'bg-white/30'}`}>
+                <div className={`p-2 rounded-full backdrop-blur-sm shadow-lg ${type.id === 'medical' ? 'bg-red-500' : 'bg-card/30'}`}>
                   <IconComponent className={`h-6 w-6 ${type.id === 'medical' ? 'text-white stroke-[3]' : ''}`} />
                 </div>
                 <span className="text-xs font-bold">{type.label}</span>
@@ -213,7 +213,7 @@ export const SOSEmergencyView: React.FC = () => {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Eye className="h-4 w-4 text-gray-500" />
+              <Eye className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">High Contrast</span>
             </div>
             <Switch
@@ -224,7 +224,7 @@ export const SOSEmergencyView: React.FC = () => {
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {soundEnabled ? <Volume2 className="h-4 w-4 text-gray-500" /> : <VolumeX className="h-4 w-4 text-gray-500" />}
+              {soundEnabled ? <Volume2 className="h-4 w-4 text-muted-foreground" /> : <VolumeX className="h-4 w-4 text-muted-foreground" />}
               <span className="text-sm">Sound & Vibration</span>
             </div>
             <Switch

@@ -114,7 +114,7 @@ const getNotificationBgColor = (type: string) => {
     case 'safety': return 'bg-red-100';
     case 'event': return 'bg-orange-50';
     case 'reward': return 'bg-yellow-50';
-    default: return 'bg-gray-50';
+    default: return 'bg-muted/30';
   }
 };
 
@@ -188,7 +188,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({ isOpen, 
           <TabsContent value={activeTab} className="flex-1 overflow-auto mt-2">
             <div className="space-y-1 px-4 pb-4">
               {filteredNotifications.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-muted-foreground">
                   <MessageCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                   <p>No notifications yet</p>
                   <p className="text-sm">We'll notify you when something happens</p>
@@ -197,8 +197,8 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({ isOpen, 
                 filteredNotifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className={`relative p-2 rounded-lg hover:bg-gray-50 transition-colors border cursor-pointer ${
-                      !notification.isRead ? 'bg-blue-50/50 border-blue-200' : 'bg-white border-gray-100'
+                    className={`relative p-2 rounded-lg hover:bg-muted/30 transition-colors border cursor-pointer ${
+                      !notification.isRead ? 'bg-blue-50/50 border-blue-200' : 'bg-card border-border'
                     }`}
                     onClick={() => markAsRead(notification.id)}
                   >
@@ -216,7 +216,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({ isOpen, 
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between">
-                          <h4 className="font-medium text-sm text-gray-900 truncate">
+                          <h4 className="font-medium text-sm text-foreground truncate">
                             {notification.title}
                           </h4>
                           <div className="flex items-center gap-1 ml-2">
@@ -236,11 +236,11 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({ isOpen, 
                             </Button>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">
+                        <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
                           {notification.description}
                         </p>
                         <div className="flex items-center justify-between mt-1">
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-muted-foreground">
                             {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
                           </span>
                           {notification.type === 'safety' && (

@@ -19,11 +19,11 @@ export const SOSSubCategories: React.FC = () => {
     medical: {
       icon: Heart,
       label: 'Medical Emergency',
-      color: 'bg-white',
+      color: 'bg-card',
       gradient: 'from-white to-gray-50',
       description: 'For urgent health-related issues.',
       bgGradient: 'from-gray-50 to-gray-100',
-      borderColor: 'border-gray-200'
+      borderColor: 'border-border'
     },
     safety: {
       icon: Shield,
@@ -62,7 +62,7 @@ export const SOSSubCategories: React.FC = () => {
         description: 'Mom in labour, pregnancy complications, urgent maternity support.',
         icon: Baby,
         color: 'bg-red-500',
-        borderColor: 'border-gray-200'
+        borderColor: 'border-border'
       },
       {
         id: 'accident-injury',
@@ -70,7 +70,7 @@ export const SOSSubCategories: React.FC = () => {
         description: 'Car crash, fall, cuts, burns, broken bones.',
         icon: Bandage,
         color: 'bg-red-500',
-        borderColor: 'border-gray-200'
+        borderColor: 'border-border'
       },
       {
         id: 'sudden-illness',
@@ -78,7 +78,7 @@ export const SOSSubCategories: React.FC = () => {
         description: 'Heart attack, stroke, asthma, fever in child, allergic reaction.',
         icon: Cross,
         color: 'bg-red-500',
-        borderColor: 'border-gray-200'
+        borderColor: 'border-border'
       },
       {
         id: 'other-medical',
@@ -86,7 +86,7 @@ export const SOSSubCategories: React.FC = () => {
         description: 'Any health-related emergency not listed.',
         icon: Stethoscope,
         color: 'bg-red-500',
-        borderColor: 'border-gray-200'
+        borderColor: 'border-border'
       }
     ],
     lost: [
@@ -224,12 +224,12 @@ export const SOSSubCategories: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={handleBack}
-              className="p-2 hover:bg-white/20"
+              className="p-2 hover:bg-card/20"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className={`p-3 ${currentType.color} rounded-xl shadow-lg border border-gray-200`}>
-              <IconComponent className="h-6 w-6 text-gray-800" />
+            <div className={`p-3 ${currentType.color} rounded-xl shadow-lg border border-border`}>
+              <IconComponent className="h-6 w-6 text-foreground" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">{currentType.label}</h1>
@@ -261,7 +261,7 @@ export const SOSSubCategories: React.FC = () => {
                       <div className={`p-2 ${subCategory.color} rounded-lg shadow-sm`}>
                         <SubIcon className="h-4 w-4 text-white stroke-[3]" />
                       </div>
-                      <h3 className="font-semibold text-gray-900 text-sm">
+                      <h3 className="font-semibold text-foreground text-sm">
                         {subCategory.label}
                       </h3>
                     </div>

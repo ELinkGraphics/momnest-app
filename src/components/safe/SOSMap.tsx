@@ -542,7 +542,7 @@ export const SOSMap: React.FC<SOSMapProps> = ({ userLat, userLng }) => {
               </span>
             </div>
             
-            <p className="text-sm text-gray-700">{selectedEmergencyData.description}</p>
+            <p className="text-sm text-foreground">{selectedEmergencyData.description}</p>
             
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">

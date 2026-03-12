@@ -396,7 +396,7 @@ const CreatePost: React.FC = () => {
           <div className="flex items-center justify-between px-4 py-3 shrink-0" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setPreviewIndex(null)}
-              className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
+              className="h-10 w-10 rounded-full bg-card/10 hover:bg-card/20 flex items-center justify-center transition-all"
             >
               <X className="h-5 w-5 text-white" />
             </button>
@@ -421,7 +421,7 @@ const CreatePost: React.FC = () => {
             {previewIndex > 0 && (
               <button
                 onClick={() => setPreviewIndex(previewIndex - 1)}
-                className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all z-10"
+                className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-card/10 hover:bg-card/20 flex items-center justify-center transition-all z-10"
               >
                 <ChevronLeft className="h-5 w-5 text-white" />
               </button>
@@ -437,7 +437,7 @@ const CreatePost: React.FC = () => {
             {previewIndex < mediaPreviews.length - 1 && (
               <button
                 onClick={() => setPreviewIndex(previewIndex + 1)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all z-10"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-card/10 hover:bg-card/20 flex items-center justify-center transition-all z-10"
               >
                 <ChevronRight className="h-5 w-5 text-white" />
               </button>

@@ -692,26 +692,26 @@ const StoryEditor: React.FC<Props> = ({ previewUrl, mediaType = 'image', initial
     >
       {/* Top bar */}
       <div className="w-full max-w-[390px] flex items-center justify-between p-3 z-30 relative">
-        <button onClick={onCancel} className="p-2 rounded-full bg-white/10 text-white touch-target">
+        <button onClick={onCancel} className="p-2 rounded-full bg-card/10 text-white touch-target">
           <X className="size-5" />
         </button>
         <div className="flex items-center gap-2">
           <button onClick={() => imageInputRef.current?.click()}
-            className="p-2.5 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors touch-target"
+            className="p-2.5 rounded-full bg-card/10 text-white hover:bg-card/20 transition-colors touch-target"
             title="Add image sticker">
             <ImageIcon className="size-5" />
           </button>
           <input ref={imageInputRef} type="file" accept="image/*,video/*" onChange={handleAddImageFile} className="hidden" />
           <button onClick={() => setActiveTool(activeTool === 'text' ? null : 'text')}
-            className={`p-2.5 rounded-full transition-colors touch-target ${activeTool === 'text' ? 'bg-primary text-primary-foreground' : 'bg-white/10 text-white'}`}>
+            className={`p-2.5 rounded-full transition-colors touch-target ${activeTool === 'text' ? 'bg-primary text-primary-foreground' : 'bg-card/10 text-white'}`}>
             <Type className="size-5" />
           </button>
           <button onClick={() => setActiveTool(activeTool === 'sticker' ? null : 'sticker')}
-            className={`p-2.5 rounded-full transition-colors touch-target ${activeTool === 'sticker' ? 'bg-primary text-primary-foreground' : 'bg-white/10 text-white'}`}>
+            className={`p-2.5 rounded-full transition-colors touch-target ${activeTool === 'sticker' ? 'bg-primary text-primary-foreground' : 'bg-card/10 text-white'}`}>
             <Sticker className="size-5" />
           </button>
           <button onClick={() => setActiveTool(activeTool === 'filter' ? null : 'filter')}
-            className={`p-2.5 rounded-full transition-colors touch-target ${activeTool === 'filter' ? 'bg-primary text-primary-foreground' : 'bg-white/10 text-white'}`}>
+            className={`p-2.5 rounded-full transition-colors touch-target ${activeTool === 'filter' ? 'bg-primary text-primary-foreground' : 'bg-card/10 text-white'}`}>
             <Sparkles className="size-5" />
           </button>
         </div>

@@ -235,7 +235,7 @@ const WebRTCLiveSimulation: React.FC<WebRTCLiveSimulationProps> = ({ config, onE
       {/* Live Indicator */}
       <div className="absolute top-4 left-4 flex items-center gap-2">
         <div className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
-          <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+          <div className="w-2 h-2 bg-card rounded-full animate-pulse" />
           LIVE
         </div>
         <div className="bg-black/50 text-white px-2 py-1 rounded text-sm backdrop-blur-sm">
@@ -314,7 +314,7 @@ const WebRTCLiveSimulation: React.FC<WebRTCLiveSimulationProps> = ({ config, onE
             <button
               onClick={toggleMic}
               className={`p-2 rounded-full transition-colors ${
-                isMicMuted ? 'bg-red-500' : 'bg-white/20'
+                isMicMuted ? 'bg-red-500' : 'bg-card/20'
               }`}
             >
               {isMicMuted ? (
@@ -328,7 +328,7 @@ const WebRTCLiveSimulation: React.FC<WebRTCLiveSimulationProps> = ({ config, onE
             <button
               onClick={toggleCamera}
               className={`p-2 rounded-full transition-colors ${
-                isCameraOff ? 'bg-red-500' : 'bg-white/20'
+                isCameraOff ? 'bg-red-500' : 'bg-card/20'
               }`}
             >
               {isCameraOff ? (
@@ -341,7 +341,7 @@ const WebRTCLiveSimulation: React.FC<WebRTCLiveSimulationProps> = ({ config, onE
             {/* Camera Flip */}
             <button 
               onClick={switchCamera}
-              className="p-2 rounded-full bg-white/20"
+              className="p-2 rounded-full bg-card/20"
             >
               <RotateCcw className="w-5 h-5 text-white" />
             </button>
@@ -356,7 +356,7 @@ const WebRTCLiveSimulation: React.FC<WebRTCLiveSimulationProps> = ({ config, onE
 
           <div className="flex items-center gap-2">
             {/* More Options */}
-            <button className="p-2 rounded-full bg-white/20">
+            <button className="p-2 rounded-full bg-card/20">
               <MoreVertical className="w-5 h-5 text-white" />
             </button>
 
@@ -375,16 +375,16 @@ const WebRTCLiveSimulation: React.FC<WebRTCLiveSimulationProps> = ({ config, onE
       {/* End Live Confirmation */}
       {showEndConfirm && (
         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-white rounded-xl p-6 mx-4 max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">End Live Stream?</h3>
-            <p className="text-gray-600 text-sm mb-6">
+          <div className="bg-card rounded-xl p-6 mx-4 max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-foreground mb-2">End Live Stream?</h3>
+            <p className="text-muted-foreground text-sm mb-6">
               You've been live for {formatDuration(duration)} with {(stream as any)?.viewer_count || 0} viewers.
               Are you sure you want to end your live stream?
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowEndConfirm(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-muted/30 transition-colors"
               >
                 Cancel
               </button>

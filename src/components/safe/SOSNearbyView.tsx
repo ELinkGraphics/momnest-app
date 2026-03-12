@@ -320,7 +320,7 @@ export const SOSNearbyView: React.FC = () => {
             <Radio className="h-3 w-3 mr-1" />
             LIVE
           </Badge>
-          <h2 className="text-sm sm:text-lg font-semibold text-gray-900 truncate">
+          <h2 className="text-sm sm:text-lg font-semibold text-foreground truncate">
             {activeEmergencies.length} Active
           </h2>
         </div>
@@ -347,7 +347,7 @@ export const SOSNearbyView: React.FC = () => {
             </Card>
           ) : activeEmergencies.length === 0 ? (
             <Card className="p-8 text-center">
-              <div className="text-gray-500">
+              <div className="text-muted-foreground">
                 <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <h3 className="font-medium mb-2">No Active Emergencies</h3>
                 <p className="text-sm">Your community is safe right now</p>
@@ -368,7 +368,7 @@ export const SOSNearbyView: React.FC = () => {
                         <div className={`absolute -top-1 -right-1 h-3 w-3 sm:h-4 sm:w-4 ${getUrgencyDot(emergency.urgency)} rounded-full border-2 border-white shadow-sm ${emergency.urgency === 'high' ? 'animate-pulse' : ''}`} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm sm:text-base text-gray-900 truncate">
+                        <p className="font-medium text-sm sm:text-base text-foreground truncate">
                           {emergency.profiles?.name || 'Anonymous'}
                         </p>
                         <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
@@ -394,7 +394,7 @@ export const SOSNearbyView: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                      <div className="text-[10px] sm:text-xs text-gray-500 text-right whitespace-nowrap">
+                      <div className="text-[10px] sm:text-xs text-muted-foreground text-right whitespace-nowrap">
                         {formatDistanceToNow(new Date(emergency.created_at), { addSuffix: true }).replace('about ', '')}
                       </div>
                       {(Date.now() - new Date(emergency.created_at).getTime()) < 5 * 60 * 1000 && (
@@ -404,7 +404,7 @@ export const SOSNearbyView: React.FC = () => {
                   </div>
 
                   {/* Description */}
-                  <p className="text-gray-700 text-xs sm:text-sm bg-gray-50 p-2 sm:p-3 rounded-lg break-words">
+                  <p className="text-foreground text-xs sm:text-sm bg-muted/30 p-2 sm:p-3 rounded-lg break-words">
                     {emergency.description}
                   </p>
 
@@ -424,7 +424,7 @@ export const SOSNearbyView: React.FC = () => {
                   )}
 
                   {/* Stats */}
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-gray-500">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground">
                     {emergency.distance && (
                       <div className="flex items-center gap-1 shrink-0">
                         <MapPin className="h-3 w-3 text-blue-500" />
@@ -571,7 +571,7 @@ export const SOSNearbyView: React.FC = () => {
                   >
                     Previous
                   </Button>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-muted-foreground">
                     Page {page + 1} of {totalPages}
                   </span>
                   <Button

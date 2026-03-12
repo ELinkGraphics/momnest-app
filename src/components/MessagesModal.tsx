@@ -236,7 +236,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ isOpen, onClose })
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-md h-[80vh] flex flex-col p-0">
           {/* Chat Header */}
-          <DialogHeader className="p-4 border-b bg-white">
+          <DialogHeader className="p-4 border-b bg-card">
             <div className="flex items-center gap-3">
               <Button
                 size="sm"
@@ -254,7 +254,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ isOpen, onClose })
               
               <div className="flex-1">
                 <h3 className="font-semibold text-sm">{selectedConv.name}</h3>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   {selectedConv.isOnline ? 'Online' : `Active ${formatDistanceToNow(selectedConv.timestamp, { addSuffix: true })}`}
                 </p>
               </div>
@@ -285,12 +285,12 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ isOpen, onClose })
                     className={`max-w-[75%] rounded-lg p-3 ${
                       message.isOwn
                         ? 'bg-primary text-white'
-                        : 'bg-gray-100 text-gray-900'
+                        : 'bg-muted/50 text-foreground'
                     }`}
                   >
                     <p className="text-sm whitespace-pre-line">{message.text}</p>
                     <p className={`text-xs mt-1 ${
-                      message.isOwn ? 'text-white/70' : 'text-gray-500'
+                      message.isOwn ? 'text-white/70' : 'text-muted-foreground'
                     }`}>
                       {formatDistanceToNow(message.timestamp, { addSuffix: true })}
                     </p>
@@ -300,7 +300,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ isOpen, onClose })
               
               {selectedConv.isTyping && (
                 <div className="flex justify-start">
-                  <div className="bg-gray-100 rounded-lg p-3">
+                  <div className="bg-muted/50 rounded-lg p-3">
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -313,7 +313,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ isOpen, onClose })
           </ScrollArea>
 
           {/* Message Input */}
-          <div className="p-4 border-t bg-white">
+          <div className="p-4 border-t bg-card">
             <div className="flex items-center gap-2">
               <Button size="sm" variant="ghost" className="p-2">
                 <Paperclip className="h-4 w-4" />
@@ -387,14 +387,14 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ isOpen, onClose })
         <ScrollArea className="flex-1">
           <div className="space-y-1 p-4">
             {filteredConversations.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-muted-foreground">
                 <p>No conversations found</p>
               </div>
             ) : (
               filteredConversations.map((conversation) => (
                 <div
                   key={conversation.id}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
                   onClick={() => {
                     setSelectedConversation(conversation.id);
                     markConversationAsRead(conversation.id);
@@ -416,7 +416,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ isOpen, onClose })
                         {conversation.name}
                       </h3>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-muted-foreground">
                           {formatDistanceToNow(conversation.timestamp, { addSuffix: true })}
                         </span>
                         {conversation.unreadCount > 0 && (
@@ -426,7 +426,7 @@ export const MessagesModal: React.FC<MessagesModalProps> = ({ isOpen, onClose })
                         )}
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600 truncate mt-1">
+                    <p className="text-sm text-muted-foreground truncate mt-1">
                       {conversation.lastMessage}
                     </p>
                   </div>

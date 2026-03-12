@@ -90,10 +90,10 @@ const CircleDetailModal: React.FC<CircleDetailModalProps> = ({
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" size="icon" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                <Button variant="outline" size="icon" className="bg-card/10 border-white/20 text-white hover:bg-card/20">
                   <MessageCircle className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                <Button variant="outline" size="icon" className="bg-card/10 border-white/20 text-white hover:bg-card/20">
                   <Settings className="h-4 w-4" />
                 </Button>
               </div>

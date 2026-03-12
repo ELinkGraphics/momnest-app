@@ -309,7 +309,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 {post.media.urls.map((_, idx) => (
                   <div
                     key={idx}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentSlide ? 'bg-primary w-4' : 'bg-white/60 w-1.5'}`}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentSlide ? 'bg-primary w-4' : 'bg-card/60 w-1.5'}`}
                   />
                 ))}
               </div>

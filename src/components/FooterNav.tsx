@@ -83,7 +83,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
     return (
       <nav 
         aria-label="Primary" 
-        className="w-full h-[50px] flex items-center justify-center bg-white backdrop-blur-lg border-t border-white/30"
+        className="w-full h-[50px] flex items-center justify-center bg-card backdrop-blur-lg border-t border-white/30"
         role="tablist"
       >
         <div className="grid grid-cols-5 place-items-center h-full w-full max-w-md px-4">
@@ -93,25 +93,25 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
             aria-selected={active === "home"}
             aria-current={active === "home" ? "page" : undefined}
             className={`grid place-items-center size-10 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-all ${
-              active === "home" ? 'bg-white/20' : 'hover:bg-white/10'
+              active === "home" ? 'bg-card/20' : 'hover:bg-card/10'
             }`}
             onClick={() => handleTabClick("home")}
             title="Home"
             aria-label="Home"
           >
-            <Home className={`size-6 ${active === "home" ? 'text-primary' : 'text-gray-600'}`} />
+            <Home className={`size-6 ${active === "home" ? 'text-primary' : 'text-muted-foreground'}`} />
           </button>
 
           <button
             type="button"
             role="tab"
             aria-selected={active === "circles"}
-            className="grid place-items-center size-10 rounded-full hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
+            className="grid place-items-center size-10 rounded-full hover:bg-card/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
             onClick={() => handleTabClick("circles")}
             title="Circles"
             aria-label="Circles"
           >
-            <Users className={`size-6 ${active === "circles" ? 'text-primary' : 'text-gray-600'}`} />
+            <Users className={`size-6 ${active === "circles" ? 'text-primary' : 'text-muted-foreground'}`} />
           </button>
 
             <div className="relative">
@@ -132,7 +132,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
             </button>
             
             {showCreatePopup && active !== 'ask' && (
-              <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-white rounded-full shadow-lg border border-gray-200 transition-opacity duration-200">
+              <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-card rounded-full shadow-lg border border-border transition-opacity duration-200">
                 <div className="flex items-center justify-center px-4 py-2">
                   {CREATE_OPTIONS.map((option, index) => {
                     const IconComponent = option.icon;
@@ -140,10 +140,10 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
                       <button
                         key={option.label}
                         onClick={() => handleCreateOptionClick(option.label)}
-                        className="flex flex-col items-center justify-center py-2 px-3 rounded-xl hover:bg-gray-100 transition-colors group min-w-[50px]"
+                        className="flex flex-col items-center justify-center py-2 px-3 rounded-xl hover:bg-muted/50 transition-colors group min-w-[50px]"
                       >
                         <IconComponent className="size-4 text-primary group-hover:text-primary/80 transition-colors mb-1" />
-                        <span className="text-xs text-gray-600 group-hover:text-primary transition-colors font-medium whitespace-nowrap">
+                        <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors font-medium whitespace-nowrap">
                           {option.label}
                         </span>
                       </button>
@@ -158,24 +158,24 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
             type="button"
             role="tab"
             aria-selected={active === "ask"}
-            className="grid place-items-center size-10 rounded-full hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
+            className="grid place-items-center size-10 rounded-full hover:bg-card/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
             onClick={() => handleTabClick("ask")}
             title="Ask Anonymously"
             aria-label="Ask Anonymously"
           >
-            <HeartHandshake className={`size-6 ${active === "ask" ? 'text-primary' : 'text-gray-600'}`} />
+            <HeartHandshake className={`size-6 ${active === "ask" ? 'text-primary' : 'text-muted-foreground'}`} />
           </button>
 
           <button
             type="button"
             role="tab"
             aria-selected={false}
-            className="relative grid place-items-center size-10 rounded-full hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
+            className="relative grid place-items-center size-10 rounded-full hover:bg-card/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
             onClick={() => handleTabClick("messages")}
             title="Messages"
             aria-label="Messages"
           >
-            <Mail className="size-6 text-gray-600" />
+            <Mail className="size-6 text-muted-foreground" />
             {totalUnreadMessages > 0 && (
               <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] grid place-items-center bg-destructive text-white font-medium">
                 {totalUnreadMessages}
@@ -195,7 +195,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
     >
       <div className="mx-auto max-w-[480px] relative">
         <div
-          className="pointer-events-auto mx-auto w-[92%] h-14 rounded-full bg-white border border-gray-200 shadow-xl"
+          className="pointer-events-auto mx-auto w-[92%] h-14 rounded-full bg-card border border-border shadow-xl"
           role="tablist"
         >
           <div className="grid grid-cols-5 place-items-center h-full px-2">
@@ -205,27 +205,27 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
               aria-selected={active === "home"}
               aria-current={active === "home" ? "page" : undefined}
               className={`grid place-items-center size-10 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-all ${
-                active === "home" ? 'bg-tertiary' : 'hover:bg-gray-50'
+                active === "home" ? 'bg-tertiary' : 'hover:bg-muted/30'
               }`}
               onClick={() => handleTabClick("home")}
               title="Home"
               aria-label="Home"
               data-testid="nav-home"
             >
-              <Home className={`size-6 ${active === "home" ? 'text-primary' : 'text-gray-600'}`} />
+              <Home className={`size-6 ${active === "home" ? 'text-primary' : 'text-muted-foreground'}`} />
             </button>
 
             <button
               type="button"
               role="tab"
               aria-selected={active === "circles"}
-              className="grid place-items-center size-10 rounded-full hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
+              className="grid place-items-center size-10 rounded-full hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
               onClick={() => handleTabClick("circles")}
               title="Circles"
               aria-label="Circles"
               data-testid="nav-circles"
             >
-              <Users className={`size-6 ${active === "circles" ? 'text-primary' : 'text-gray-600'}`} />
+              <Users className={`size-6 ${active === "circles" ? 'text-primary' : 'text-muted-foreground'}`} />
             </button>
 
             <div className="relative">
@@ -247,7 +247,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
               </button>
               
               {showCreatePopup && active !== 'ask' && (
-                <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-white rounded-full shadow-lg border border-gray-200 transition-opacity duration-200" data-testid="create-popup">
+                <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 bg-card rounded-full shadow-lg border border-border transition-opacity duration-200" data-testid="create-popup">
                   <div className="flex items-center justify-center px-4 py-2">
                     {CREATE_OPTIONS.map((option, index) => {
                       const IconComponent = option.icon;
@@ -255,11 +255,11 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
                         <button
                           key={option.label}
                           onClick={() => handleCreateOptionClick(option.label)}
-                          className="flex flex-col items-center justify-center py-2 px-3 rounded-xl hover:bg-gray-100 transition-colors group min-w-[50px]"
+                          className="flex flex-col items-center justify-center py-2 px-3 rounded-xl hover:bg-muted/50 transition-colors group min-w-[50px]"
                           data-testid={`create-${option.label.toLowerCase().replace(' ', '-')}`}
                         >
                           <IconComponent className="size-4 text-primary group-hover:text-primary/80 transition-colors mb-1" />
-                          <span className="text-xs text-gray-600 group-hover:text-primary transition-colors font-medium whitespace-nowrap">
+                          <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors font-medium whitespace-nowrap">
                             {option.label}
                           </span>
                         </button>
@@ -274,26 +274,26 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
               type="button"
               role="tab"
               aria-selected={active === "ask"}
-              className="grid place-items-center size-10 rounded-full hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
+              className="grid place-items-center size-10 rounded-full hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
               onClick={() => handleTabClick("ask")}
               title="Ask Anonymously"
               aria-label="Ask Anonymously"
               data-testid="nav-ask"
             >
-              <HeartHandshake className={`size-6 ${active === "ask" ? 'text-primary' : 'text-gray-600'}`} />
+              <HeartHandshake className={`size-6 ${active === "ask" ? 'text-primary' : 'text-muted-foreground'}`} />
             </button>
 
             <button
               type="button"
               role="tab"
               aria-selected={false}
-              className="relative grid place-items-center size-10 rounded-full hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
+              className="relative grid place-items-center size-10 rounded-full hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
               onClick={() => handleTabClick("messages")}
               title="Messages"
               aria-label="Messages"
               data-testid="nav-messages"
             >
-              <Mail className="size-6 text-gray-600" />
+              <Mail className="size-6 text-muted-foreground" />
               {totalUnreadMessages > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] grid place-items-center bg-destructive text-white font-medium">
                   {totalUnreadMessages}

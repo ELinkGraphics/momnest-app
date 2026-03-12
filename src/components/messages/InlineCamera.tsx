@@ -155,7 +155,7 @@ const InlineCamera: React.FC<InlineCameraProps> = ({ onCapture, onClose }) => {
               <p className="text-white/70 text-sm">{error}</p>
               <button
                 onClick={onClose}
-                className="mt-4 px-6 py-2 bg-white/10 rounded-full text-white text-sm active:bg-white/20 transition-colors"
+                className="mt-4 px-6 py-2 bg-card/10 rounded-full text-white text-sm active:bg-card/20 transition-colors"
               >
                 Close
               </button>
@@ -195,7 +195,7 @@ const InlineCamera: React.FC<InlineCameraProps> = ({ onCapture, onClose }) => {
               onClick={handleRetake}
               className="flex flex-col items-center gap-1.5"
             >
-              <div className="h-14 w-14 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center active:scale-95 transition-transform border border-white/20">
+              <div className="h-14 w-14 rounded-full bg-card/10 backdrop-blur-sm flex items-center justify-center active:scale-95 transition-transform border border-white/20">
                 <X className="h-6 w-6 text-white" />
               </div>
               <span className="text-white/60 text-[10px] font-medium">Retake</span>
@@ -219,7 +219,7 @@ const InlineCamera: React.FC<InlineCameraProps> = ({ onCapture, onClose }) => {
               <button
                 type="button"
                 onClick={() => handleZoom(Math.max(1, zoom - 0.5))}
-                className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20 transition-colors"
+                className="h-8 w-8 rounded-full bg-card/10 flex items-center justify-center active:bg-card/20 transition-colors"
               >
                 <ZoomOut className="h-3.5 w-3.5 text-white/70" />
               </button>
@@ -229,7 +229,7 @@ const InlineCamera: React.FC<InlineCameraProps> = ({ onCapture, onClose }) => {
               <button
                 type="button"
                 onClick={() => handleZoom(Math.min(5, zoom + 0.5))}
-                className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20 transition-colors"
+                className="h-8 w-8 rounded-full bg-card/10 flex items-center justify-center active:bg-card/20 transition-colors"
               >
                 <ZoomIn className="h-3.5 w-3.5 text-white/70" />
               </button>
@@ -244,13 +244,13 @@ const InlineCamera: React.FC<InlineCameraProps> = ({ onCapture, onClose }) => {
                 disabled={!isReady}
                 className="h-[72px] w-[72px] rounded-full border-[4px] border-white flex items-center justify-center active:scale-95 transition-transform disabled:opacity-30"
               >
-                <div className="h-[60px] w-[60px] rounded-full bg-white active:bg-white/80 transition-colors" />
+                <div className="h-[60px] w-[60px] rounded-full bg-card active:bg-card/80 transition-colors" />
               </button>
               {hasMultipleCameras ? (
                 <button
                   type="button"
                   onClick={switchCamera}
-                  className="h-12 w-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center active:scale-95 transition-transform border border-white/10"
+                  className="h-12 w-12 rounded-full bg-card/10 backdrop-blur-sm flex items-center justify-center active:scale-95 transition-transform border border-white/10"
                 >
                   <SwitchCamera className="h-5 w-5 text-white" />
                 </button>

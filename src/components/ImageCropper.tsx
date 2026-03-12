@@ -181,7 +181,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
         <button
           type="button"
           onClick={onCancel}
-          className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 border border-white/10 flex items-center justify-center transition-all"
+          className="h-10 w-10 rounded-full bg-card/10 hover:bg-card/20 active:bg-card/30 border border-white/10 flex items-center justify-center transition-all"
         >
           <X className="h-5 w-5 text-white/90" />
         </button>
@@ -238,7 +238,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
                     isActive
                       ? 'bg-secondary text-secondary-foreground shadow-lg shadow-secondary/30'
-                      : 'bg-white/8 text-white/60 hover:bg-white/15 hover:text-white/80 active:bg-white/20'
+                      : 'bg-card/8 text-white/60 hover:bg-card/15 hover:text-white/80 active:bg-card/20'
                   }`}
                 >
                   {preset.label}
@@ -255,7 +255,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
             onClick={() => setActiveControl('zoom')}
             className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
               activeControl === 'zoom'
-                ? 'bg-white/15 text-white'
+                ? 'bg-card/15 text-white'
                 : 'text-white/40 hover:text-white/60'
             }`}
           >
@@ -266,7 +266,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
             onClick={() => setActiveControl('rotate')}
             className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
               activeControl === 'rotate'
-                ? 'bg-white/15 text-white'
+                ? 'bg-card/15 text-white'
                 : 'text-white/40 hover:text-white/60'
             }`}
           >
@@ -281,7 +281,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
               <button
                 type="button"
                 onClick={() => setZoom(Math.max(0.5, zoom - 0.2))}
-                className="h-8 w-8 rounded-full bg-white/8 hover:bg-white/15 active:bg-white/20 flex items-center justify-center transition-all"
+                className="h-8 w-8 rounded-full bg-card/8 hover:bg-card/15 active:bg-card/20 flex items-center justify-center transition-all"
               >
                 <ZoomOut className="h-3.5 w-3.5 text-white/70" />
               </button>
@@ -292,13 +292,13 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
                   max={5}
                   step={0.05}
                   onValueChange={(val) => setZoom(val[0])}
-                  className="[&_[role=slider]]:bg-secondary [&_[role=slider]]:border-secondary [&_[role=slider]]:shadow-lg [&_[role=slider]]:shadow-secondary/30 [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&>span:first-child]:bg-white/15 [&>span:first-child>span]:bg-secondary"
+                  className="[&_[role=slider]]:bg-secondary [&_[role=slider]]:border-secondary [&_[role=slider]]:shadow-lg [&_[role=slider]]:shadow-secondary/30 [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&>span:first-child]:bg-card/15 [&>span:first-child>span]:bg-secondary"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => setZoom(Math.min(5, zoom + 0.2))}
-                className="h-8 w-8 rounded-full bg-white/8 hover:bg-white/15 active:bg-white/20 flex items-center justify-center transition-all"
+                className="h-8 w-8 rounded-full bg-card/8 hover:bg-card/15 active:bg-card/20 flex items-center justify-center transition-all"
               >
                 <ZoomIn className="h-3.5 w-3.5 text-white/70" />
               </button>
@@ -308,7 +308,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
               <button
                 type="button"
                 onClick={() => setRotation(r => r - 15)}
-                className="h-8 w-8 rounded-full bg-white/8 hover:bg-white/15 active:bg-white/20 flex items-center justify-center transition-all"
+                className="h-8 w-8 rounded-full bg-card/8 hover:bg-card/15 active:bg-card/20 flex items-center justify-center transition-all"
               >
                 <RotateCcw className="h-3.5 w-3.5 text-white/70" />
               </button>
@@ -319,13 +319,13 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
                   max={180}
                   step={1}
                   onValueChange={(val) => setRotation(val[0])}
-                  className="[&_[role=slider]]:bg-secondary [&_[role=slider]]:border-secondary [&_[role=slider]]:shadow-lg [&_[role=slider]]:shadow-secondary/30 [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&>span:first-child]:bg-white/15 [&>span:first-child>span]:bg-secondary"
+                  className="[&_[role=slider]]:bg-secondary [&_[role=slider]]:border-secondary [&_[role=slider]]:shadow-lg [&_[role=slider]]:shadow-secondary/30 [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&>span:first-child]:bg-card/15 [&>span:first-child>span]:bg-secondary"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => setRotation(r => r + 15)}
-                className="h-8 w-8 rounded-full bg-white/8 hover:bg-white/15 active:bg-white/20 flex items-center justify-center transition-all"
+                className="h-8 w-8 rounded-full bg-card/8 hover:bg-card/15 active:bg-card/20 flex items-center justify-center transition-all"
               >
                 <RotateCw className="h-3.5 w-3.5 text-white/70" />
               </button>
@@ -339,7 +339,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
             type="button"
             onClick={() => setFlipH(f => !f)}
             className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all ${
-              flipH ? 'bg-secondary/20 text-secondary' : 'text-white/50 hover:text-white/70 active:bg-white/10'
+              flipH ? 'bg-secondary/20 text-secondary' : 'text-white/50 hover:text-white/70 active:bg-card/10'
             }`}
           >
             <FlipHorizontal className="h-4 w-4" />
@@ -349,7 +349,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
             type="button"
             onClick={() => setFlipV(f => !f)}
             className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all ${
-              flipV ? 'bg-secondary/20 text-secondary' : 'text-white/50 hover:text-white/70 active:bg-white/10'
+              flipV ? 'bg-secondary/20 text-secondary' : 'text-white/50 hover:text-white/70 active:bg-card/10'
             }`}
           >
             <FlipVertical className="h-4 w-4" />
@@ -358,7 +358,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
           <button
             type="button"
             onClick={() => setRotation(r => (r + 90) % 360)}
-            className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-white/50 hover:text-white/70 active:bg-white/10 transition-all"
+            className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-white/50 hover:text-white/70 active:bg-card/10 transition-all"
           >
             <RotateCw className="h-4 w-4" />
             <span className="text-[10px] font-medium">90°</span>
@@ -366,7 +366,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
           <button
             type="button"
             onClick={handleReset}
-            className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-white/50 hover:text-white/70 active:bg-white/10 transition-all"
+            className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-white/50 hover:text-white/70 active:bg-card/10 transition-all"
           >
             <RefreshCw className="h-4 w-4" />
             <span className="text-[10px] font-medium">Reset</span>

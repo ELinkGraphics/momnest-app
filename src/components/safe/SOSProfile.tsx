@@ -102,8 +102,8 @@ export const SOSProfile: React.FC = () => {
           <div className="inline-flex items-center justify-center h-20 w-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl text-white shadow-xl mb-4">
             <Shield className="h-10 w-10" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Become a Helper</h2>
-          <p className="text-gray-600 mb-6 max-w-md mx-auto">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Become a Helper</h2>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             Join our community of heroes and make a real difference in emergency situations. 
             Help people when they need it most.
           </p>
@@ -247,14 +247,14 @@ export const SOSProfile: React.FC = () => {
                 className={`text-center p-2 sm:p-3 rounded-xl border transition-all ${
                   achievement.earned
                     ? 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 shadow-sm'
-                    : 'bg-gray-50 border-gray-200 opacity-50'
+                    : 'bg-muted/30 border-border opacity-50'
                 }`}
               >
                 <div className={`mb-1 sm:mb-2 flex justify-center ${achievement.earned ? achievement.color : 'text-gray-400'}`}>
                   <IconComponent className="h-5 w-5 sm:h-6 sm:w-6" />
                 </div>
                 <div className={`text-[9px] sm:text-xs font-medium leading-tight ${
-                  achievement.earned ? 'text-purple-700' : 'text-gray-500'
+                  achievement.earned ? 'text-purple-700' : 'text-muted-foreground'
                 }`}>
                   {achievement.name}
                 </div>
@@ -267,7 +267,7 @@ export const SOSProfile: React.FC = () => {
       {/* Recent Activity */}
       <Card className="p-4">
         <h3 className="font-medium mb-3 flex items-center gap-2">
-          <Clock className="h-4 w-4 text-gray-500" />
+          <Clock className="h-4 w-4 text-muted-foreground" />
           Recent Activity
         </h3>
         {activityLoading ? (
@@ -292,19 +292,19 @@ export const SOSProfile: React.FC = () => {
               const IconComponent = getIcon(activity.type);
               
               return (
-                <div key={activity.id} className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-xl border border-gray-100">
-                  <div className="p-1.5 sm:p-2 bg-white rounded-lg shadow-sm border shrink-0">
-                    <IconComponent className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
+                <div key={activity.id} className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-muted/30 rounded-xl border border-border">
+                  <div className="p-1.5 sm:p-2 bg-card rounded-lg shadow-sm border shrink-0">
+                    <IconComponent className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm font-medium text-gray-900 break-words">{activity.action}</p>
+                    <p className="text-xs sm:text-sm font-medium text-foreground break-words">{activity.action}</p>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1">
-                      <span className="text-[10px] sm:text-xs text-gray-500 whitespace-nowrap">
+                      <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
                         {formatDistanceToNow(new Date(activity.time), { addSuffix: true }).replace('about ', '')}
                       </span>
                       <div className="flex items-center gap-1 min-w-0">
                         <MapPin className="h-3 w-3 text-gray-400 shrink-0" />
-                        <span className="text-[10px] sm:text-xs text-gray-500 truncate">{activity.location}</span>
+                        <span className="text-[10px] sm:text-xs text-muted-foreground truncate">{activity.location}</span>
                       </div>
                     </div>
                   </div>
@@ -315,7 +315,7 @@ export const SOSProfile: React.FC = () => {
                       ? 'bg-blue-100 text-blue-700 border-blue-200'
                       : activity.status === 'arrived'
                       ? 'bg-amber-100 text-amber-700 border-amber-200'
-                      : 'bg-gray-100 text-gray-700 border-gray-200'
+                      : 'bg-muted/50 text-foreground border-border'
                   } text-[10px] sm:text-xs shrink-0`}>
                     {activity.status === 'completed' ? 'Done' : 
                      activity.status === 'responding' ? 'Active' :

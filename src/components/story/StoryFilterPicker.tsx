@@ -35,7 +35,7 @@ const StoryFilterPicker: React.FC<Props> = ({ previewUrl, selected, onSelect, on
       {/* Header */}
       <div className="flex items-center justify-between p-3">
         <h3 className="text-white font-semibold">Filters</h3>
-        <button onClick={onClose} className="p-1.5 rounded-full bg-white/10 text-white">
+        <button onClick={onClose} className="p-1.5 rounded-full bg-card/10 text-white">
           <X className="size-4" />
         </button>
       </div>

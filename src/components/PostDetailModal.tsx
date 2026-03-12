@@ -33,7 +33,7 @@ const CommentItem: React.FC<{ comment: Comment }> = ({ comment }) => {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="font-medium text-username text-foreground">{comment.user.name}</span>
-          <span className="text-timestamp text-gray-500">{comment.time}</span>
+          <span className="text-timestamp text-muted-foreground">{comment.time}</span>
         </div>
         <p className="text-comment-text text-foreground leading-relaxed">{comment.content}</p>
         <div className="flex items-center gap-4 mt-2">
@@ -104,12 +104,12 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
         aria-labelledby="post-detail-title"
       >
         {/* Header */}
-        <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center justify-between">
           <h2 id="post-detail-title" className="font-semibold text-lg">Post</h2>
           <button
             onClick={onClose}
             aria-label="Close post detail"
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-muted/50 rounded-full transition-colors"
           >
             <X className="size-5" />
           </button>
@@ -131,22 +131,22 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
                   <span className="font-semibold text-foreground">{post.user.name}</span>
                   {post.user.verified && (
                     <div className="size-4 bg-primary rounded-full flex items-center justify-center">
-                      <div className="size-2 bg-white rounded-full" />
+                      <div className="size-2 bg-card rounded-full" />
                     </div>
                   )}
                   {post.sponsored && (
-                    <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full text-gray-600">
+                    <span className="text-xs px-2 py-0.5 bg-muted/50 rounded-full text-muted-foreground">
                       Sponsored
                     </span>
                   )}
                 </div>
-                <p className="text-timestamp text-gray-500">{formatTimeAgo(post.time)}</p>
+                <p className="text-timestamp text-muted-foreground">{formatTimeAgo(post.time)}</p>
               </div>
               <button 
                 aria-label="More options"
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2 hover:bg-muted/50 rounded-full transition-colors"
               >
-                <MoreHorizontal className="size-5 text-gray-500" />
+                <MoreHorizontal className="size-5 text-muted-foreground" />
               </button>
             </div>
 
@@ -200,8 +200,8 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
                           key={idx}
                           className={`w-2 h-2 rounded-full transition-all ${
                             idx === currentSlide 
-                              ? 'bg-white w-2.5' 
-                              : 'bg-white/50'
+                              ? 'bg-card w-2.5' 
+                              : 'bg-card/50'
                           }`}
                         />
                       ))}
@@ -221,7 +221,7 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
             ) : null}
 
             {/* Stats */}
-            <div className="flex items-center justify-between py-3 border-b border-gray-200 mb-4">
+            <div className="flex items-center justify-between py-3 border-b border-border mb-4">
               <div className="flex items-center gap-6">
                 <button 
                   aria-label={`Like post by ${post.user.name}`}
@@ -262,7 +262,7 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-8">
+                <p className="text-muted-foreground text-center py-8">
                   No comments yet. Be the first to comment!
                 </p>
               )}

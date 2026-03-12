@@ -17,7 +17,7 @@ const EMERGENCY_TYPES = [
   { id: 'fire', label: 'Fire/Hazard', color: 'bg-red-100 text-red-800 border-red-200' },
   { id: 'accident', label: 'Accident', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
   { id: 'natural', label: 'Natural Disaster', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-  { id: 'other', label: 'Other Emergency', color: 'bg-gray-100 text-gray-800 border-gray-200' },
+  { id: 'other', label: 'Other Emergency', color: 'bg-muted/50 text-foreground border-border' },
 ];
 
 export const EmergencyRequest: React.FC = () => {
@@ -143,11 +143,11 @@ export const EmergencyRequest: React.FC = () => {
       </Alert>
 
       <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4 text-gray-900">Request Emergency Help</h2>
+        <h2 className="text-lg font-semibold mb-4 text-foreground">Request Emergency Help</h2>
         
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-3 block">Emergency Type</label>
+            <label className="text-sm font-medium text-foreground mb-3 block">Emergency Type</label>
             <div className="grid grid-cols-2 gap-2">
               {EMERGENCY_TYPES.map((type) => (
                 <button
@@ -156,7 +156,7 @@ export const EmergencyRequest: React.FC = () => {
                   className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
                     selectedType === type.id 
                       ? type.color 
-                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                      : 'bg-card border-border text-muted-foreground hover:bg-muted/30'
                   }`}
                 >
                   {type.label}
@@ -166,7 +166,7 @@ export const EmergencyRequest: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="description" className="text-sm font-medium text-gray-700 mb-2 block">
+            <label htmlFor="description" className="text-sm font-medium text-foreground mb-2 block">
               Describe the situation
             </label>
             <Textarea

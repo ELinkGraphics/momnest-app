@@ -172,7 +172,7 @@ const WebRTCLiveViewer: React.FC<WebRTCLiveViewerProps> = ({ streamId, onClose }
           
           <button
             onClick={onClose}
-            className="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+            className="p-2 rounded-full bg-card/20 backdrop-blur-sm hover:bg-card/30 transition-colors"
           >
             <X className="w-5 h-5 text-white" />
           </button>

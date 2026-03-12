@@ -490,13 +490,13 @@ export const SOSMapInteractive: React.FC<SOSMapInteractiveProps> = ({ userLat, u
                 onClick={() => setSelectedEmergency(null)}
                 className="absolute top-2 right-2 z-10"
               >
-                <X className="h-4 w-4 text-gray-500 hover:text-gray-700" />
+                <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
               </button>
               
               <div className="space-y-2 sm:space-y-3">
                 <div className="flex items-start justify-between pr-6 gap-2">
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-sm sm:text-base text-gray-900 truncate">
+                    <h3 className="font-semibold text-sm sm:text-base text-foreground truncate">
                       {selectedEmergencyData.profiles?.name || 'Anonymous'}
                     </h3>
                     <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
@@ -517,16 +517,16 @@ export const SOSMapInteractive: React.FC<SOSMapInteractiveProps> = ({ userLat, u
                       </Badge>
                     </div>
                   </div>
-                  <span className="text-[10px] sm:text-xs text-gray-500 whitespace-nowrap">
+                  <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
                     {formatDistanceToNow(new Date(selectedEmergencyData.created_at), { addSuffix: true }).replace('about ', '')}
                   </span>
                 </div>
                 
-                <p className="text-xs sm:text-sm text-gray-700 line-clamp-2">
+                <p className="text-xs sm:text-sm text-foreground line-clamp-2">
                   {selectedEmergencyData.description}
                 </p>
                 
-                <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-gray-500">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <MapPin className="h-3 w-3 flex-shrink-0" />
                     <span className="truncate">{selectedEmergencyData.distance ? `${selectedEmergencyData.distance} km` : selectedEmergencyData.location_address}</span>

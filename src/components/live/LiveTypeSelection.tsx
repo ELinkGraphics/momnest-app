@@ -64,7 +64,7 @@ const LiveTypeSelection: React.FC<LiveTypeSelectionProps> = ({ onTypeSelect }) =
         {/* Random Live */}
         <button
           onClick={() => onTypeSelect('random')}
-          className="w-full p-3 bg-white/10 backdrop-blur-md border border-white/15 rounded-lg hover:bg-white/20 transition-all group text-left"
+          className="w-full p-3 bg-card/10 backdrop-blur-md border border-white/15 rounded-lg hover:bg-card/20 transition-all group text-left"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -124,7 +124,7 @@ const LiveTypeSelection: React.FC<LiveTypeSelectionProps> = ({ onTypeSelect }) =
                 <button
                   key={circle.id}
                   onClick={() => onTypeSelect('circle', circle.id, circle.name)}
-                  className="w-full p-2.5 bg-white/10 backdrop-blur-md border border-white/15 rounded-lg hover:bg-white/20 transition-all group text-left"
+                  className="w-full p-2.5 bg-card/10 backdrop-blur-md border border-white/15 rounded-lg hover:bg-card/20 transition-all group text-left"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -152,7 +152,7 @@ const LiveTypeSelection: React.FC<LiveTypeSelectionProps> = ({ onTypeSelect }) =
                 </button>
               ))
             ) : (
-              <div className="text-center p-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-lg">
+              <div className="text-center p-3 bg-card/5 backdrop-blur-md border border-white/10 rounded-lg">
                 <div className="text-muted-foreground text-xs">
                   No circles created yet
                 </div>

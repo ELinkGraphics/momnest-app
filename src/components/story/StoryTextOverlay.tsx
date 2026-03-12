@@ -109,23 +109,23 @@ const StoryTextOverlay: React.FC<Props> = ({ onAdd, onClose }) => {
         {/* Format buttons */}
         <div className="flex items-center justify-center gap-2">
           <button onClick={() => setFontWeight(fontWeight === 'bold' ? 'normal' : 'bold')}
-            className={`p-2 rounded-lg ${fontWeight === 'bold' ? 'bg-white/30' : 'bg-white/10'} text-white`}>
+            className={`p-2 rounded-lg ${fontWeight === 'bold' ? 'bg-card/30' : 'bg-card/10'} text-white`}>
             <Bold className="size-4" />
           </button>
           <button onClick={() => setFontStyle(fontStyle === 'italic' ? 'normal' : 'italic')}
-            className={`p-2 rounded-lg ${fontStyle === 'italic' ? 'bg-white/30' : 'bg-white/10'} text-white`}>
+            className={`p-2 rounded-lg ${fontStyle === 'italic' ? 'bg-card/30' : 'bg-card/10'} text-white`}>
             <Italic className="size-4" />
           </button>
           <button onClick={() => setTextAlign('left')}
-            className={`p-2 rounded-lg ${textAlign === 'left' ? 'bg-white/30' : 'bg-white/10'} text-white`}>
+            className={`p-2 rounded-lg ${textAlign === 'left' ? 'bg-card/30' : 'bg-card/10'} text-white`}>
             <AlignLeft className="size-4" />
           </button>
           <button onClick={() => setTextAlign('center')}
-            className={`p-2 rounded-lg ${textAlign === 'center' ? 'bg-white/30' : 'bg-white/10'} text-white`}>
+            className={`p-2 rounded-lg ${textAlign === 'center' ? 'bg-card/30' : 'bg-card/10'} text-white`}>
             <AlignCenter className="size-4" />
           </button>
           <button onClick={() => setTextAlign('right')}
-            className={`p-2 rounded-lg ${textAlign === 'right' ? 'bg-white/30' : 'bg-white/10'} text-white`}>
+            className={`p-2 rounded-lg ${textAlign === 'right' ? 'bg-card/30' : 'bg-card/10'} text-white`}>
             <AlignRight className="size-4" />
           </button>
         </div>

@@ -253,7 +253,7 @@ const MessageBubble: React.FC<{ message: CircleMessage; isOwn: boolean }> = ({ m
         )}
         <div className={`rounded-[20px] px-[18px] py-[10px] text-[15px] tracking-[-0.01em] shadow-[0_4px_24px_rgba(0,0,0,0.04)] backdrop-blur-3xl backdrop-saturate-200 border ${isOwn
           ? 'bg-gradient-to-tr from-primary/95 to-primary/85 border-white/15 text-white rounded-br-[6px]'
-          : 'bg-white/85 dark:bg-[#1C1C1E]/85 border-black/5 dark:border-white/10 text-foreground rounded-bl-[6px]'
+          : 'bg-card/85 dark:bg-[#1C1C1E]/85 border-black/5 dark:border-white/10 text-foreground rounded-bl-[6px]'
           }`}>
           <p className="whitespace-pre-wrap break-words">{message.content}</p>
           <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>

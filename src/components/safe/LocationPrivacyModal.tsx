@@ -56,7 +56,7 @@ export const LocationPrivacyModal: React.FC<LocationPrivacyModalProps> = ({
           <div className="space-y-4">
             <div>
               <Label className="text-base font-medium">Alert Radius</Label>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Helpers within this distance will be notified of your emergency
               </p>
             </div>
@@ -64,10 +64,10 @@ export const LocationPrivacyModal: React.FC<LocationPrivacyModalProps> = ({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-gray-600" />
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium">{radius} km radius</span>
                 </div>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted-foreground">
                   ~{Math.round(Math.PI * radius * radius)} km² area
                 </span>
               </div>
@@ -81,14 +81,14 @@ export const LocationPrivacyModal: React.FC<LocationPrivacyModalProps> = ({
                 className="w-full"
               />
 
-              <div className="flex justify-between text-xs text-gray-500">
+              <div className="flex justify-between text-xs text-muted-foreground">
                 <span>1 km (Very close)</span>
                 <span>20 km (Wide area)</span>
               </div>
             </div>
 
             {/* Visual Indicator */}
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className="bg-muted/30 rounded-lg p-4">
               <div className="flex items-center justify-center">
                 <div className="relative">
                   <div 
@@ -111,12 +111,12 @@ export const LocationPrivacyModal: React.FC<LocationPrivacyModalProps> = ({
           </div>
 
           {/* Who Can See */}
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <div className="bg-muted/30 rounded-lg p-4 space-y-3">
             <h4 className="font-medium text-sm flex items-center gap-2">
               <Eye className="h-4 w-4" />
               Who can see your location:
             </h4>
-            <div className="space-y-2 text-sm text-gray-700">
+            <div className="space-y-2 text-sm text-foreground">
               <div className="flex items-start gap-2">
                 <div className="h-5 w-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                   <div className="h-2 w-2 rounded-full bg-green-600" />
@@ -132,12 +132,12 @@ export const LocationPrivacyModal: React.FC<LocationPrivacyModalProps> = ({
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <div className="bg-muted/30 rounded-lg p-4 space-y-3">
             <h4 className="font-medium text-sm flex items-center gap-2">
               <EyeOff className="h-4 w-4" />
               Who cannot see your location:
             </h4>
-            <div className="space-y-2 text-sm text-gray-700">
+            <div className="space-y-2 text-sm text-foreground">
               <div className="flex items-start gap-2">
                 <div className="h-5 w-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
                   <X className="h-3 w-3 text-red-600" />

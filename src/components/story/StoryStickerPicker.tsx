@@ -182,7 +182,7 @@ const StoryStickerPicker: React.FC<Props> = ({ onAdd, onClose }) => {
       {/* Header */}
       <div className="flex items-center justify-between p-3">
         <h3 className="text-white font-semibold text-lg">Stickers</h3>
-        <button onClick={onClose} className="p-2 rounded-full bg-white/10 text-white">
+        <button onClick={onClose} className="p-2 rounded-full bg-card/10 text-white">
           <X className="size-5" />
         </button>
       </div>
@@ -190,11 +190,11 @@ const StoryStickerPicker: React.FC<Props> = ({ onAdd, onClose }) => {
       {/* Tabs */}
       <div className="flex gap-2 px-3 mb-3">
         <button onClick={() => { setTab('stickers'); setSelectedInfoType(null); }}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${tab === 'stickers' ? 'bg-primary text-primary-foreground' : 'bg-white/10 text-white/70'}`}>
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${tab === 'stickers' ? 'bg-primary text-primary-foreground' : 'bg-card/10 text-white/70'}`}>
           <Smile className="size-4 inline mr-1" /> Emoji
         </button>
         <button onClick={() => setTab('info')}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${tab === 'info' ? 'bg-primary text-primary-foreground' : 'bg-white/10 text-white/70'}`}>
+          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${tab === 'info' ? 'bg-primary text-primary-foreground' : 'bg-card/10 text-white/70'}`}>
           <MapPin className="size-4 inline mr-1" /> Info
         </button>
       </div>
@@ -207,13 +207,13 @@ const StoryStickerPicker: React.FC<Props> = ({ onAdd, onClose }) => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search stickers..."
-                className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
+                className="bg-card/10 border-white/20 text-white placeholder:text-white/40"
               />
             </div>
             <div className="grid grid-cols-8 gap-1">
               {EMOJI_STICKERS.map((emoji) => (
                 <button key={emoji} onClick={() => handleEmojiSelect(emoji)}
-                  className="aspect-square flex items-center justify-center text-2xl rounded-lg hover:bg-white/10 active:scale-90 transition-all">
+                  className="aspect-square flex items-center justify-center text-2xl rounded-lg hover:bg-card/10 active:scale-90 transition-all">
                   {emoji}
                 </button>
               ))}
@@ -225,8 +225,8 @@ const StoryStickerPicker: React.FC<Props> = ({ onAdd, onClose }) => {
           <div className="grid grid-cols-2 gap-3">
             {INFO_STICKERS.map((info) => (
               <button key={info.type} onClick={() => setSelectedInfoType(info)}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white">
-                <div className="size-12 rounded-full bg-white/10 flex items-center justify-center">
+                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card/10 hover:bg-card/20 transition-colors text-white">
+                <div className="size-12 rounded-full bg-card/10 flex items-center justify-center">
                   {info.icon}
                 </div>
                 <span className="text-sm font-medium">{info.label}</span>
@@ -242,7 +242,7 @@ const StoryStickerPicker: React.FC<Props> = ({ onAdd, onClose }) => {
               ← Back
             </button>
             <div className="flex items-center gap-3 text-white">
-              <div className="size-10 rounded-full bg-white/10 flex items-center justify-center">
+              <div className="size-10 rounded-full bg-card/10 flex items-center justify-center">
                 {selectedInfoType.icon}
               </div>
               <span className="font-medium">{selectedInfoType.label}</span>
@@ -252,7 +252,7 @@ const StoryStickerPicker: React.FC<Props> = ({ onAdd, onClose }) => {
               onChange={(e) => setInfoInput(e.target.value)}
               placeholder={selectedInfoType.placeholder}
               autoFocus
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
+              className="bg-card/10 border-white/20 text-white placeholder:text-white/40"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && selectedInfoType.type !== 'mention' && selectedInfoType.type !== 'location') handleInfoAdd();
               }}
@@ -283,8 +283,8 @@ const StoryStickerPicker: React.FC<Props> = ({ onAdd, onClose }) => {
                     setSelectedInfoType(null);
                     setLocationResults([]);
                   }}
-                    className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-white/5 hover:bg-white/15 transition-colors text-white text-left">
-                    <div className="size-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-card/5 hover:bg-card/15 transition-colors text-white text-left">
+                    <div className="size-9 rounded-full bg-card/10 flex items-center justify-center shrink-0">
                       <MapPin className="size-4" />
                     </div>
                     <p className="text-sm truncate">{loc}</p>
@@ -293,7 +293,7 @@ const StoryStickerPicker: React.FC<Props> = ({ onAdd, onClose }) => {
                 {/* Manual add button as fallback */}
                 {infoInput.trim() && (
                   <button onClick={handleInfoAdd}
-                    className="w-full py-2 rounded-xl bg-white/10 text-white/70 text-sm font-medium hover:bg-white/20 transition-colors mt-2">
+                    className="w-full py-2 rounded-xl bg-card/10 text-white/70 text-sm font-medium hover:bg-card/20 transition-colors mt-2">
                     Use "{infoInput.trim()}" as-is
                   </button>
                 )}
@@ -313,7 +313,7 @@ const StoryStickerPicker: React.FC<Props> = ({ onAdd, onClose }) => {
                 )}
                 {userResults.map((u) => (
                   <button key={u.id} onClick={() => handleMentionSelect(u)}
-                    className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-white/5 hover:bg-white/15 transition-colors text-white text-left">
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-card/5 hover:bg-card/15 transition-colors text-white text-left">
                     <Avatar className="size-9">
                       <AvatarImage src={u.avatar_url || undefined} />
                       <AvatarFallback className="text-xs text-white" style={{ backgroundColor: u.avatar_color }}>

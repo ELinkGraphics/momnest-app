@@ -297,14 +297,14 @@ export const OptimizedRelaxVideoCard = memo<OptimizedRelaxVideoCardProps>(({
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/40 flex items-center justify-center">
           <div className="relative">
             {/* Animated background rings */}
-            <div className="absolute inset-0 w-20 h-20 bg-white/10 rounded-full animate-pulse" />
-            <div className="absolute inset-0 w-24 h-24 bg-white/5 rounded-full animate-ping" style={{ animationDelay: '0.5s' }} />
+            <div className="absolute inset-0 w-20 h-20 bg-card/10 rounded-full animate-pulse" />
+            <div className="absolute inset-0 w-24 h-24 bg-card/5 rounded-full animate-ping" style={{ animationDelay: '0.5s' }} />
             
             {/* Main control */}
-            <div className="relative w-16 h-16 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl border border-white/30">
+            <div className="relative w-16 h-16 bg-card/95 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl border border-white/30">
               {isBuffering ? (
                 <div className="relative">
-                  <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-border border-t-gray-800 rounded-full animate-spin" />
                   <div className="absolute inset-0 w-6 h-6 border-2 border-transparent border-t-primary rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.8s' }} />
                 </div>
               ) : (
@@ -345,7 +345,7 @@ export const OptimizedRelaxVideoCard = memo<OptimizedRelaxVideoCardProps>(({
                     triggerHaptic('success');
                   }
                 }}
-                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white border-2 border-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all duration-200 z-10"
+                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-card border-2 border-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all duration-200 z-10"
                 aria-label={`Follow ${video.user.name}`}
               >
                 {followState === 'visible' ? (
@@ -368,7 +368,7 @@ export const OptimizedRelaxVideoCard = memo<OptimizedRelaxVideoCardProps>(({
                 {video.user.name}
               </span>
               {video.user.verified && (
-                <div className="size-4 bg-white rounded-full flex items-center justify-center">
+                <div className="size-4 bg-card rounded-full flex items-center justify-center">
                   <div className="size-2 bg-primary rounded-full" />
                 </div>
               )}
@@ -384,7 +384,7 @@ export const OptimizedRelaxVideoCard = memo<OptimizedRelaxVideoCardProps>(({
             {video.tags.slice(0, 3).map((tag) => (
               <span 
                 key={tag}
-                className="text-xs px-2 py-1 bg-white/20 text-white rounded-full"
+                className="text-xs px-2 py-1 bg-card/20 text-white rounded-full"
               >
                 #{tag}
               </span>
@@ -404,7 +404,7 @@ export const OptimizedRelaxVideoCard = memo<OptimizedRelaxVideoCardProps>(({
             "relative p-3 rounded-full backdrop-blur-md border transition-all duration-200 group-active:scale-95",
             isLiked 
               ? "bg-red-500/20 border-red-500/30 shadow-lg shadow-red-500/25" 
-              : "bg-white/15 border-white/20 hover:bg-white/25 shadow-lg"
+              : "bg-card/15 border-white/20 hover:bg-card/25 shadow-lg"
           )}>
             <Heart 
               className={cn(
@@ -430,7 +430,7 @@ export const OptimizedRelaxVideoCard = memo<OptimizedRelaxVideoCardProps>(({
           aria-label={`Comment on video by ${video.user.name}`}
           className="group flex flex-col items-center gap-1 transition-all duration-200 active:bg-transparent"
         >
-          <div className="p-3 bg-white/15 border border-white/20 rounded-full backdrop-blur-md hover:bg-white/25 transition-all duration-200 group-active:scale-95 shadow-lg active:bg-white/15">
+          <div className="p-3 bg-card/15 border border-white/20 rounded-full backdrop-blur-md hover:bg-card/25 transition-all duration-200 group-active:scale-95 shadow-lg active:bg-card/15">
             <MessageCircle className="size-6 text-white group-active:text-primary transition-colors" />
           </div>
           <span className="text-xs font-medium text-white drop-shadow-sm">
@@ -446,7 +446,7 @@ export const OptimizedRelaxVideoCard = memo<OptimizedRelaxVideoCardProps>(({
           aria-label={`Share video by ${video.user.name}`}
           className="group flex flex-col items-center gap-1 transition-all duration-200 active:bg-transparent"
         >
-          <div className="p-3 bg-white/15 border border-white/20 rounded-full backdrop-blur-md hover:bg-white/25 transition-all duration-200 group-active:scale-95 shadow-lg active:bg-white/15">
+          <div className="p-3 bg-card/15 border border-white/20 rounded-full backdrop-blur-md hover:bg-card/25 transition-all duration-200 group-active:scale-95 shadow-lg active:bg-card/15">
             <Share className="size-6 text-white group-active:text-primary transition-colors" />
           </div>
           <span className="text-xs font-medium text-white drop-shadow-sm">
@@ -463,7 +463,7 @@ export const OptimizedRelaxVideoCard = memo<OptimizedRelaxVideoCardProps>(({
             "relative p-3 rounded-full backdrop-blur-md border transition-all duration-200 group-active:scale-95",
             isSaved 
               ? "bg-yellow-500/20 border-yellow-500/30 shadow-lg shadow-yellow-500/25" 
-              : "bg-white/15 border-white/20 hover:bg-white/25 shadow-lg"
+              : "bg-card/15 border-white/20 hover:bg-card/25 shadow-lg"
           )}>
             <Bookmark className={cn(
               "size-6 transition-all duration-200",
@@ -487,7 +487,7 @@ export const OptimizedRelaxVideoCard = memo<OptimizedRelaxVideoCardProps>(({
         className={cn(
           "absolute top-4 right-4 p-3 rounded-full backdrop-blur-md border text-white transition-all duration-200 active:scale-95 shadow-lg",
           isMuted 
-            ? "bg-white/15 border-white/20 hover:bg-white/25" 
+            ? "bg-card/15 border-white/20 hover:bg-card/25" 
             : "bg-blue-500/20 border-blue-500/30 shadow-blue-500/25"
         )}
       >
@@ -510,7 +510,7 @@ export const OptimizedRelaxVideoCard = memo<OptimizedRelaxVideoCardProps>(({
           "absolute top-4 left-4 p-3 rounded-full backdrop-blur-md border text-white transition-all duration-200 active:scale-95 shadow-lg",
           showCaptions 
             ? "bg-primary/20 border-primary/30 shadow-primary/25" 
-            : "bg-white/15 border-white/20 hover:bg-white/25"
+            : "bg-card/15 border-white/20 hover:bg-card/25"
         )}
       >
         <svg className="size-5" fill="currentColor" viewBox="0 0 20 20">

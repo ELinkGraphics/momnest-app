@@ -73,7 +73,7 @@ const MediaPreviewModal: React.FC<MediaPreviewModalProps> = ({
       <div className="flex items-center justify-between px-4 py-3 safe-top">
         <button
           onClick={onClose}
-          className="p-2 rounded-full hover:bg-white/10 transition-colors"
+          className="p-2 rounded-full hover:bg-card/10 transition-colors"
         >
           <X className="h-6 w-6 text-white" />
         </button>
@@ -141,7 +141,7 @@ const MediaPreviewModal: React.FC<MediaPreviewModalProps> = ({
       <div className="px-4 pb-4 safe-bottom">
         {uploading && (
           <div className="mb-3">
-            <div className="h-1 bg-white/20 rounded-full overflow-hidden">
+            <div className="h-1 bg-card/20 rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary rounded-full transition-all duration-300"
                 style={{ width: `${progress}%` }}
@@ -156,7 +156,7 @@ const MediaPreviewModal: React.FC<MediaPreviewModalProps> = ({
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             placeholder="Add a caption..."
-            className="flex-1 bg-white/10 text-white placeholder:text-white/40 rounded-2xl px-4 py-3 text-[15px] border-0 outline-none focus:bg-white/15 transition-colors"
+            className="flex-1 bg-card/10 text-white placeholder:text-white/40 rounded-2xl px-4 py-3 text-[15px] border-0 outline-none focus:bg-card/15 transition-colors"
           />
           <button
             onClick={handleSend}

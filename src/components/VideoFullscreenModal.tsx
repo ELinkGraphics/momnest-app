@@ -386,7 +386,7 @@ export const VideoFullscreenModal: React.FC<VideoFullscreenModalProps> = ({
                             <div className="flex items-center gap-1">
                               <span className="text-sm font-semibold text-white">{video.user.name}</span>
                               {video.user.verified && (
-                                <div className="size-3 bg-white rounded-full flex items-center justify-center">
+                                <div className="size-3 bg-card rounded-full flex items-center justify-center">
                                   <div className="size-1.5 bg-primary rounded-full" />
                                 </div>
                               )}
@@ -403,7 +403,7 @@ export const VideoFullscreenModal: React.FC<VideoFullscreenModalProps> = ({
                               {video.tags.map((tag) => (
                                 <span 
                                   key={tag}
-                                  className="text-xs px-2 py-1 bg-white/20 text-white rounded-full"
+                                  className="text-xs px-2 py-1 bg-card/20 text-white rounded-full"
                                 >
                                   #{tag}
                                 </span>
@@ -428,7 +428,7 @@ export const VideoFullscreenModal: React.FC<VideoFullscreenModalProps> = ({
                           <div className="flex items-center gap-1">
                             <span className="text-sm font-semibold text-white">{video.user.name}</span>
                             {video.user.verified && (
-                              <div className="size-3 bg-white rounded-full flex items-center justify-center">
+                              <div className="size-3 bg-card rounded-full flex items-center justify-center">
                                 <div className="size-1.5 bg-primary rounded-full" />
                               </div>
                             )}
@@ -460,7 +460,7 @@ export const VideoFullscreenModal: React.FC<VideoFullscreenModalProps> = ({
                           {video.tags.slice(0, 2).map((tag) => (
                             <span 
                               key={tag}
-                              className="text-xs px-2 py-1 bg-white/20 text-white rounded-full"
+                              className="text-xs px-2 py-1 bg-card/20 text-white rounded-full"
                             >
                               #{tag}
                             </span>
@@ -481,7 +481,7 @@ export const VideoFullscreenModal: React.FC<VideoFullscreenModalProps> = ({
                       isLiked && "text-red-500"
                     )}
                   >
-                    <div className="p-2.5 bg-white/20 rounded-full backdrop-blur-sm">
+                    <div className="p-2.5 bg-card/20 rounded-full backdrop-blur-sm">
                       <Heart 
                         className={cn(
                           "size-5",
@@ -499,7 +499,7 @@ export const VideoFullscreenModal: React.FC<VideoFullscreenModalProps> = ({
                     aria-label={`Comment on video by ${video.user.name}`}
                     className="flex flex-col items-center gap-1 text-white"
                   >
-                    <div className="p-2.5 bg-white/20 rounded-full backdrop-blur-sm">
+                    <div className="p-2.5 bg-card/20 rounded-full backdrop-blur-sm">
                       <MessageCircle className="size-5" />
                     </div>
                     <span className="text-xs font-medium">
@@ -516,7 +516,7 @@ export const VideoFullscreenModal: React.FC<VideoFullscreenModalProps> = ({
                     aria-label={`Share video by ${video.user.name}`}
                     className="flex flex-col items-center gap-1 text-white"
                   >
-                    <div className="p-2.5 bg-white/20 rounded-full backdrop-blur-sm">
+                    <div className="p-2.5 bg-card/20 rounded-full backdrop-blur-sm">
                       <Share className="size-5" />
                     </div>
                     <span className="text-xs font-medium">
@@ -532,7 +532,7 @@ export const VideoFullscreenModal: React.FC<VideoFullscreenModalProps> = ({
                       isSaved && "text-yellow-500"
                     )}
                   >
-                    <div className="p-2.5 bg-white/20 rounded-full backdrop-blur-sm">
+                    <div className="p-2.5 bg-card/20 rounded-full backdrop-blur-sm">
                       <Bookmark 
                         className={cn(
                           "size-5",
@@ -551,9 +551,9 @@ export const VideoFullscreenModal: React.FC<VideoFullscreenModalProps> = ({
                     aria-label="View music used in video"
                     className="flex flex-col items-center gap-1 text-white"
                   >
-                    <div className="size-10 bg-white/20 rounded-full backdrop-blur-sm flex items-center justify-center relative overflow-hidden">
+                    <div className="size-10 bg-card/20 rounded-full backdrop-blur-sm flex items-center justify-center relative overflow-hidden">
                       <div className="absolute inset-0 rounded-full border border-white/30 animate-spin" style={{ animationDuration: '3s' }}>
-                        <div className="absolute top-0.5 left-1/2 transform -translate-x-1/2 size-0.5 bg-white rounded-full"></div>
+                        <div className="absolute top-0.5 left-1/2 transform -translate-x-1/2 size-0.5 bg-card rounded-full"></div>
                       </div>
                       <Music className="size-4 text-white" />
                     </div>

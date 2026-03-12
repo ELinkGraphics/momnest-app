@@ -84,7 +84,7 @@ export const HelperResponse: React.FC = () => {
     const colors = {
       available: 'bg-green-100 text-green-800 border-green-200',
       busy: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      offline: 'bg-gray-100 text-gray-800 border-gray-200',
+      offline: 'bg-muted/50 text-foreground border-border',
     };
     return colors[status as keyof typeof colors];
   };
@@ -116,7 +116,7 @@ export const HelperResponse: React.FC = () => {
       {/* Helper Status */}
       <Card className="p-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Helper Status</h2>
+          <h2 className="text-lg font-semibold text-foreground">Helper Status</h2>
           <Badge className={getAvailabilityColor(helperProfile?.availability_status || 'offline')}>
             {helperProfile?.availability_status || 'offline'}
           </Badge>
@@ -124,7 +124,7 @@ export const HelperResponse: React.FC = () => {
 
         <div className="space-y-3">
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">
+            <label className="text-sm font-medium text-foreground mb-2 block">
               Availability Status
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -136,7 +136,7 @@ export const HelperResponse: React.FC = () => {
                   className={`p-2 rounded-lg border text-sm font-medium transition-colors ${
                     helperProfile?.availability_status === status 
                       ? getAvailabilityColor(status)
-                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                      : 'bg-card border-border text-muted-foreground hover:bg-muted/30'
                   }`}
                 >
                   {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -146,7 +146,7 @@ export const HelperResponse: React.FC = () => {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">
+            <label className="text-sm font-medium text-foreground mb-2 block">
               Your Skills & Certifications
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -158,7 +158,7 @@ export const HelperResponse: React.FC = () => {
                   className={`p-2 rounded-lg border text-xs font-medium transition-colors ${
                     helperProfile?.skills?.includes(skill)
                       ? 'bg-blue-100 text-blue-800 border-blue-200'
-                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                      : 'bg-card border-border text-muted-foreground hover:bg-muted/30'
                   }`}
                 >
                   {skill}
@@ -178,7 +178,7 @@ export const HelperResponse: React.FC = () => {
           return (
             <Card key={response.id} className="p-4 border-l-4 border-l-blue-500">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium text-gray-900">Currently Responding</h3>
+                <h3 className="font-medium text-foreground">Currently Responding</h3>
                 <Badge className="bg-blue-100 text-blue-800">
                   {response.status === 'arrived' ? 'Arrived' : 'En Route'}
                 </Badge>
@@ -196,13 +196,13 @@ export const HelperResponse: React.FC = () => {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-foreground">
                       {requester?.full_name || 'Anonymous'}
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       {alert?.sos_type} - {alert?.description?.substring(0, 50)}...
                     </p>
-                    <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                    <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                       {alert?.location_address && (
                         <div className="flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
@@ -249,24 +249,24 @@ export const HelperResponse: React.FC = () => {
                 </div>
 
                 {/* Status Progression Timeline */}
-                <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="bg-muted/30 p-3 rounded-lg">
                   <div className="flex items-center justify-between text-xs">
                     <div className={`flex flex-col items-center gap-1 ${response.status === 'responding' || response.status === 'arrived' || response.status === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
-                      <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center ${response.status === 'responding' || response.status === 'arrived' || response.status === 'completed' ? 'border-green-600 bg-green-100' : 'border-gray-300'}`}>
+                      <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center ${response.status === 'responding' || response.status === 'arrived' || response.status === 'completed' ? 'border-green-600 bg-green-100' : 'border-border'}`}>
                         ✓
                       </div>
                       <span className="font-medium">Responded</span>
                     </div>
                     <div className={`flex-1 h-0.5 mx-2 ${response.status === 'arrived' || response.status === 'completed' ? 'bg-green-600' : 'bg-gray-300'}`} />
                     <div className={`flex flex-col items-center gap-1 ${response.status === 'arrived' || response.status === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
-                      <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center ${response.status === 'arrived' || response.status === 'completed' ? 'border-green-600 bg-green-100' : 'border-gray-300'}`}>
+                      <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center ${response.status === 'arrived' || response.status === 'completed' ? 'border-green-600 bg-green-100' : 'border-border'}`}>
                         {response.status === 'arrived' || response.status === 'completed' ? '✓' : '2'}
                       </div>
                       <span className="font-medium">Arrived</span>
                     </div>
                     <div className={`flex-1 h-0.5 mx-2 ${response.status === 'completed' ? 'bg-green-600' : 'bg-gray-300'}`} />
                     <div className={`flex flex-col items-center gap-1 ${response.status === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
-                      <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center ${response.status === 'completed' ? 'border-green-600 bg-green-100' : 'border-gray-300'}`}>
+                      <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center ${response.status === 'completed' ? 'border-green-600 bg-green-100' : 'border-border'}`}>
                         {response.status === 'completed' ? '✓' : '3'}
                       </div>
                       <span className="font-medium">Completed</span>
@@ -347,8 +347,8 @@ export const HelperResponse: React.FC = () => {
           );
         })
       ) : (
-        <Card className="p-4 bg-gray-50">
-          <p className="text-sm text-gray-600 text-center">
+        <Card className="p-4 bg-muted/30">
+          <p className="text-sm text-muted-foreground text-center">
             No active responses. Check nearby alerts to offer help.
           </p>
         </Card>
@@ -356,13 +356,13 @@ export const HelperResponse: React.FC = () => {
 
       {/* Helper Stats */}
       <Card className="p-4">
-        <h3 className="font-medium text-gray-900 mb-3">Your Helper Stats</h3>
+        <h3 className="font-medium text-foreground mb-3">Your Helper Stats</h3>
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
             <div className="text-2xl font-bold text-blue-600">
               {helperProfile?.completion_count || 0}
             </div>
-            <div className="text-xs text-gray-600">Helped</div>
+            <div className="text-xs text-muted-foreground">Helped</div>
           </div>
           <div>
             <div className="flex items-center justify-center gap-1">
@@ -371,20 +371,20 @@ export const HelperResponse: React.FC = () => {
               </span>
               <Star className="h-4 w-4 text-yellow-500 fill-current" />
             </div>
-            <div className="text-xs text-gray-600">Rating</div>
+            <div className="text-xs text-muted-foreground">Rating</div>
           </div>
           <div>
             <div className="text-2xl font-bold text-green-600">
               {helperProfile?.average_response_time_minutes || 0}
             </div>
-            <div className="text-xs text-gray-600">Avg Response (min)</div>
+            <div className="text-xs text-muted-foreground">Avg Response (min)</div>
           </div>
         </div>
       </Card>
 
       {/* Recent Responses */}
       <Card className="p-4">
-        <h3 className="font-medium text-gray-900 mb-3">Recent Responses</h3>
+        <h3 className="font-medium text-foreground mb-3">Recent Responses</h3>
         {completedResponses.length > 0 ? (
           <div className="space-y-3">
             {completedResponses.map((response: any) => {
@@ -394,10 +394,10 @@ export const HelperResponse: React.FC = () => {
               return (
                 <div key={response.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-foreground">
                       {alert?.sos_type || 'Emergency'}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       {alert?.resolved_at ? formatDistanceToNow(new Date(alert.resolved_at), { addSuffix: true }) : 'Recently'}
                     </p>
                   </div>
@@ -408,7 +408,7 @@ export const HelperResponse: React.FC = () => {
                     {review?.rating && (
                       <div className="flex items-center gap-1">
                         <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                        <span className="text-xs text-gray-600">{review.rating}</span>
+                        <span className="text-xs text-muted-foreground">{review.rating}</span>
                       </div>
                     )}
                   </div>
@@ -417,7 +417,7 @@ export const HelperResponse: React.FC = () => {
             })}
           </div>
         ) : (
-          <p className="text-sm text-gray-500 text-center py-4">No completed responses yet</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No completed responses yet</p>
         )}
       </Card>
 

@@ -202,7 +202,7 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
             <div className="p-3 bg-gradient-hero">
               <button
                 type="button"
-                className="flex items-center gap-3 w-full hover:bg-white/10 rounded-lg p-2 transition-colors"
+                className="flex items-center gap-3 w-full hover:bg-card/10 rounded-lg p-2 transition-colors"
                 onClick={() => {
                   setShowProfileModal(true);
                   setMenuOpen(false);

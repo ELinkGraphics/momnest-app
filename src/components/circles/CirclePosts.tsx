@@ -201,13 +201,13 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
 
                 {/* Top-right bookmark chip */}
                 <div className="absolute top-4 right-4 z-30 flex gap-2">
-                  <div className="rounded-full bg-white/20 backdrop-blur-sm p-2 hover:bg-white/30 transition-smooth cursor-pointer hover-scale">
+                  <div className="rounded-full bg-card/20 backdrop-blur-sm p-2 hover:bg-card/30 transition-smooth cursor-pointer hover-scale">
                     <Bookmark className="h-4 w-4 text-white" />
                   </div>
                   {isOwner && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button className="rounded-full bg-white/20 backdrop-blur-sm p-2 hover:bg-white/30 transition-smooth cursor-pointer hover-scale">
+                        <button className="rounded-full bg-card/20 backdrop-blur-sm p-2 hover:bg-card/30 transition-smooth cursor-pointer hover-scale">
                           <MoreVertical className="h-4 w-4 text-white" />
                         </button>
                       </DropdownMenuTrigger>
@@ -253,7 +253,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                         <button 
                           onClick={() => handleLike(post.id, post.user_has_liked)}
                           className={`flex-1 flex items-center justify-center gap-2 rounded-full backdrop-blur-sm px-4 py-2 text-sm font-medium text-white transition-smooth hover-scale ${
-                            post.user_has_liked ? 'bg-red-500/30' : 'bg-white/15 hover:bg-white/25'
+                            post.user_has_liked ? 'bg-red-500/30' : 'bg-card/15 hover:bg-card/25'
                           }`}
                         >
                           <Heart className={`h-4 w-4 ${post.user_has_liked ? 'fill-current' : ''}`} />
@@ -261,13 +261,13 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                         </button>
                         <button 
                           onClick={() => navigate(`/circle/${circleId}/post/${post.id}`, { state: { openComments: true } })}
-                          className="flex-1 flex items-center justify-center gap-2 rounded-full bg-white/15 backdrop-blur-sm px-4 py-2 text-sm font-medium text-white hover:bg-white/25 transition-smooth hover-scale"
+                          className="flex-1 flex items-center justify-center gap-2 rounded-full bg-card/15 backdrop-blur-sm px-4 py-2 text-sm font-medium text-white hover:bg-card/25 transition-smooth hover-scale"
                         >
                           <MessageCircle className="h-4 w-4" />
                           <span>{post.stats.comments_count}</span>
                         </button>
                         {post.has_tips_enabled && (
-                          <div className="flex-1 rounded-full bg-white/15 backdrop-blur-sm hover:bg-white/25 transition-smooth">
+                          <div className="flex-1 rounded-full bg-card/15 backdrop-blur-sm hover:bg-card/25 transition-smooth">
                             <TipButton
                               postId={post.id}
                               authorName={post.author.name}
@@ -284,7 +284,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                     {/* Full-width Read more button */}
                     <button 
                       onClick={() => handleReadMore(post)}
-                      className="w-full rounded-full py-3 px-6 text-base font-semibold bg-white text-gray-900 shadow-glow hover:shadow-xl hover:scale-[1.02] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50"
+                      className="w-full rounded-full py-3 px-6 text-base font-semibold bg-card text-foreground shadow-glow hover:shadow-xl hover:scale-[1.02] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50"
                     >
                       {!canView ? (
                         <>

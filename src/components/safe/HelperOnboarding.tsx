@@ -120,7 +120,7 @@ export const HelperOnboarding: React.FC<HelperOnboardingProps> = ({ open, onOpen
                       className={`p-3 rounded-lg border text-sm font-medium transition-all ${
                         selectedSkills.includes(skill)
                           ? 'bg-blue-100 text-blue-800 border-blue-300 shadow-sm'
-                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                          : 'bg-card border-border text-muted-foreground hover:bg-muted/30'
                       }`}
                     >
                       {skill}
@@ -155,7 +155,7 @@ export const HelperOnboarding: React.FC<HelperOnboardingProps> = ({ open, onOpen
                 </ul>
               </div>
 
-              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border">
+              <div className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg border">
                 <Checkbox
                   id="terms"
                   checked={agreedToTerms}

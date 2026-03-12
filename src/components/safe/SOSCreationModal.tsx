@@ -489,14 +489,14 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                     
                     {/* Inline Suggestions */}
                     {showSuggestions && (
-                      <div className="flex flex-wrap gap-1 p-2 bg-gray-50 rounded-md border">
-                        <span className="text-xs text-gray-600 w-full mb-1">Tap to add:</span>
+                      <div className="flex flex-wrap gap-1 p-2 bg-muted/30 rounded-md border">
+                        <span className="text-xs text-muted-foreground w-full mb-1">Tap to add:</span>
                         {suggestions.slice(0, 6).map((suggestion, index) => (
                           <button
                             key={index}
                             type="button"
                             onClick={() => insertSuggestion(suggestion)}
-                            className="px-2 py-1 bg-white border border-gray-200 rounded-full text-xs hover:bg-gray-100 transition-colors"
+                            className="px-2 py-1 bg-card border border-border rounded-full text-xs hover:bg-muted/50 transition-colors"
                           >
                             {suggestion}
                           </button>
@@ -528,8 +528,8 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                 {isUploading && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-600">Compressing and uploading...</span>
-                      <span className="text-gray-600">{Math.round(uploadProgress)}%</span>
+                      <span className="text-muted-foreground">Compressing and uploading...</span>
+                      <span className="text-muted-foreground">{Math.round(uploadProgress)}%</span>
                     </div>
                     <Progress value={uploadProgress} className="h-2" />
                   </div>
@@ -603,14 +603,14 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                     
                     {/* Inline Suggestions */}
                     {showSuggestions && (
-                      <div className="flex flex-wrap gap-1 p-2 bg-gray-50 rounded-md border">
-                        <span className="text-xs text-gray-600 w-full mb-1">Tap to add:</span>
+                      <div className="flex flex-wrap gap-1 p-2 bg-muted/30 rounded-md border">
+                        <span className="text-xs text-muted-foreground w-full mb-1">Tap to add:</span>
                         {suggestions.slice(0, 6).map((suggestion, index) => (
                           <button
                             key={index}
                             type="button"
                             onClick={() => insertSuggestion(suggestion)}
-                            className="px-2 py-1 bg-white border border-gray-200 rounded-full text-xs hover:bg-gray-100 transition-colors"
+                            className="px-2 py-1 bg-card border border-border rounded-full text-xs hover:bg-muted/50 transition-colors"
                           >
                             {suggestion}
                           </button>
@@ -640,7 +640,7 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                   </div>
                 )}
                 {isUploading && (
-                  <div className="text-xs text-gray-500">Uploading photos...</div>
+                  <div className="text-xs text-muted-foreground">Uploading photos...</div>
                 )}
               </div>
               
@@ -701,14 +701,14 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                     
                     {/* Inline Suggestions */}
                     {showSuggestions && (
-                      <div className="flex flex-wrap gap-1 p-2 bg-gray-50 rounded-md border">
-                        <span className="text-xs text-gray-600 w-full mb-1">Tap to add:</span>
+                      <div className="flex flex-wrap gap-1 p-2 bg-muted/30 rounded-md border">
+                        <span className="text-xs text-muted-foreground w-full mb-1">Tap to add:</span>
                         {suggestions.slice(0, 6).map((suggestion, index) => (
                           <button
                             key={index}
                             type="button"
                             onClick={() => insertSuggestion(suggestion)}
-                            className="px-2 py-1 bg-white border border-gray-200 rounded-full text-xs hover:bg-gray-100 transition-colors"
+                            className="px-2 py-1 bg-card border border-border rounded-full text-xs hover:bg-muted/50 transition-colors"
                           >
                             {suggestion}
                           </button>
@@ -738,7 +738,7 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                   </div>
                 )}
                 {isUploading && (
-                  <div className="text-xs text-gray-500">Uploading photos...</div>
+                  <div className="text-xs text-muted-foreground">Uploading photos...</div>
                 )}
               </div>
               
@@ -792,14 +792,14 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                   
                   {/* Inline Suggestions */}
                   {showSuggestions && (
-                    <div className="flex flex-wrap gap-1 p-2 bg-gray-50 rounded-md border">
-                      <span className="text-xs text-gray-600 w-full mb-1">Tap to add:</span>
+                    <div className="flex flex-wrap gap-1 p-2 bg-muted/30 rounded-md border">
+                      <span className="text-xs text-muted-foreground w-full mb-1">Tap to add:</span>
                       {suggestions.slice(0, 6).map((suggestion, index) => (
                         <button
                           key={index}
                           type="button"
                           onClick={() => insertSuggestion(suggestion)}
-                          className="px-2 py-1 bg-white border border-gray-200 rounded-full text-xs hover:bg-gray-100 transition-colors"
+                          className="px-2 py-1 bg-card border border-border rounded-full text-xs hover:bg-muted/50 transition-colors"
                         >
                           {suggestion}
                         </button>
@@ -829,7 +829,7 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                   </div>
                 )}
                 {isUploading && (
-                  <div className="text-xs text-gray-500">Uploading photos...</div>
+                  <div className="text-xs text-muted-foreground">Uploading photos...</div>
                 )}
               </div>
               
@@ -957,7 +957,7 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                 You are about to send an emergency alert to nearby helpers. This should only be used for real emergencies.
               </p>
             </div>
-            <div className="space-y-2 text-xs text-gray-600">
+            <div className="space-y-2 text-xs text-muted-foreground">
               <p>• Your location will be shared with nearby helpers</p>
               <p>• Push notifications will be sent to people in your area</p>
               <p>• False alerts may result in account suspension</p>

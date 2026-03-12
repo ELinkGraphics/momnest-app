@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton, SkeletonText, SkeletonAvatar, SkeletonCard } from '@/components/ui/skeleton';
 
 export const PostCardSkeleton = () => (
-  <Card className="mb-3 sm:mb-4 overflow-hidden border-gray-100 bg-white rounded-2xl sm:rounded-3xl">
+  <Card className="mb-3 sm:mb-4 overflow-hidden border-border bg-card rounded-2xl sm:rounded-3xl">
     <CardContent className="p-4 sm:p-5">
       <div className="flex items-start gap-3 mb-3 sm:mb-4">
         <SkeletonAvatar />
@@ -18,7 +18,7 @@ export const PostCardSkeleton = () => (
       <SkeletonText lines={2} className="mb-3 sm:mb-4" />
       <SkeletonCard className="mb-3 sm:mb-4" />
       
-      <div className="grid grid-cols-4 gap-1 sm:gap-2 border-t border-gray-50 pt-3 sm:pt-4">
+      <div className="grid grid-cols-4 gap-1 sm:gap-2 border-t border-border pt-3 sm:pt-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="flex flex-col items-center justify-center gap-1 py-3">
             <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -31,7 +31,7 @@ export const PostCardSkeleton = () => (
 );
 
 export const VideoCardSkeleton = () => (
-  <Card className="mb-3 sm:mb-4 overflow-hidden border-gray-100 bg-white rounded-2xl sm:rounded-3xl">
+  <Card className="mb-3 sm:mb-4 overflow-hidden border-border bg-card rounded-2xl sm:rounded-3xl">
     <CardContent className="p-4 sm:p-5">
       <div className="flex items-start gap-3 mb-3 sm:mb-4">
         <SkeletonAvatar />
@@ -53,7 +53,7 @@ export const VideoCardSkeleton = () => (
       <Skeleton className="h-5 w-3/4 mb-1" />
       <SkeletonText lines={2} className="mb-3 sm:mb-4" />
 
-      <div className="grid grid-cols-3 gap-1 sm:gap-2 border-t border-gray-50 pt-3 sm:pt-4">
+      <div className="grid grid-cols-3 gap-1 sm:gap-2 border-t border-border pt-3 sm:pt-4">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="flex flex-col items-center justify-center gap-1 py-3">
             <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />

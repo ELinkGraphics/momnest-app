@@ -18,7 +18,7 @@ export const EmergencyFeed: React.FC = () => {
       fire: 'bg-red-100 text-red-800 border-red-200',
       accident: 'bg-yellow-100 text-yellow-800 border-yellow-200',
       natural: 'bg-blue-100 text-blue-800 border-blue-200',
-      other: 'bg-gray-100 text-gray-800 border-gray-200',
+      other: 'bg-muted/50 text-foreground border-border',
     };
     return colors[type as keyof typeof colors] || colors.other;
   };

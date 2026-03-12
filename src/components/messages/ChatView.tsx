@@ -638,10 +638,10 @@ const ChatView: React.FC<ChatViewProps> = ({
                     className={`rounded-[20px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden transition-colors ${hasMedia
                       ? isOwn
                         ? 'bg-gradient-to-tr from-primary/95 to-primary/85 backdrop-blur-3xl border border-white/15 text-white rounded-br-[6px]'
-                        : 'bg-white/85 dark:bg-[#1C1C1E]/85 backdrop-blur-3xl backdrop-saturate-200 border border-black/5 dark:border-white/10 text-foreground rounded-bl-[6px]'
+                        : 'bg-card/85 dark:bg-[#1C1C1E]/85 backdrop-blur-3xl backdrop-saturate-200 border border-black/5 dark:border-white/10 text-foreground rounded-bl-[6px]'
                       : isOwn
                         ? 'bg-gradient-to-tr from-primary/95 to-primary/80 backdrop-blur-3xl border border-white/15 text-white rounded-br-[4px] px-[18px] py-[10px] tracking-[0.01em]'
-                        : 'bg-white/85 dark:bg-[#1C1C1E]/80 backdrop-blur-3xl backdrop-saturate-200 border border-black/5 dark:border-white/10 text-foreground rounded-bl-[4px] px-[18px] py-[10px] tracking-[0.01em]'
+                        : 'bg-card/85 dark:bg-[#1C1C1E]/80 backdrop-blur-3xl backdrop-saturate-200 border border-black/5 dark:border-white/10 text-foreground rounded-bl-[4px] px-[18px] py-[10px] tracking-[0.01em]'
                       } ${hasMedia ? 'p-1' : ''}`}
                     onClick={() => {
                       if (singleMediaItem) {

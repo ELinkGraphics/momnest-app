@@ -76,7 +76,7 @@ const getCategoryColor = (category: string) => {
     case 'education': return 'bg-yellow-100 text-yellow-800';
     case 'lifestyle': return 'bg-indigo-100 text-indigo-800';
     case 'family': return 'bg-orange-100 text-orange-800';
-    default: return 'bg-gray-100 text-gray-800';
+    default: return 'bg-muted/50 text-foreground';
   }
 };
 
@@ -179,7 +179,7 @@ const getCategoryColor = (category: string) => {
               
               {/* Thread Dot */}
               <div className="absolute left-0 top-5 w-4 h-4 bg-primary rounded-full border-3 border-white shadow-lg flex items-center justify-center z-10">
-                <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                <div className="w-1.5 h-1.5 bg-card rounded-full" />
               </div>
               
                <Card className="ml-12 border-l-2 border-l-primary/30 hover:border-l-primary/60 transition-all duration-200 hover:shadow-md overflow-hidden">

@@ -217,7 +217,7 @@ const PreLiveSettings: React.FC<PreLiveSettingsProps> = ({ config, onComplete, o
               value={settings.title}
               onChange={(e) => handleSettingChange('title', e.target.value)}
               placeholder="What's your live about?"
-              className="w-full px-3 py-2 bg-white/10 backdrop-blur-md border border-white/15 rounded-lg text-white text-sm placeholder-white/50 focus:ring-1 focus:ring-white/30 focus:border-transparent"
+              className="w-full px-3 py-2 bg-card/10 backdrop-blur-md border border-white/15 rounded-lg text-white text-sm placeholder-white/50 focus:ring-1 focus:ring-white/30 focus:border-transparent"
               maxLength={100}
             />
 
@@ -229,7 +229,7 @@ const PreLiveSettings: React.FC<PreLiveSettingsProps> = ({ config, onComplete, o
                   settings.visibility === 'public' ? 'friends' : 
                   settings.visibility === 'friends' ? 'circle' : 'public'
                 )}
-                className="flex items-center gap-1.5 px-2 py-1.5 bg-white/10 backdrop-blur-md rounded-md border border-white/15"
+                className="flex items-center gap-1.5 px-2 py-1.5 bg-card/10 backdrop-blur-md rounded-md border border-white/15"
               >
                 <Globe className="w-3 h-3 text-white" />
                 <span className="text-white text-xs capitalize">{settings.visibility}</span>
@@ -241,7 +241,7 @@ const PreLiveSettings: React.FC<PreLiveSettingsProps> = ({ config, onComplete, o
                 className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md border backdrop-blur-md ${
                   settings.locationVisible 
                     ? 'bg-blue-500/30 border-blue-400/30' 
-                    : 'bg-white/10 border-white/15'
+                    : 'bg-card/10 border-white/15'
                 }`}
               >
                 <MapPin className="w-3 h-3 text-white" />
@@ -249,7 +249,7 @@ const PreLiveSettings: React.FC<PreLiveSettingsProps> = ({ config, onComplete, o
               </button>
 
               {/* Co-host */}
-              <button className="flex items-center gap-1.5 px-2 py-1.5 bg-white/10 backdrop-blur-md rounded-md border border-white/15">
+              <button className="flex items-center gap-1.5 px-2 py-1.5 bg-card/10 backdrop-blur-md rounded-md border border-white/15">
                 <UserPlus className="w-3 h-3 text-white" />
                 <span className="text-white text-xs">Co-host</span>
               </button>
@@ -257,7 +257,7 @@ const PreLiveSettings: React.FC<PreLiveSettingsProps> = ({ config, onComplete, o
               {/* Music */}
               <button
                 onClick={() => setShowMusicSelector(!showMusicSelector)}
-                className="flex items-center gap-1.5 px-2 py-1.5 bg-white/10 backdrop-blur-md rounded-md border border-white/15"
+                className="flex items-center gap-1.5 px-2 py-1.5 bg-card/10 backdrop-blur-md rounded-md border border-white/15"
               >
                 <Music className="w-3 h-3 text-white" />
                 <span className="text-white text-xs">Music</span>
@@ -266,13 +266,13 @@ const PreLiveSettings: React.FC<PreLiveSettingsProps> = ({ config, onComplete, o
 
             {/* Music Selector */}
             {showMusicSelector && (
-              <div className="bg-white/10 backdrop-blur-md rounded-lg p-2 border border-white/15">
+              <div className="bg-card/10 backdrop-blur-md rounded-lg p-2 border border-white/15">
                 <div className="text-white text-xs mb-1.5 font-medium">Background Music</div>
                 <div className="grid grid-cols-2 gap-1">
                   {['No Music', 'Upbeat', 'Chill', 'Pop'].map((music) => (
                     <button
                       key={music}
-                      className="text-left px-2 py-1 text-white/80 hover:bg-white/10 rounded text-xs"
+                      className="text-left px-2 py-1 text-white/80 hover:bg-card/10 rounded text-xs"
                     >
                       {music}
                     </button>
@@ -285,7 +285,7 @@ const PreLiveSettings: React.FC<PreLiveSettingsProps> = ({ config, onComplete, o
             <div className="flex gap-2 mt-4">
               <button
                 onClick={onBack}
-                className="flex-1 py-2 px-3 bg-white/10 backdrop-blur-md border border-white/15 rounded-lg text-white text-sm font-medium"
+                className="flex-1 py-2 px-3 bg-card/10 backdrop-blur-md border border-white/15 rounded-lg text-white text-sm font-medium"
               >
                 Cancel
               </button>

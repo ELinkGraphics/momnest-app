@@ -521,7 +521,7 @@ const PostDetail: React.FC = () => {
                         key={idx}
                         className={`h-1.5 rounded-full transition-all duration-300 ${idx === detailCurrentSlide
                             ? 'bg-primary w-4'
-                            : 'bg-white/60 w-1.5'
+                            : 'bg-card/60 w-1.5'
                           }`}
                       />
                     ))}

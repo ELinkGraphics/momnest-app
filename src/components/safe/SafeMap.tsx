@@ -22,7 +22,7 @@ export const SafeMap: React.FC = () => {
   return (
     <div className="px-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">Emergency Map</h2>
+        <h2 className="text-lg font-semibold text-foreground">Emergency Map</h2>
         <Button size="sm" variant="outline">
           <Navigation className="h-4 w-4 mr-1" />
           Center on Me
@@ -34,7 +34,7 @@ export const SafeMap: React.FC = () => {
         <div className="absolute inset-0 bg-grid-pattern opacity-20"></div>
         
         {/* Mock Street Layout */}
-        <div className="absolute inset-4 border-2 border-gray-300 rounded-lg bg-white/50">
+        <div className="absolute inset-4 border-2 border-border rounded-lg bg-card/50">
           <div className="relative h-full">
             {/* Emergency Markers */}
             {emergencyMarkers.map((marker, index) => (
@@ -82,7 +82,7 @@ export const SafeMap: React.FC = () => {
         </div>
 
         {/* Map Legend */}
-        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 text-xs">
+        <div className="absolute bottom-4 left-4 bg-card/90 backdrop-blur-sm rounded-lg p-3 text-xs">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-red-500 rounded-full"></div>
@@ -108,24 +108,24 @@ export const SafeMap: React.FC = () => {
       <div className="grid grid-cols-3 gap-4">
         <Card className="p-3 text-center">
           <AlertTriangle className="h-6 w-6 mx-auto mb-1 text-red-500" />
-          <div className="text-lg font-semibold text-gray-900">3</div>
-          <div className="text-xs text-gray-600">Active</div>
+          <div className="text-lg font-semibold text-foreground">3</div>
+          <div className="text-xs text-muted-foreground">Active</div>
         </Card>
         <Card className="p-3 text-center">
           <Users className="h-6 w-6 mx-auto mb-1 text-blue-500" />
-          <div className="text-lg font-semibold text-gray-900">12</div>
-          <div className="text-xs text-gray-600">Helpers</div>
+          <div className="text-lg font-semibold text-foreground">12</div>
+          <div className="text-xs text-muted-foreground">Helpers</div>
         </Card>
         <Card className="p-3 text-center">
           <Zap className="h-6 w-6 mx-auto mb-1 text-green-500" />
-          <div className="text-lg font-semibold text-gray-900">2.3</div>
-          <div className="text-xs text-gray-600">Avg Response</div>
+          <div className="text-lg font-semibold text-foreground">2.3</div>
+          <div className="text-xs text-muted-foreground">Avg Response</div>
         </Card>
       </div>
 
       {/* Quick Actions */}
       <Card className="p-4">
-        <h3 className="font-medium text-gray-900 mb-3">Quick Actions</h3>
+        <h3 className="font-medium text-foreground mb-3">Quick Actions</h3>
         <div className="grid grid-cols-2 gap-3">
           <Button variant="outline" className="justify-start">
             <MapPin className="h-4 w-4 mr-2" />
@@ -140,18 +140,18 @@ export const SafeMap: React.FC = () => {
 
       {selectedEmergency && (
         <Card className="p-4 border-l-4 border-l-red-500">
-          <h3 className="font-medium text-gray-900 mb-2">Emergency Details</h3>
+          <h3 className="font-medium text-foreground mb-2">Emergency Details</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">Type:</span>
+              <span className="text-muted-foreground">Type:</span>
               <Badge className="bg-red-100 text-red-800">Medical Emergency</Badge>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Distance:</span>
+              <span className="text-muted-foreground">Distance:</span>
               <span>0.3 miles</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Time:</span>
+              <span className="text-muted-foreground">Time:</span>
               <span>5 min ago</span>
             </div>
           </div>

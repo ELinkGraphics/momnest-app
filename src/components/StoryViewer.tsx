@@ -507,10 +507,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           return userStories.map((_, index) => (
             <div
               key={index}
-              className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden"
+              className="flex-1 h-1 bg-card/30 rounded-full overflow-hidden"
             >
               <div
-                className="h-full bg-white transition-all duration-100 ease-linear"
+                className="h-full bg-card transition-all duration-100 ease-linear"
                 style={{
                   width: index < storyIndex ? '100%' : 
                          index === storyIndex ? `${progress}%` : '0%'
@@ -525,7 +525,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       <div className="absolute top-4 left-4 z-30">
         <button
           onClick={(e) => { e.stopPropagation(); setShowStoryMenu(!showStoryMenu); setIsPaused(true); }}
-          className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+          className="p-2 text-white hover:bg-card/20 rounded-full transition-colors"
           aria-label="Story options"
         >
           <MoreVertical className="size-5" />
@@ -540,14 +540,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                 <>
                   <button
                     onClick={handleDeleteStory}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-white/10 transition-colors"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-card/10 transition-colors"
                   >
                     <Trash2 className="size-4" />
                     Delete Story
                   </button>
                   <button
                     onClick={handleHideStory}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white hover:bg-card/10 transition-colors"
                   >
                     <EyeOff className="size-4" />
                     Hide Story
@@ -556,7 +556,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
               ) : (
                 <button
                   onClick={handleReportStory}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-card/10 transition-colors"
                 >
                   <Flag className="size-4" />
                   Report Story
@@ -570,7 +570,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-30 p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+        className="absolute top-4 right-4 z-30 p-2 text-white hover:bg-card/20 rounded-full transition-colors"
         aria-label="Close story"
       >
         <X className="size-6" />
@@ -700,7 +700,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                   href={sticker.content.startsWith('http') ? sticker.content : `https://${sticker.content}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="absolute pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-medium hover:bg-white/30 transition-colors border border-white/20"
+                  className="absolute pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card/20 backdrop-blur-sm text-white text-xs font-medium hover:bg-card/30 transition-colors border border-white/20"
                   style={{
                     left: `${sticker.x}%`,
                     top: `${sticker.y}%`,
@@ -726,7 +726,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                 setIsPaused(false);
               }}
             />
-            <div className="z-40 bg-white/95 backdrop-blur-md rounded-2xl px-6 py-4 shadow-xl border border-white/20 flex flex-col items-center gap-3 animate-in fade-in zoom-in-95 duration-200">
+            <div className="z-40 bg-card/95 backdrop-blur-md rounded-2xl px-6 py-4 shadow-xl border border-white/20 flex flex-col items-center gap-3 animate-in fade-in zoom-in-95 duration-200">
               <ExternalLink className="size-6 text-primary" />
               <p className="text-sm font-medium text-foreground">Story has links</p>
               {currentStory.stickerData?.filter((s: StoryStickerData) => s.infoType === 'link').map((sticker, idx) => (
@@ -800,7 +800,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                     e.stopPropagation();
                     setMentionProfileUserId(mention.user_id);
                   }}
-                  className="px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-medium hover:bg-white/30 transition-colors z-30 relative"
+                  className="px-2.5 py-1 rounded-full bg-card/20 backdrop-blur-sm text-white text-xs font-medium hover:bg-card/30 transition-colors z-30 relative"
                 >
                   @{mention.username}
                 </button>
@@ -815,7 +815,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             {/* Like button */}
             <button
               onClick={handleLikeToggle}
-              className="p-2 rounded-full hover:bg-white/10 transition-colors shrink-0"
+              className="p-2 rounded-full hover:bg-card/10 transition-colors shrink-0"
               aria-label={isLiked ? "Unlike story" : "Like story"}
             >
               <Heart 
@@ -832,7 +832,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
               <button
                 onClick={handleReshareStory}
                 disabled={isResharing}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors shrink-0"
+                className="p-2 rounded-full hover:bg-card/10 transition-colors shrink-0"
                 aria-label="Reshare to your story"
               >
                 {isResharing ? (
@@ -844,11 +844,11 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             )}
 
             {/* Message input */}
-              <div className="flex-1 flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
+              <div className="flex-1 flex items-center gap-2 bg-card/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
                 <EmojiPicker 
                   onEmojiSelect={(emoji) => setMessage(prev => prev + emoji)}
                   variant="compact"
-                  triggerClassName="text-white/60 hover:text-white hover:bg-white/10"
+                  triggerClassName="text-white/60 hover:text-white hover:bg-card/10"
                   className="z-[200]"
                 />
               <input
@@ -893,7 +893,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                 setShowActivityModal(true);
                 setIsPaused(true);
               }}
-              className="flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-5 py-2.5 border border-white/20 text-white hover:bg-white/25 transition-colors"
+              className="flex items-center gap-2 bg-card/15 backdrop-blur-sm rounded-full px-5 py-2.5 border border-white/20 text-white hover:bg-card/25 transition-colors"
             >
               <BarChart3 className="size-5" />
               <span className="text-sm font-medium">Activity</span>

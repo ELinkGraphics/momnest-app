@@ -720,20 +720,20 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
                   {/* Comment content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1 mb-1">
-                       <span className="text-username font-semibold text-gray-900">
+                       <span className="text-username font-semibold text-foreground">
                          {comment.user.name}
                        </span>
                        {comment.user.verified && (
                          <div className="size-3 bg-primary rounded-full flex items-center justify-center">
-                           <div className="size-1.5 bg-white rounded-full" />
+                           <div className="size-1.5 bg-card rounded-full" />
                          </div>
                        )}
-                       <span className="text-timestamp text-gray-500 ml-1">
+                       <span className="text-timestamp text-muted-foreground ml-1">
                          {comment.timestamp}
                        </span>
                     </div>
                     
-                     <p className="text-comment-text text-gray-800 mb-2 leading-relaxed">
+                     <p className="text-comment-text text-foreground mb-2 leading-relaxed">
                        <RichTextRenderer text={comment.text} />
                      </p>
 
@@ -742,21 +742,21 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
                       <button
                         onClick={() => handleLikeComment(comment.id)}
                          className={`flex items-center gap-1 text-action-label transition-colors ${
-                           comment.isLiked ? 'text-red-500' : 'text-gray-500 hover:text-gray-700'
+                           comment.isLiked ? 'text-red-500' : 'text-muted-foreground hover:text-foreground'
                          }`}
                        >
                          <Heart className={`size-3 ${comment.isLiked ? 'fill-current' : ''}`} />
                          {comment.likes > 0 && <span>{formatCount(comment.likes)}</span>}
                        </button>
                        
-                       <button className="flex items-center gap-1 text-action-label text-gray-500 hover:text-gray-700 transition-colors">
+                       <button className="flex items-center gap-1 text-action-label text-muted-foreground hover:text-foreground transition-colors">
                         <MessageCircle className="size-3" />
                         {comment.replies > 0 && <span>{comment.replies}</span>}
                       </button>
                       
                       <button 
                         onClick={() => setReplyingTo(comment.id)}
-                        className="text-action-label text-gray-500 hover:text-gray-700 transition-colors"
+                        className="text-action-label text-muted-foreground hover:text-foreground transition-colors"
                       >
                         Reply
                       </button>
@@ -831,21 +831,21 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1 mb-1">
-                         <span className="text-username font-semibold text-gray-900">
+                         <span className="text-username font-semibold text-foreground">
                            {reply.user.name}
                          </span>
-                         <span className="text-timestamp text-gray-500 ml-1">
+                         <span className="text-timestamp text-muted-foreground ml-1">
                            {reply.timestamp}
                          </span>
                       </div>
-                       <p className="text-comment-text text-gray-800 mb-1 leading-relaxed">
+                       <p className="text-comment-text text-foreground mb-1 leading-relaxed">
                          {reply.text}
                        </p>
                       <div className="flex items-center gap-4">
                         <button
                           onClick={() => handleLikeComment(reply.id)}
                            className={`flex items-center gap-1 text-action-label transition-colors ${
-                             reply.isLiked ? 'text-red-500' : 'text-gray-500 hover:text-gray-700'
+                             reply.isLiked ? 'text-red-500' : 'text-muted-foreground hover:text-foreground'
                            }`}
                         >
                           <Heart className={`size-3 ${reply.isLiked ? 'fill-current' : ''}`} />

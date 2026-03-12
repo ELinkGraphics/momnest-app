@@ -73,7 +73,7 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({ items, initialIndex, onCl
         <button
           type="button"
           onClick={onClose}
-          className="p-2 rounded-full hover:bg-white/10 transition-colors active:scale-90"
+          className="p-2 rounded-full hover:bg-card/10 transition-colors active:scale-90"
         >
           <X className="h-6 w-6 text-white" />
         </button>
@@ -87,7 +87,7 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({ items, initialIndex, onCl
         <button
           type="button"
           onClick={handleDownload}
-          className="p-2 rounded-full hover:bg-white/10 transition-colors active:scale-90"
+          className="p-2 rounded-full hover:bg-card/10 transition-colors active:scale-90"
         >
           <Download className="h-5 w-5 text-white" />
         </button>
@@ -158,7 +158,7 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({ items, initialIndex, onCl
               type="button"
               onClick={() => setCurrentIndex(i)}
               className={`w-2 h-2 rounded-full transition-all ${
-                i === currentIndex ? 'bg-white scale-125' : 'bg-white/40'
+                i === currentIndex ? 'bg-card scale-125' : 'bg-card/40'
               }`}
             />
           ))}

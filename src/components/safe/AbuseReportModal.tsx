@@ -82,7 +82,7 @@ export const AbuseReportModal: React.FC<AbuseReportModalProps> = ({
                     <Label htmlFor={type.value} className="font-medium cursor-pointer">
                       {type.label}
                     </Label>
-                    <p className="text-xs text-gray-600">{type.description}</p>
+                    <p className="text-xs text-muted-foreground">{type.description}</p>
                   </div>
                 </div>
               ))}
@@ -98,7 +98,7 @@ export const AbuseReportModal: React.FC<AbuseReportModalProps> = ({
               rows={4}
               className="resize-none"
             />
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-muted-foreground">
               {description.length}/500 characters
             </p>
           </div>
