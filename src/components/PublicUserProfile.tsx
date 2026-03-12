@@ -275,77 +275,50 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
   };
 
   const PostCard = ({ post }: { post: any }) => (
-    <Card 
-      className="p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+    <div 
+      className="cursor-pointer group"
       onClick={() => {
         onClose?.();
         navigate(`/post/${post.id}`);
       }}
     >
-      <div className="flex items-start gap-3">
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={post.profiles?.avatar_url} />
-          <AvatarFallback style={{ backgroundColor: post.profiles?.avatar_color }}>
-            {post.profiles?.initials}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">{post.profiles?.name}</span>
+      <div className="aspect-square bg-muted relative overflow-hidden">
+        {post.media_url ? (
+          <img src={post.media_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted p-2">
+            <p className="text-xs text-muted-foreground text-center line-clamp-4">{post.content}</p>
           </div>
-          <p className="mt-2 whitespace-pre-wrap break-words text-[14px] leading-relaxed line-clamp-2" dir="auto">
-            {post.content.split(' ').map((word: string, i: number) =>
-              word.startsWith('#') ? <span key={i} className="text-primary font-medium">{word} </span> : word + ' '
-            )}
-          </p>
-          {post.media_url && (
-            <div className="mt-3 rounded-lg overflow-hidden">
-              <img src={post.media_url} alt={post.media_alt || ''} className="w-full" />
-            </div>
-          )}
-          <div className="flex items-center gap-6 mt-3 text-muted-foreground text-sm">
-            <span>{post.post_stats?.likes_count || 0} likes</span>
-            <span>{post.post_stats?.comments_count || 0} comments</span>
-          </div>
-        </div>
+        )}
       </div>
-    </Card>
+      <p className="text-xs text-muted-foreground mt-1 px-0.5 line-clamp-1 truncate">{post.content}</p>
+    </div>
   );
 
   const VideoCard = ({ video }: { video: any }) => (
-    <Card 
-      className="overflow-hidden hover:bg-muted/50 transition-colors cursor-pointer"
+    <div 
+      className="cursor-pointer group"
       onClick={() => {
         onClose?.();
-        navigate('/', { state: { feedMode: 'relax', videoId: video.id } });
+        navigate(`/video/${video.id}`);
       }}
     >
-      <div className="aspect-[9/16] bg-muted relative">
+      <div className="aspect-square bg-muted relative overflow-hidden">
         {video.thumbnail_url ? (
-          <img src={video.thumbnail_url} alt={video.title} className="w-full h-full object-cover" />
+          <img src={video.thumbnail_url} alt={video.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
         ) : video.video_url ? (
-          <video 
-            src={video.video_url} 
-            className="w-full h-full object-cover"
-            preload="metadata"
-          />
+          <video src={video.video_url} className="w-full h-full object-cover" preload="metadata" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-muted-foreground">No preview</span>
+            <MessageCircle className="h-6 w-6 text-muted-foreground" />
           </div>
         )}
-      </div>
-      <div className="p-3">
-        <h3 className="font-semibold line-clamp-2">{video.title}</h3>
-        {video.description && (
-          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{video.description}</p>
-        )}
-        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-          <span>{video.video_stats?.likes_count || 0} likes</span>
-          <span>{video.video_stats?.views_count || 0} views</span>
+        <div className="absolute bottom-1 right-1 bg-black/60 rounded px-1 py-0.5 text-[10px] text-white flex items-center gap-0.5">
+          <span>▶</span> {video.video_stats?.views_count || 0}
         </div>
       </div>
-    </Card>
+      <p className="text-xs text-muted-foreground mt-1 px-0.5 line-clamp-1 truncate">{video.title || video.description || ''}</p>
+    </div>
   );
 
   const EmptyState = ({ icon: Icon, message }: { icon: any; message: string }) => (
@@ -602,43 +575,41 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
         </TabsList>
 
         <TabsContent value="posts" className="mt-0">
-          <div className="space-y-4 p-4">
-            {user.isPrivate && !isFollowing && currentUser?.id !== userId ? (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <Lock className="h-12 w-12 mb-4 opacity-50" />
-                <p className="font-semibold text-foreground mb-1">This account is private</p>
-                <p className="text-center text-sm">Follow this account to see their posts.</p>
-              </div>
-            ) : posts.length > 0 ? (
-              posts.map((post) => <PostCard key={post.id} post={post} />)
-            ) : (
-              <EmptyState 
-                icon={MessageCircle}
-                message="No posts yet"
-              />
-            )}
-          </div>
+          {user.isPrivate && !isFollowing && currentUser?.id !== userId ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <Lock className="h-12 w-12 mb-4 opacity-50" />
+              <p className="font-semibold text-foreground mb-1">This account is private</p>
+              <p className="text-center text-sm">Follow this account to see their posts.</p>
+            </div>
+          ) : posts.length > 0 ? (
+            <div className="grid grid-cols-3 gap-0.5 p-0.5">
+              {posts.map((post) => <PostCard key={post.id} post={post} />)}
+            </div>
+          ) : (
+            <EmptyState 
+              icon={MessageCircle}
+              message="No posts yet"
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="videos" className="mt-0">
-          <div className="grid grid-cols-2 gap-2 p-2">
-            {user.isPrivate && !isFollowing && currentUser?.id !== userId ? (
-              <div className="col-span-2 flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <Lock className="h-12 w-12 mb-4 opacity-50" />
-                <p className="font-semibold text-foreground mb-1">This account is private</p>
-                <p className="text-center text-sm">Follow this account to see their videos.</p>
-              </div>
-            ) : videos.length > 0 ? (
-              videos.map((video) => <VideoCard key={video.id} video={video} />)
-            ) : (
-              <div className="col-span-2">
-                <EmptyState 
-                  icon={MessageCircle}
-                  message="No videos yet"
-                />
-              </div>
-            )}
-          </div>
+          {user.isPrivate && !isFollowing && currentUser?.id !== userId ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <Lock className="h-12 w-12 mb-4 opacity-50" />
+              <p className="font-semibold text-foreground mb-1">This account is private</p>
+              <p className="text-center text-sm">Follow this account to see their videos.</p>
+            </div>
+          ) : videos.length > 0 ? (
+            <div className="grid grid-cols-3 gap-0.5 p-0.5">
+              {videos.map((video) => <VideoCard key={video.id} video={video} />)}
+            </div>
+          ) : (
+            <EmptyState 
+              icon={MessageCircle}
+              message="No videos yet"
+            />
+          )}
         </TabsContent>
       </Tabs>
 

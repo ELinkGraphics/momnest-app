@@ -47,6 +47,7 @@ const StoriesBar: React.FC = () => {
             const isOwn = story.isOwn;
             const hasStories = story.allStories && story.allStories.length > 0;
             const isLive = (story as any).isLive;
+            const isViewed = story.isViewed;
 
             return (
               <button
@@ -72,7 +73,7 @@ const StoriesBar: React.FC = () => {
                       {/* Plus badge */}
                       <button
                         onClick={(e) => { e.stopPropagation(); setIsCreateStoryOpen(true); }}
-                        className="absolute bottom-0 right-0 size-5 bg-primary rounded-full flex items-center justify-center border-2 border-white"
+                        className="absolute bottom-0 right-0 size-5 bg-primary rounded-full flex items-center justify-center border-2 border-background"
                         aria-label="Add story"
                       >
                         <Plus className="size-3 text-white" />
@@ -106,7 +107,7 @@ const StoriesBar: React.FC = () => {
                                 cy={cy}
                                 r={radius}
                                 fill="none"
-                                stroke={isLive ? '#ef4444' : 'url(#storyGradient)'}
+                                stroke={isLive ? '#ef4444' : isViewed ? '#9ca3af' : 'url(#storyGradient)'}
                                 strokeWidth={strokeWidth}
                                 strokeDasharray={`${segmentLength} ${circumference - segmentLength}`}
                                 strokeDashoffset={dashOffset}
@@ -125,7 +126,7 @@ const StoriesBar: React.FC = () => {
                         </defs>
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="bg-white p-[2px] rounded-full">
+                        <div className="bg-background p-[2px] rounded-full">
                           <Avatar className="size-14">
                             <AvatarImage src={story.user.avatar} alt={story.user.name} />
                             <AvatarFallback
@@ -142,7 +143,7 @@ const StoriesBar: React.FC = () => {
 
                   {/* LIVE badge */}
                   {isLive && (
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap border border-white">
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap border border-background">
                       LIVE
                     </div>
                   )}
@@ -151,7 +152,7 @@ const StoriesBar: React.FC = () => {
                   {isOwn && hasStories && !isLive && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setIsCreateStoryOpen(true); }}
-                      className="absolute bottom-0 right-0 size-5 bg-primary rounded-full flex items-center justify-center border-2 border-white"
+                      className="absolute bottom-0 right-0 size-5 bg-primary rounded-full flex items-center justify-center border-2 border-background"
                       aria-label="Add story"
                     >
                       <Plus className="size-3 text-white" />
@@ -174,7 +175,7 @@ const StoriesBar: React.FC = () => {
           : stories.filter(story => !story.isOwn || (story.allStories && story.allStories.length > 0))}
         initialIndex={0}
         isOpen={isStoryViewerOpen}
-        onClose={() => setIsStoryViewerOpen(false)}
+        onClose={() => { setIsStoryViewerOpen(false); refreshStories(); }}
       />
 
       <CreateStoryModal

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, BarChart3, Repeat2, Loader2, ExternalLink, MoreVertical, Trash2, EyeOff, Flag, Eye } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, BarChart3, Repeat2, Loader2, ExternalLink, MoreVertical, Trash2, EyeOff, Flag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import EmojiPicker from '@/components/EmojiPicker';
 import { Story, StoryStickerData } from '@/data/mock';
@@ -415,11 +415,17 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     } else {
       // Right 70% → next
       // But if story has a reshared post or link stickers, show CTA overlay on center tap
-      const hasActionableContent = currentStory?.resharedPostId || 
-        currentStory?.stickerData?.some((s: StoryStickerData) => s.infoType === 'link');
+      // If reshared post, tap center area to navigate directly
+      if (currentStory?.resharedPostId && tapX >= leftThreshold && tapX < screenWidth * 0.7) {
+        onClose();
+        navigate(`/post/${currentStory.resharedPostId}`);
+        return;
+      }
+      
+      const hasActionableContent = currentStory?.stickerData?.some((s: StoryStickerData) => s.infoType === 'link');
       
       if (hasActionableContent && tapX >= leftThreshold && tapX < screenWidth * 0.7) {
-        // Center area tap with actionable content → show link overlay
+        // Center area tap with link stickers → show link overlay
         setShowLinkOverlay(true);
         setIsPaused(true);
         triggerHaptic('light');
@@ -721,41 +727,21 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
               }}
             />
             <div className="z-40 bg-white/95 backdrop-blur-md rounded-2xl px-6 py-4 shadow-xl border border-white/20 flex flex-col items-center gap-3 animate-in fade-in zoom-in-95 duration-200">
-              {currentStory.resharedPostId ? (
-                <>
-                  <Eye className="size-6 text-primary" />
-                  <p className="text-sm font-medium text-foreground">This is a shared post</p>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onClose();
-                      navigate(`/post/${currentStory.resharedPostId}`);
-                    }}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors"
-                  >
-                    <ExternalLink className="size-4" />
-                    See the post
-                  </button>
-                </>
-              ) : (
-                <>
-                  <ExternalLink className="size-6 text-primary" />
-                  <p className="text-sm font-medium text-foreground">Story has links</p>
-                  {currentStory.stickerData?.filter((s: StoryStickerData) => s.infoType === 'link').map((sticker, idx) => (
-                    <a
-                      key={idx}
-                      href={sticker.content.startsWith('http') ? sticker.content : `https://${sticker.content}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <ExternalLink className="size-4" />
-                      <span className="max-w-[200px] truncate">{sticker.content.replace(/^https?:\/\//, '')}</span>
-                    </a>
-                  ))}
-                </>
-              )}
+              <ExternalLink className="size-6 text-primary" />
+              <p className="text-sm font-medium text-foreground">Story has links</p>
+              {currentStory.stickerData?.filter((s: StoryStickerData) => s.infoType === 'link').map((sticker, idx) => (
+                <a
+                  key={idx}
+                  href={sticker.content.startsWith('http') ? sticker.content : `https://${sticker.content}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="size-4" />
+                  <span className="max-w-[200px] truncate">{sticker.content.replace(/^https?:\/\//, '')}</span>
+                </a>
+              ))}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -770,14 +756,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           </div>
         )}
 
-        {/* "See the post" link for reshared posts — always visible as subtle chip */}
-        {currentStory.resharedPostId && !showLinkOverlay && (
-          <div className="absolute bottom-28 left-0 right-0 z-25 flex justify-center pointer-events-none">
-            <div className="pointer-events-auto px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-medium border border-white/20">
-              Tap to see post
-            </div>
-          </div>
-        )}
+        {/* Reshared post: tap directly navigates */}
 
         {/* User info */}
         <div className="absolute bottom-20 left-4 right-4 text-white z-30">

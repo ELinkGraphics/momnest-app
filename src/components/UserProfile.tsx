@@ -153,101 +153,23 @@ const UserProfile: React.FC<UserProfileProps> = ({
   };
 
   const PostCard = ({ post }: { post: any }) => {
-    const [isLiked, setIsLiked] = useState(post.user_has_liked || false);
-    const [likesCount, setLikesCount] = useState(post.likes_count || 0);
-
-    const handleLike = async (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (!user) return;
-      
-      const newLikedState = !isLiked;
-      setIsLiked(newLikedState);
-      setLikesCount((prev: number) => newLikedState ? prev + 1 : prev - 1);
-      
-      await toggleLike(post.id, user.id, isLiked);
-    };
-
     const handlePostClick = () => {
       navigate(`/post/${post.id}`);
     };
 
-    const postUser = post.profiles || user;
-
     return (
-    <Card 
-      className="mb-4 overflow-hidden rounded-none border-x-0 border-t-0 border-b border-border/50 bg-card transition-all duration-200 cursor-pointer hover:bg-muted/30"
-      onClick={handlePostClick}
-    >
-      <CardContent className="px-4 sm:px-6 py-6">
-        <div className="flex items-start gap-3 mb-4">
-          <Avatar className="h-10 w-10 ring-2 ring-border">
-            {postUser.avatar_url ? (
-              <AvatarImage src={postUser.avatar_url} alt={postUser.name} />
-            ) : null}
-            <AvatarFallback 
-              className="text-primary-foreground font-semibold"
-              style={{ backgroundColor: postUser.avatar_color }}
-            >
-              {postUser.initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="font-semibold text-foreground truncate">{postUser.name}</span>
-              {postUser.is_verified && (
-                <Badge variant="secondary" className="px-1.5 py-0.5 text-xs">
-                  <Check className="h-3 w-3" />
-                </Badge>
-              )}
+      <div className="cursor-pointer group" onClick={handlePostClick}>
+        <div className="aspect-square bg-muted relative overflow-hidden">
+          {post.media_url ? (
+            <img src={post.media_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-muted p-2">
+              <p className="text-xs text-muted-foreground text-center line-clamp-4">{post.content}</p>
             </div>
-            <span className="text-sm text-muted-foreground">
-              {formatTime(post.created_at)}
-            </span>
-          </div>
+          )}
         </div>
-        
-        <div className="mb-4">
-          <TruncatedText text={post.content} maxLength={120} />
-        </div>
-        
-        {post.media_url && (
-          <div className="mb-4 rounded-xl overflow-hidden">
-            <img 
-              src={post.media_url} 
-              alt="Post media" 
-              className="w-full h-64 object-cover transition-transform duration-200 hover:scale-105"
-            />
-          </div>
-        )}
-
-        <div className="flex items-center justify-between pt-4 border-t border-border/50">
-          <div className="flex items-center gap-6">
-            <button 
-              onClick={handleLike}
-              className={`flex items-center gap-2 transition-colors duration-150 min-h-[40px] p-2 -m-2 ${
-                isLiked ? 'text-red-500' : 'text-muted-foreground hover:text-primary'
-              }`}
-            >
-              <Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} />
-              <span className="font-medium">{likesCount}</span>
-            </button>
-            <button 
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors duration-150 min-h-[40px] p-2 -m-2"
-            >
-              <MessageCircle className="h-5 w-5" />
-              <span className="font-medium">{post.comments_count || 0}</span>
-            </button>
-          </div>
-          <button 
-            onClick={(e) => e.stopPropagation()}
-            className="p-2 rounded-full hover:bg-muted/50 transition-colors duration-150 min-h-[40px] min-w-[40px]"
-          >
-            <Bookmark className="h-5 w-5 text-muted-foreground hover:text-primary" />
-          </button>
-        </div>
-      </CardContent>
-    </Card>
+        <p className="text-xs text-muted-foreground mt-1 px-0.5 line-clamp-1 truncate">{post.content}</p>
+      </div>
     );
   };
 
@@ -257,61 +179,23 @@ const UserProfile: React.FC<UserProfileProps> = ({
     };
 
     return (
-      <Card 
-        className="mb-4 overflow-hidden rounded-none border-x-0 border-t-0 border-b border-border/50 bg-card transition-all duration-200 cursor-pointer hover:bg-muted/30"
-        onClick={handleVideoClick}
-      >
-        <CardContent className="px-4 sm:px-6 py-6">
-          <div className="relative mb-4 rounded-xl overflow-hidden">
-            {video.thumbnail_url ? (
-              <img src={video.thumbnail_url} alt={video.title} className="w-full aspect-video object-cover" />
-            ) : video.video_url ? (
-              <video src={video.video_url} className="w-full aspect-video object-cover" preload="metadata" />
-            ) : (
-              <div className="w-full aspect-video bg-muted flex items-center justify-center">
-                <VideoIcon className="h-8 w-8 text-muted-foreground" />
-              </div>
-            )}
-            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-              <button className="w-16 h-16 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-transform duration-150 shadow-lg">
-                <div className="w-0 h-0 border-l-[12px] border-l-foreground border-y-[8px] border-y-transparent ml-1"></div>
-              </button>
-            </div>
-          </div>
-
-          <h3 className="font-semibold text-foreground mb-2 line-clamp-2">{video.title}</h3>
-          {video.description && (
-            <div className="mb-4">
-              <TruncatedText text={video.description} maxLength={100} className="text-muted-foreground" />
+      <div className="cursor-pointer group" onClick={handleVideoClick}>
+        <div className="aspect-square bg-muted relative overflow-hidden">
+          {video.thumbnail_url ? (
+            <img src={video.thumbnail_url} alt={video.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+          ) : video.video_url ? (
+            <video src={video.video_url} className="w-full h-full object-cover" preload="metadata" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <VideoIcon className="h-6 w-6 text-muted-foreground" />
             </div>
           )}
-
-          <div className="flex items-center justify-between pt-4 border-t border-border/50">
-            <div className="flex items-center gap-6">
-              <button 
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors duration-150 min-h-[40px] p-2 -m-2"
-              >
-                <Heart className="h-5 w-5" />
-                <span className="font-medium">{video.video_stats?.likes_count || 0}</span>
-              </button>
-              <button 
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors duration-150 min-h-[40px] p-2 -m-2"
-              >
-                <MessageCircle className="h-5 w-5" />
-                <span className="font-medium">{video.video_stats?.comments_count || 0}</span>
-              </button>
-            </div>
-            <button 
-              onClick={(e) => e.stopPropagation()}
-              className="p-2 rounded-full hover:bg-muted/50 transition-colors duration-150 min-h-[40px] min-w-[40px]"
-            >
-              <Bookmark className="h-5 w-5 text-muted-foreground hover:text-primary" />
-            </button>
+          <div className="absolute bottom-1 right-1 bg-black/60 rounded px-1 py-0.5 text-[10px] text-white flex items-center gap-0.5">
+            <span>▶</span> {video.video_stats?.[0]?.views_count || video.video_stats?.views_count || 0}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1 px-0.5 line-clamp-1 truncate">{video.title || video.description || ''}</p>
+      </div>
     );
   };
 
@@ -586,7 +470,9 @@ const UserProfile: React.FC<UserProfileProps> = ({
           {/* Posts Tab */}
           <TabsContent value="posts">
             {userPosts.length > 0 ? (
-              userPosts.map((post) => <PostCard key={post.id} post={post} />)
+              <div className="grid grid-cols-3 gap-0.5 p-0.5">
+                {userPosts.map((post) => <PostCard key={post.id} post={post} />)}
+              </div>
             ) : (
               <div className="px-4 sm:px-6">
                 <EmptyState
@@ -603,7 +489,9 @@ const UserProfile: React.FC<UserProfileProps> = ({
           {/* Videos Tab */}
           <TabsContent value="videos">
             {userVideos.length > 0 ? (
-              userVideos.map((video) => <VideoCard key={video.id} video={video} />)
+              <div className="grid grid-cols-3 gap-0.5 p-0.5">
+                {userVideos.map((video) => <VideoCard key={video.id} video={video} />)}
+              </div>
             ) : (
               <div className="px-4 sm:px-6">
                 <EmptyState
@@ -625,7 +513,9 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 <PostCardSkeleton />
               </div>
             ) : savedPosts.length > 0 ? (
-              savedPosts.map((post) => <PostCard key={post.id} post={post} />)
+              <div className="grid grid-cols-3 gap-0.5 p-0.5">
+                {savedPosts.map((post) => <PostCard key={post.id} post={post} />)}
+              </div>
             ) : (
               <div className="px-4 sm:px-6">
                 <EmptyState
