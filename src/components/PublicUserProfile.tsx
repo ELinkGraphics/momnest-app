@@ -276,48 +276,73 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
 
   const PostCard = ({ post }: { post: any }) => (
     <div 
-      className="cursor-pointer group"
+      className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300"
       onClick={() => {
         onClose?.();
         navigate(`/post/${post.id}`);
       }}
     >
-      <div className="aspect-square bg-muted relative overflow-hidden">
+      <div className="aspect-square relative overflow-hidden">
         {post.media_url ? (
-          <img src={post.media_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+          <img 
+            src={post.media_url} 
+            alt="" 
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+          />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-muted p-2">
-            <p className="text-xs text-muted-foreground text-center line-clamp-4">{post.content}</p>
+          <div className="w-full h-full flex items-center justify-center bg-muted/30 p-4">
+            <p className="text-[10px] text-muted-foreground text-center line-clamp-3 italic opacity-60">{post.content}</p>
           </div>
         )}
+        
+        {/* Glassmorphic Overlay for Caption */}
+        <div className="absolute inset-x-0 bottom-0 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="bg-background/20 backdrop-blur-md border border-white/10 rounded-xl p-2 shadow-lg">
+            <p className="text-[10px] text-white line-clamp-1 font-medium">{post.content || "View post"}</p>
+          </div>
+        </div>
       </div>
-      <p className="text-xs text-muted-foreground mt-1 px-0.5 line-clamp-1 truncate">{post.content}</p>
     </div>
   );
 
   const VideoCard = ({ video }: { video: any }) => (
     <div 
-      className="cursor-pointer group"
+      className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300"
       onClick={() => {
         onClose?.();
         navigate(`/video/${video.id}`);
       }}
     >
-      <div className="aspect-square bg-muted relative overflow-hidden">
+      <div className="aspect-[3/4] relative overflow-hidden bg-black/5">
         {video.thumbnail_url ? (
-          <img src={video.thumbnail_url} alt={video.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+          <img 
+            src={video.thumbnail_url} 
+            alt={video.title} 
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+          />
         ) : video.video_url ? (
-          <video src={video.video_url} className="w-full h-full object-cover" preload="metadata" />
+          <div className="w-full h-full bg-muted/20 flex items-center justify-center">
+            <MessageCircle className="h-8 w-8 text-muted-foreground/30" />
+          </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <MessageCircle className="h-6 w-6 text-muted-foreground" />
+            <MessageCircle className="h-8 w-8 text-muted-foreground/30" />
           </div>
         )}
-        <div className="absolute bottom-1 right-1 bg-black/60 rounded px-1 py-0.5 text-[10px] text-white flex items-center gap-0.5">
-          <span>▶</span> {video.video_stats?.views_count || 0}
+
+        {/* Glassmorphic Play Badge */}
+        <div className="absolute top-2 right-2 bg-black/20 backdrop-blur-md border border-white/10 rounded-full px-2 py-1 flex items-center gap-1 shadow-sm">
+          <div className="w-0 h-0 border-y-[4px] border-y-transparent border-l-[6px] border-l-white ml-0.5" />
+          <span className="text-[10px] font-bold text-white">
+            {video.video_stats?.[0]?.views_count || video.video_stats?.views_count || video.video_stats?.views_count || 0}
+          </span>
+        </div>
+
+        {/* Glassmorphic Info Banner */}
+        <div className="absolute inset-x-2 bottom-2 p-2 bg-black/20 backdrop-blur-md border border-white/20 rounded-xl shadow-lg transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+          <p className="text-[11px] font-semibold text-white line-clamp-1">{video.title || "Untitled Video"}</p>
         </div>
       </div>
-      <p className="text-xs text-muted-foreground mt-1 px-0.5 line-clamp-1 truncate">{video.title || video.description || ''}</p>
     </div>
   );
 
@@ -582,7 +607,7 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
               <p className="text-center text-sm">Follow this account to see their posts.</p>
             </div>
           ) : posts.length > 0 ? (
-            <div className="grid grid-cols-3 gap-0.5 p-0.5">
+            <div className="grid grid-cols-3 gap-3 px-4 sm:px-6">
               {posts.map((post) => <PostCard key={post.id} post={post} />)}
             </div>
           ) : (
@@ -601,7 +626,7 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
               <p className="text-center text-sm">Follow this account to see their videos.</p>
             </div>
           ) : videos.length > 0 ? (
-            <div className="grid grid-cols-3 gap-0.5 p-0.5">
+            <div className="grid grid-cols-2 gap-4 px-4 sm:px-6">
               {videos.map((video) => <VideoCard key={video.id} video={video} />)}
             </div>
           ) : (
