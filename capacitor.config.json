@@ -1,0 +1,32 @@
+{
+  "appId": "app.lovable.28e1f2e32ba440e796f79895f5be4af5",
+  "appName": "nest-app-creation-97",
+  "webDir": "dist",
+  "server": {
+    "url": "https://28e1f2e3-2ba4-40e7-96f7-9895f5be4af5.lovableproject.com?forceHideBadge=true",
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 3000,
+      "launchAutoHide": true,
+      "backgroundColor": "#ffffffff",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "androidSpinnerStyle": "large",
+      "iosSpinnerStyle": "small",
+      "spinnerColor": "#999999",
+      "splashFullScreen": true,
+      "splashImmersive": true,
+      "layoutName": "launch_screen",
+      "useDialog": true
+    },
+    "SafeArea": {
+      "enabled": true,
+      "customColorsForSystemBars": true,
+      "statusBarBackgroundColor": "#ffffff",
+      "navigationBarBackgroundColor": "#ffffff"
+    }
+  }
+}

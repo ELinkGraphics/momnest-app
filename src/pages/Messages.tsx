@@ -1,0 +1,158 @@
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Plus } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useUser } from '@/contexts/UserContext';
+import { useConversations, useCreateConversation } from '@/hooks/useConversations';
+import ConversationsList from '@/components/messages/ConversationsList';
+import ChatView from '@/components/messages/ChatView';
+import CreateGroupModal from '@/components/messages/CreateGroupModal';
+
+const Messages = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user } = useUser();
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  
+  const { conversations, isLoading } = useConversations(user?.id);
+  const { createConversation } = useCreateConversation();
+
+  // Handle opening group creation modal from URL params
+  useEffect(() => {
+    if (searchParams.get('createGroup') === 'true') {
+      setShowCreateGroup(true);
+      navigate('/messages', { replace: true });
+    }
+  }, [searchParams, navigate]);
+
+  // Handle opening conversation from URL params (when clicking "Message" on profile)
+  useEffect(() => {
+    const userId = searchParams.get('userId');
+    if (userId && user?.id && !selectedConversationId) {
+      const initConversation = async () => {
+        try {
+          const conversationId = await createConversation(user.id, userId);
+          setSelectedConversationId(conversationId);
+          navigate('/messages', { replace: true });
+        } catch (error) {
+          console.error('Error creating conversation:', error);
+        }
+      };
+      initConversation();
+    }
+  }, [searchParams, user?.id, createConversation, selectedConversationId, navigate]);
+
+  const selectedConversation = conversations.find(
+    (c) => c.conversation_id === selectedConversationId
+  );
+
+  const handleBack = () => {
+    setSelectedConversationId(null);
+    // Clear the userId from URL when going back
+    navigate('/messages', { replace: true });
+  };
+
+  if (!user) return null;
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header - Only show when no conversation selected on mobile */}
+      {!selectedConversationId && (
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-lg border-b border-border/50 safe-top lg:hidden">
+          <div className="flex items-center justify-between px-3 py-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 -ml-2 hover:bg-muted rounded-full active:scale-95 transition-all"
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </button>
+            <h1 className="text-xl font-bold">Messages</h1>
+            <button
+              onClick={() => setShowCreateGroup(true)}
+              className="p-2 -mr-2 hover:bg-muted rounded-full active:scale-95 transition-all"
+            >
+              <Plus className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Layout */}
+      <div className="hidden lg:flex h-screen">
+        {/* Conversations List */}
+        <div className="w-96 border-r border-border bg-background">
+          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-lg border-b border-border px-4 py-4 flex items-center justify-between">
+            <h1 className="text-xl font-bold">Messages</h1>
+            <button
+              onClick={() => setShowCreateGroup(true)}
+              className="p-2 -mr-2 hover:bg-muted rounded-full active:scale-95 transition-all"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          </div>
+          <ConversationsList
+            conversations={conversations}
+            selectedConversationId={selectedConversationId}
+            onSelectConversation={setSelectedConversationId}
+            isLoading={isLoading}
+            currentUserId={user.id}
+          />
+        </div>
+
+        {/* Chat View */}
+        <div className="flex-1">
+          {selectedConversation ? (
+            <ChatView
+              conversation={selectedConversation}
+              currentUserId={user.id}
+              currentUserAvatar={user.avatar}
+              currentUserInitials={user.initials}
+              currentUserName={user.name}
+              onBack={handleBack}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-center p-8">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">Select a conversation</h2>
+                <p className="text-muted-foreground">
+                  Choose a conversation from the list to start messaging
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden h-screen flex flex-col">
+        {selectedConversation ? (
+            <ChatView
+              conversation={selectedConversation}
+              currentUserId={user.id}
+              currentUserAvatar={user.avatar}
+              currentUserInitials={user.initials}
+              currentUserName={user.name}
+              onBack={handleBack}
+            />
+        ) : (
+          <ConversationsList
+            conversations={conversations}
+            selectedConversationId={selectedConversationId}
+            onSelectConversation={setSelectedConversationId}
+            isLoading={isLoading}
+            currentUserId={user.id}
+          />
+        )}
+      </div>
+
+      <CreateGroupModal
+        open={showCreateGroup}
+        onClose={() => setShowCreateGroup(false)}
+        currentUserId={user.id}
+        onGroupCreated={(id) => setSelectedConversationId(id)}
+      />
+    </div>
+  );
+};
+
+export default Messages;

@@ -1,0 +1,382 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* MomsNest Design System - Beautiful purple/pink theme */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Primary: Brown #713A20 */
+    --primary: 19 55% 28%;
+    /* #713A20 */
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 19 55% 40%;
+
+    /* Secondary: Golden orange #E09F4D */
+    --secondary: 33 69% 59%;
+    /* #E09F4D */
+    --secondary-foreground: 0 0% 100%;
+
+    /* Tertiary: Light cream #FFE2BE */
+    --tertiary: 33 100% 87%;
+    /* #FFE2BE */
+    --tertiary-foreground: 19 55% 28%;
+
+    /* Success: Teal accent */
+    --success: 162 78% 46%;
+    /* #22C3A6 */
+    --success-foreground: 0 0% 100%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 315 85% 97%;
+    --accent-foreground: 302 66% 19%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 19 55% 28%;
+    /* Use primary color for focus rings */
+
+    /* Custom grays */
+    --gray-50: 210 20% 98%;
+    --gray-100: 210 20% 96%;
+    --gray-200: 210 16% 93%;
+    --gray-300: 210 14% 89%;
+    --gray-400: 215 14% 71%;
+    --gray-500: 215 13% 50%;
+    --gray-600: 215 25% 27%;
+    --gray-700: 215 25% 18%;
+    --gray-800: 215 39% 15%;
+    --gray-900: 215 28% 17%;
+
+    --radius: 1rem;
+
+    /* ========== Consistent Typography System ========== */
+    /* Standard post and comment typography sizes for uniform experience */
+    --post-title-size: 0.875rem;
+    /* 14px - sm */
+    --post-content-size: 0.875rem;
+    /* 14px - sm */
+    --comment-text-size: 0.875rem;
+    /* 14px - sm */
+    --comment-text-compact: 0.5625rem;
+    /* 9px - xxs for dense comments */
+    --username-size: 0.875rem;
+    /* 14px - sm */
+    --timestamp-size: 0.75rem;
+    /* 12px - xs */
+    --action-label-size: 0.75rem;
+    /* 12px - xs */
+    --badge-size: 0.75rem;
+    /* 12px - xs */
+    --meta-info-size: 0.875rem;
+    /* 14px - sm */
+
+    /* Beautiful gradients using exact colors */
+    --gradient-primary: linear-gradient(135deg, hsl(19 55% 28%), hsl(19 55% 40%));
+    --gradient-secondary: linear-gradient(135deg, hsl(33 69% 59%), hsl(33 100% 87%));
+    --gradient-subtle: linear-gradient(180deg, hsl(33 100% 87% / 0.5), hsl(33 100% 87% / 0.2));
+
+    /* Smooth transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    /* Shadows using your brand colors */
+    --shadow-elegant: 0 10px 30px -10px hsl(19 55% 28% / 0.25);
+    --shadow-glow: 0 0 40px hsl(33 69% 59% / 0.4);
+    --shadow-soft: 0 2px 20px hsl(19 55% 28% / 0.1);
+  }
+
+  .dark {
+    /* Deep dark backgrounds for a premium feel */
+    --background: 220 22% 7%;
+    --foreground: 210 30% 93%;
+
+    /* Cards slightly lighter than background for depth */
+    --card: 220 20% 11%;
+    --card-foreground: 210 30% 93%;
+
+    --popover: 220 20% 12%;
+    --popover-foreground: 210 30% 93%;
+
+    /* Brand primary brightened slightly for dark backgrounds */
+    --primary: 19 60% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 19 60% 55%;
+
+    --secondary: 33 70% 55%;
+    --secondary-foreground: 0 0% 100%;
+
+    --tertiary: 33 45% 18%;
+    --tertiary-foreground: 33 100% 87%;
+
+    /* Success stays readable in dark */
+    --success: 162 70% 42%;
+    --success-foreground: 0 0% 100%;
+
+    /* Muted: subtle surface, readable text */
+    --muted: 220 18% 16%;
+    --muted-foreground: 215 18% 62%;
+
+    --accent: 220 18% 16%;
+    --accent-foreground: 210 30% 90%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 20%;
+    --input: 220 15% 17%;
+    --ring: 19 60% 45%;
+
+    /* Dark-mode gray scale (inverted: 50 = darkest, 900 = lightest) */
+    --gray-50: 220 18% 12%;
+    --gray-100: 220 18% 15%;
+    --gray-200: 220 16% 19%;
+    --gray-300: 220 14% 25%;
+    --gray-400: 215 12% 42%;
+    --gray-500: 215 10% 52%;
+    --gray-600: 215 14% 68%;
+    --gray-700: 215 14% 76%;
+    --gray-800: 215 18% 84%;
+    --gray-900: 215 20% 91%;
+
+    /* Dark-mode gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(19 60% 35%), hsl(19 60% 48%));
+    --gradient-secondary: linear-gradient(135deg, hsl(33 70% 45%), hsl(33 60% 30%));
+    --gradient-subtle: linear-gradient(180deg, hsl(220 18% 16% / 0.8), hsl(220 18% 16% / 0.3));
+
+    /* Dark-mode shadows */
+    --shadow-elegant: 0 10px 30px -10px hsl(0 0% 0% / 0.6);
+    --shadow-glow: 0 0 40px hsl(19 60% 45% / 0.25);
+    --shadow-soft: 0 2px 20px hsl(0 0% 0% / 0.4);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Override default browser active states */
+  button:active,
+  [role="button"]:active,
+  input[type="button"]:active,
+  input[type="submit"]:active {
+    background-color: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+    outline: none !important;
+  }
+
+  /* Ensure focus states use primary color */
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid hsl(var(--primary)) !important;
+    outline-offset: 2px !important;
+  }
+
+  /* Remove any default pink/purple colors from webkit */
+  *::-webkit-details-marker {
+    display: none;
+  }
+
+  *::-webkit-calendar-picker-indicator {
+    filter: hue-rotate(180deg);
+  }
+}
+
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Mobile-first safe area handling */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .safe-area-full {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* Enhanced touch targets for mobile */
+  .touch-target {
+    min-height: 44px;
+    /* iOS minimum */
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+
+  .touch-target-large {
+    min-height: 48px;
+    /* Android Material Design */
+    min-width: 48px;
+    touch-action: manipulation;
+  }
+
+  /* Optimized scroll performance */
+  .scroll-optimized {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    will-change: scroll-position;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Content visibility for better performance */
+  .content-visibility-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 200px;
+  }
+
+  /* Mobile spacing utilities */
+  .mobile-px {
+    @apply px-4 sm:px-6;
+  }
+
+  .mobile-py {
+    @apply py-3 sm:py-4;
+  }
+
+  .mobile-gap {
+    @apply gap-3 sm:gap-4;
+  }
+
+  /* Swipe indicator */
+  .swipe-indicator {
+    position: relative;
+  }
+
+  .swipe-indicator::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 3px;
+    background: hsl(var(--muted-foreground));
+    border-radius: 2px;
+    opacity: 0.3;
+  }
+
+  /* Hide scrollbars while keeping scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    /* Internet Explorer 10+ */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+    /* Safari and Chrome */
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .hover-scale {
+      @apply transform-none transition-none;
+    }
+
+    .animate-fade-in,
+    .animate-scale-in,
+    .animate-slide-up,
+    .animate-bounce-in {
+      @apply animate-none;
+    }
+  }
+
+  /* Heart pulse animation for SOS cards */
+  .heart-pulse {
+    animation: heartPulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes heartPulse {
+    0% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.05);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* Smooth fade-out animation for modal dismissal */
+  .animate-fade-out {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  /* Update notifier slide down animation */
+  .animate-slide-down {
+    animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideDown {
+    from {
+      transform: translate(-50%, calc(-100% - 1rem));
+      opacity: 0;
+    }
+
+    to {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+  }
+
+  /* Prevent pull-to-refresh on modal */
+  .no-pull-refresh {
+    touch-action: none !important;
+    overscroll-behavior: none !important;
+    -webkit-overflow-scrolling: auto !important;
+    overflow: hidden !important;
+  }
+
+  .no-pull-refresh * {
+    overscroll-behavior: none !important;
+  }
+}
