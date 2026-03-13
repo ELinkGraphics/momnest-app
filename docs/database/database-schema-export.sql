@@ -1660,6 +1660,21 @@ CREATE TABLE public.webhook_endpoints (
 );
 ALTER TABLE public.webhook_endpoints ENABLE ROW LEVEL SECURITY;
 
+-- --------------------------------------------------------------------------
+-- push_subscriptions (Web Push API)
+-- --------------------------------------------------------------------------
+CREATE TABLE public.push_subscriptions (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  endpoint text NOT NULL,
+  p256dh text NOT NULL,
+  auth text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  UNIQUE (user_id, endpoint)
+);
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
+
 -- ============================================================================
 -- SECTION 3: INDEXES (non-primary-key, non-unique-constraint)
 -- ============================================================================
@@ -1712,6 +1727,7 @@ CREATE INDEX idx_live_viewers_stream_id ON live_viewers USING btree (stream_id);
 CREATE INDEX idx_messages_conversation_id ON messages USING btree (conversation_id);
 CREATE INDEX idx_messages_created_at ON messages USING btree (created_at DESC);
 CREATE INDEX idx_notification_prefs_user ON notification_preferences USING btree (user_id) WHERE (enabled = true);
+CREATE INDEX idx_push_subscriptions_user_id ON push_subscriptions USING btree (user_id);
 
 -- ============================================================================
 -- SECTION 4: TRIGGERS
@@ -1765,6 +1781,7 @@ CREATE TRIGGER on_video_save_change AFTER INSERT OR DELETE ON video_saves FOR EA
 CREATE TRIGGER on_new_video AFTER INSERT ON videos FOR EACH ROW EXECUTE FUNCTION notify_followers_new_video();
 CREATE TRIGGER on_video_count_change AFTER INSERT OR DELETE ON videos FOR EACH ROW EXECUTE FUNCTION update_profile_video_count();
 CREATE TRIGGER on_video_created AFTER INSERT ON videos FOR EACH ROW EXECUTE FUNCTION create_video_stats();
+CREATE TRIGGER update_push_subscriptions_updated_at BEFORE UPDATE ON push_subscriptions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
 -- SECTION 5: REALTIME PUBLICATIONS
