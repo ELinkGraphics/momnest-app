@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TipButton } from './TipButton';
 import { CreateCirclePostModal } from './CreateCirclePostModal';
@@ -125,16 +125,50 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
     <div className="space-y-0 scroll-smooth">
       {/* Create Post - Only for Owners */}
       {isOwner && (
-        <div className="px-4 py-6 bg-muted/30 border-b border-border animate-fade-in">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-sm font-semibold flex-shrink-0">
-              ME
-            </div>
+        <div className="px-4 py-8 bg-muted/40 border-b border-border/50 animate-fade-in">
+          <div className="max-w-xl mx-auto">
             <div 
               onClick={() => setIsCreateModalOpen(true)}
-              className="flex-1 bg-background/80 rounded-full px-4 py-3 cursor-pointer border border-border hover:bg-background transition-smooth hover-scale"
+              className="group relative bg-card/40 backdrop-blur-md rounded-2xl p-4 cursor-pointer border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 active:scale-[0.98]"
             >
-              <p className="text-sm text-muted-foreground">Share something with the circle...</p>
+              <div className="flex items-start gap-4">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 flex-shrink-0 animate-scale-in">
+                  <Crown className="w-6 h-6" />
+                </div>
+                <div className="flex-1 space-y-3">
+                  <div className="pt-2">
+                    <p className="text-base text-muted-foreground group-hover:text-foreground transition-colors">
+                      What's on your mind, Creator?
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 pt-2 border-t border-border/40">
+                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors">
+                      <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                        <ImageIcon className="w-4 h-4" />
+                      </div>
+                      <span>Add Image</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-amber-500 transition-colors">
+                      <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+                        <Crown className="w-4 h-4" />
+                      </div>
+                      <span>Premium Post</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-emerald-500 transition-colors">
+                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                        <Coins className="w-4 h-4" />
+                      </div>
+                      <span>Enable Tips</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Decorative accent */}
+              <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              </div>
             </div>
           </div>
         </div>
