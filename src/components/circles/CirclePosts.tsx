@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins, Send, X } from 'lucide-react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/react/menus';
+import StarterKit from '@tiptap/starter-kit';
+import Underline from '@tiptap/extension-underline';
+import Link from '@tiptap/extension-link';
+import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins, Send, X, Bold, Italic, Underline as UnderlineIcon, List, Heading1, Heading2, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { TipButton } from './TipButton';
 import { PremiumSettingsModal } from './PremiumSettingsModal';
 import { SubscribeCircleModal } from './SubscribeCircleModal';
@@ -38,6 +41,33 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
   const [hasTipsEnabled, setHasTipsEnabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+
+  // Initialize Tiptap Editor
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2],
+        },
+      }),
+      Underline,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline cursor-pointer',
+        },
+      }),
+    ],
+    content: '',
+    onUpdate: ({ editor }) => {
+      setContent(editor.getHTML());
+    },
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm prose-invert focus:outline-none min-h-[100px] w-full text-lg placeholder:text-muted-foreground/50',
+      },
+    },
+  });
 
   const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
   
@@ -101,11 +131,11 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
       toast({ title: "Post published!", description: isPremium ? `Premium post set at ${premiumPrice} coins` : "Your post is now live" });
       
       // Reset state
-      setContent('');
-      setCoverImage(null);
       setCoverPreview('');
       setIsPremium(false);
       setHasTipsEnabled(true);
+      editor?.commands.setContent('');
+      setContent('');
       queryClient.invalidateQueries({ queryKey: ['circle-posts', circleId] });
     } catch (error: any) {
       console.error('Error creating post:', error);
@@ -200,14 +230,62 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                   <Crown className="w-6 h-6" />
                 </div>
                 
-                {/* Text Area */}
-                <div className="flex-1 space-y-3 pt-1">
-                  <Textarea
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="What's on your mind, Creator?"
-                    className="min-h-[100px] w-full bg-transparent border-none p-0 focus-visible:ring-0 text-lg resize-none placeholder:text-muted-foreground/50 transition-all"
-                  />
+                {/* Text Area / Rich Text Editor */}
+                <div className="flex-1 space-y-3 pt-1 min-h-[100px]">
+                  {editor && (
+                    <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} className="flex items-center gap-1 p-1.5 bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                      <button
+                        onClick={() => editor.chain().focus().toggleBold().run()}
+                        className={`p-2 rounded-xl transition-all ${editor.isActive('bold') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
+                      >
+                        <Bold className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleItalic().run()}
+                        className={`p-2 rounded-xl transition-all ${editor.isActive('italic') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
+                      >
+                        <Italic className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleUnderline().run()}
+                        className={`p-2 rounded-xl transition-all ${editor.isActive('underline') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
+                      >
+                        <UnderlineIcon className="w-4 h-4" />
+                      </button>
+                      <div className="w-px h-4 bg-border/50 mx-1" />
+                      <button
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                        className={`p-2 rounded-xl transition-all ${editor.isActive('heading', { level: 1 }) ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
+                      >
+                        <Heading1 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleBulletList().run()}
+                        className={`p-2 rounded-xl transition-all ${editor.isActive('bulletList') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
+                      >
+                        <List className="w-4 h-4" />
+                      </button>
+                      <div className="w-px h-4 bg-border/50 mx-1" />
+                      <button
+                        onClick={() => {
+                          const url = window.prompt('URL');
+                          if (url) editor.chain().focus().setLink({ href: url }).run();
+                        }}
+                        className={`p-2 rounded-xl transition-all ${editor.isActive('link') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
+                      >
+                        <LinkIcon className="w-4 h-4" />
+                      </button>
+                    </BubbleMenu>
+                  )}
+                  
+                  <div className="relative">
+                    {!content.trim() || content === '<p></p>' ? (
+                      <div className="absolute top-0 left-0 text-muted-foreground/50 text-lg pointer-events-none">
+                        What's on your mind, Creator?
+                      </div>
+                    ) : null}
+                    <EditorContent editor={editor} />
+                  </div>
                   
                   {/* Image Preview */}
                   {coverPreview && (
@@ -389,11 +467,19 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                     </div>
 
                     {/* Description */}
-                    <p className="text-white/90 text-sm leading-relaxed mb-4 line-clamp-2 whitespace-pre-wrap break-words">
-                      {canView ? post.content.split(' ').map((word: string, i: number) =>
-                        word.startsWith('#') ? <span key={i} className="text-primary-foreground/80 font-medium">{word} </span> : word + ' '
+                    <div className="text-white/90 text-sm leading-relaxed mb-4 line-clamp-2 overflow-hidden prose prose-sm prose-invert max-w-none">
+                      {canView ? (
+                        post.content.includes('<') ? (
+                          <div dangerouslySetInnerHTML={{ __html: post.content }} />
+                        ) : (
+                          <p>
+                            {post.content.split(' ').map((word: string, i: number) =>
+                              word.startsWith('#') ? <span key={i} className="text-primary-foreground/80 font-medium">{word} </span> : word + ' '
+                            )}
+                          </p>
+                        )
                       ) : 'Tap to unlock exclusive content with coins or subscribe for full access...'}
-                    </p>
+                    </div>
 
                     {/* Row with social buttons including tip button */}
                     {canView && (
