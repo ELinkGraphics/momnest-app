@@ -223,67 +223,63 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                   )}
 
                   {/* Actions Bar */}
-                  <div className="flex items-start md:items-center justify-between pt-3 border-t border-border/30 gap-y-3 flex-wrap">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {/* Post Button - Moved to the left middle section */}
-                      <Button 
-                        onClick={handleSubmit}
-                        disabled={isSubmitting || (!content.trim() && !coverImage)}
-                        className="h-10 px-6 rounded-2xl bg-gradient-to-r from-primary to-primary/80 font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex-shrink-0"
+                  <div className="flex items-center justify-between pt-3 border-t border-border/30 gap-2 flex-nowrap overflow-x-auto no-scrollbar">
+                    <div className="flex items-center gap-1.5 flex-nowrap">
+                      {/* Add Image */}
+                      <label className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-muted/20 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all cursor-pointer flex-shrink-0">
+                        <ImageIcon className="w-3.5 h-3.5" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Image</span>
+                        <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
+                      </label>
+
+                      {/* Premium Toggle */}
+                      <button 
+                        onClick={() => {
+                          if (!isPremium) {
+                            setIsPremiumModalOpen(true);
+                          } else {
+                            setIsPremium(false);
+                          }
+                        }}
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded-xl transition-all flex-shrink-0 ${
+                          isPremium 
+                            ? 'bg-amber-500/20 text-amber-500 ring-1 ring-amber-500/50' 
+                            : 'bg-muted/20 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-500'
+                        }`}
                       >
-                        {isSubmitting ? (
-                          <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span>Post</span>
-                            <Send className="w-4 h-4" />
-                          </div>
-                        )}
-                      </Button>
+                        <Crown className="w-3.5 h-3.5" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">{isPremium ? `${premiumPrice}` : 'Premium'}</span>
+                      </button>
 
-                      <div className="hidden sm:block w-px h-6 bg-border/50 mx-1 flex-shrink-0" />
-
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Add Image */}
-                        <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/20 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all cursor-pointer flex-shrink-0">
-                          <ImageIcon className="w-4 h-4" />
-                          <span className="text-xs font-semibold">Image</span>
-                          <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
-                        </label>
-
-                        {/* Premium Toggle */}
-                        <button 
-                          onClick={() => {
-                            if (!isPremium) {
-                              setIsPremiumModalOpen(true);
-                            } else {
-                              setIsPremium(false);
-                            }
-                          }}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all flex-shrink-0 ${
-                            isPremium 
-                              ? 'bg-amber-500/20 text-amber-500 ring-1 ring-amber-500/50' 
-                              : 'bg-muted/20 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-500'
-                          }`}
-                        >
-                          <Crown className="w-4 h-4" />
-                          <span className="text-xs font-semibold">{isPremium ? `${premiumPrice} 🪙` : 'Premium'}</span>
-                        </button>
-
-                        {/* Tips Toggle */}
-                        <button 
-                          onClick={() => setHasTipsEnabled(!hasTipsEnabled)}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all flex-shrink-0 ${
-                            hasTipsEnabled 
-                              ? 'bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/50' 
-                              : 'bg-muted/20 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500'
-                          }`}
-                        >
-                          <Coins className="w-4 h-4" />
-                          <span className="text-xs font-semibold">Tips</span>
-                        </button>
-                      </div>
+                      {/* Tips Toggle */}
+                      <button 
+                        onClick={() => setHasTipsEnabled(!hasTipsEnabled)}
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded-xl transition-all flex-shrink-0 ${
+                          hasTipsEnabled 
+                            ? 'bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/50' 
+                            : 'bg-muted/20 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500'
+                        }`}
+                      >
+                        <Coins className="w-3.5 h-3.5" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Tips</span>
+                      </button>
                     </div>
+
+                    {/* Post Button - Moved to the right corner */}
+                    <Button 
+                      onClick={handleSubmit}
+                      disabled={isSubmitting || (!content.trim() && !coverImage)}
+                      className="h-9 px-5 rounded-xl bg-gradient-to-r from-primary to-primary/80 font-bold shadow-md shadow-primary/10 hover:scale-[1.02] active:scale-[0.98] transition-all flex-shrink-0"
+                    >
+                      {isSubmitting ? (
+                        <div className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">Post</span>
+                          <Send className="w-3.5 h-3.5" />
+                        </div>
+                      )}
+                    </Button>
                   </div>
                 </div>
               </div>
