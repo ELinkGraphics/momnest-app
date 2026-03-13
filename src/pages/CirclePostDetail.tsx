@@ -387,12 +387,7 @@ const CirclePostDetail: React.FC = () => {
                 )}
               />
               {shouldShowPaywall && (
-                <div className="absolute inset-0 bg-background/40 flex items-center justify-center rounded-2xl">
-                  <div className="flex flex-col items-center gap-2 text-foreground">
-                    <Lock className="size-8" />
-                    <span className="text-sm font-semibold">Premium Content</span>
-                  </div>
-                </div>
+                <div className="absolute inset-0 bg-background/20 backdrop-blur-[2px] flex items-center justify-center rounded-2xl" />
               )}
               {post?.is_premium && !shouldShowPaywall && (
                 <div className="absolute top-4 right-4 bg-gradient-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-semibold shadow-glow">

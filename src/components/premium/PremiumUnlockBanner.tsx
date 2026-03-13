@@ -28,10 +28,7 @@ export const PremiumUnlockBanner: React.FC<PremiumUnlockBannerProps> = ({
       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-primary/20 rounded-full -translate-y-16 translate-x-16" />
       <div className="relative z-10">
         <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 rounded-full bg-gradient-primary shadow-glow">
-            <Lock className="size-5 text-primary-foreground" />
-          </div>
-          <h3 className="text-lg font-semibold text-foreground">Premium Content</h3>
+          {/* Lock icon and Premium Content text removed per user request for cleaner look */}
         </div>
         <p className="text-muted-foreground mb-4 leading-relaxed">
           This is a premium post. Pay <span className="font-bold text-primary">{price} 🪙</span> coins to unlock the full content.

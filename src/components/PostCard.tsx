@@ -295,12 +295,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                       />
                     )}
                     {isPremiumCirclePost && (
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-black/10 flex items-center justify-center">
-                        <div className="flex flex-col items-center gap-1 text-white">
-                          <Lock className="size-6" />
-                          <span className="text-xs font-semibold">Premium Content</span>
-                        </div>
-                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center" />
                     )}
                   </div>
                 </CarouselItem>
@@ -348,12 +343,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             </div>
           )}
           {isPremiumCirclePost && (
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-black/10 flex items-center justify-center">
-              <div className="flex flex-col items-center gap-1 text-white">
-                <Lock className="size-6" />
-                <span className="text-xs font-semibold">Premium Content</span>
-              </div>
-            </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center" />
           )}
         </div>
       ) : null}

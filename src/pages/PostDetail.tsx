@@ -643,34 +643,7 @@ const PostDetail: React.FC = () => {
                         )}
                         
                         {shouldShowPaywall && (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 backdrop-blur-[2px] z-10">
-                            <div className="bg-background/80 backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-white/20 flex flex-col items-center text-center max-w-[80%]">
-                              <div className="size-16 bg-primary/20 rounded-full flex items-center justify-center mb-4">
-                                <Lock className="size-8 text-primary" />
-                              </div>
-                              <h3 className="text-lg font-bold mb-2">Premium Post</h3>
-                              <p className="text-sm text-muted-foreground mb-6">
-                                This post is locked. Pay {post.premium_price} coins to unlock full access.
-                              </p>
-                              <Button 
-                                onClick={handleUnlock}
-                                disabled={isUnlocking}
-                                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
-                              >
-                                {isUnlocking ? (
-                                  <Loader2 className="size-5 animate-spin" />
-                                ) : (
-                                  <>
-                                    <Coins className="size-5" />
-                                    Unlock for {post.premium_price} Coins
-                                  </>
-                                )}
-                              </Button>
-                              <p className="mt-4 text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
-                                One-time payment for lifetime access
-                              </p>
-                            </div>
-                          </div>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 backdrop-blur-[2px] z-10" />
                         )}
                       </div>
                     </CarouselItem>
