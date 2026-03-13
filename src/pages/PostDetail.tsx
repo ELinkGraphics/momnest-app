@@ -4,6 +4,7 @@ import { ArrowLeft, Heart, MessageCircle, Share2, MoreHorizontal, BadgeCheck, Se
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 import { PersistentCommentComposer } from '@/components/PersistentCommentComposer';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useUser } from '@/contexts/UserContext';
@@ -460,12 +461,25 @@ const PostDetail: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap break-words" dir="auto">
-                {post.content.split(' ').map((word: string, i: number) =>
-                  word.startsWith('#') ? <span key={i} className="text-primary font-medium">{word} </span> : word + ' '
+              <div className={cn(
+                "text-[14px] text-foreground leading-relaxed break-words",
+                !(/<[a-z][\s\S]*>/i.test(post.content) || post.content.includes('<p>') || post.content.includes('<strong>') || post.content.includes('<ul>')) && "whitespace-pre-wrap"
+              )}>
+                {(/<[a-z][\s\S]*>/i.test(post.content) || post.content.includes('<p>') || post.content.includes('<strong>') || post.content.includes('<ul>')) ? (
+                  <div 
+                    className="prose prose-sm dark:prose-invert max-w-none text-foreground"
+                    dangerouslySetInnerHTML={{ __html: post.content }} 
+                  />
+                ) : (
+                  <p dir="auto">
+                    {post.content.split(' ').map((word: string, i: number) =>
+                      word.startsWith('#') ? <span key={i} className="text-primary font-medium">{word} </span> : word + ' '
+                    )}
+                  </p>
                 )}
-              </p>
+              </div>
             )}
+
 
             {post.tags && !isEditing && (
               <div className="flex flex-wrap gap-2">

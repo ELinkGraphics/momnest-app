@@ -97,6 +97,9 @@ export interface Story {
     to: string;
   };
   isOwn?: boolean;
+  isViewed?: boolean;
+  isLive?: boolean;
+  liveStreamId?: string;
   allStories?: Story[];
   stickerData?: StoryStickerData[];
   resharedPostId?: string;

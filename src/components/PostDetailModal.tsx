@@ -152,11 +152,18 @@ export const PostDetailModal: React.FC<PostDetailModalProps> = ({
 
             {/* Post text - full content */}
             <div className="mb-4">
-              <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap break-words" dir="auto">
-                {post.content.split(' ').map((word, i) =>
-                  word.startsWith('#') ? <span key={i} className="text-primary font-medium">{word} </span> : word + ' '
-                )}
-              </p>
+              {(/<[a-z][\s\S]*>/i.test(post.content) || post.content.includes('<p>') || post.content.includes('<strong>') || post.content.includes('<ul>')) ? (
+                <div 
+                  className="prose prose-sm dark:prose-invert max-w-none text-foreground"
+                  dangerouslySetInnerHTML={{ __html: post.content }} 
+                />
+              ) : (
+                <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap break-words" dir="auto">
+                  {post.content.split(' ').map((word, i) =>
+                    word.startsWith('#') ? <span key={i} className="text-primary font-medium">{word} </span> : word + ' '
+                  )}
+                </p>
+              )}
               {post.tags && post.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   {post.tags.map((tag) => (

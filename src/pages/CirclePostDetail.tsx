@@ -353,12 +353,26 @@ const CirclePostDetail: React.FC = () => {
     }
   };
 
+  const isRichText = (content: string) => {
+    return /<[a-z][\s\S]*>/i.test(content) || content.includes('<p>') || content.includes('<strong>');
+  };
+
   const getDisplayContent = () => {
-    if (!shouldShowPaywall) {
-      return post?.content;
-    }
-    // For premium posts that are locked, show only first 2 paragraphs
     const fullContent = post?.content || '';
+    if (!shouldShowPaywall) {
+      return fullContent;
+    }
+    
+    if (isRichText(fullContent)) {
+      // For rich text premium posts, try to show the first two paragraph blocks
+      const paragraphs = fullContent.match(/<p>[\s\S]*?<\/p>/gi) || [];
+      if (paragraphs.length <= 2) {
+        return fullContent;
+      }
+      return paragraphs.slice(0, 2).join('');
+    }
+
+    // For plain text, use the original logic
     const paragraphs = fullContent.split('\n\n');
     if (paragraphs.length <= 2) {
       return fullContent;
@@ -496,8 +510,18 @@ const CirclePostDetail: React.FC = () => {
           {/* Post Content */}
           <div className="prose prose-lg max-w-none mb-8 relative">
             {/* Visible content */}
-            <div className="text-foreground leading-relaxed text-base whitespace-pre-line">
-              {getDisplayContent()}
+            <div className={cn(
+              "text-foreground leading-relaxed text-base",
+              !isRichText(getDisplayContent()) && "whitespace-pre-line"
+            )}>
+              {isRichText(getDisplayContent()) ? (
+                <div 
+                  className="prose prose-sm dark:prose-invert max-w-none text-foreground"
+                  dangerouslySetInnerHTML={{ __html: getDisplayContent() }} 
+                />
+              ) : (
+                getDisplayContent()
+              )}
             </div>
             
             {shouldShowPaywall && (
@@ -505,11 +529,24 @@ const CirclePostDetail: React.FC = () => {
                 {/* Fade overlay for remaining content */}
                 <div className="relative mt-8">
                   <div 
-                    className="text-foreground leading-relaxed text-base whitespace-pre-line transition-all duration-500"
+                    className={cn(
+                      "text-foreground leading-relaxed text-base transition-all duration-500",
+                      !isRichText(post?.content || '') && "whitespace-pre-line"
+                    )}
                     style={{ opacity: 0.3, filter: 'blur(2px)' }}
                   >
                     {(() => {
                       const fullContent = post?.content || '';
+                      if (isRichText(fullContent)) {
+                        const paragraphs = fullContent.match(/<p>[\s\S]*?<\/p>/gi) || [];
+                        if (paragraphs.length > 2) {
+                          return <div 
+                            className="prose prose-sm dark:prose-invert max-w-none text-foreground"
+                            dangerouslySetInnerHTML={{ __html: paragraphs.slice(2).join('') }} 
+                          />;
+                        }
+                        return null;
+                      }
                       const paragraphs = fullContent.split('\n\n');
                       if (paragraphs.length > 2) {
                         return paragraphs.slice(2).join('\n\n');
@@ -537,9 +574,22 @@ const CirclePostDetail: React.FC = () => {
             
             {/* Show full content if unlocked */}
             {!shouldShowPaywall && post?.content !== getDisplayContent() && (
-              <div className="text-foreground leading-relaxed text-base whitespace-pre-line mt-8">
+              <div className={cn(
+                "text-foreground leading-relaxed text-base mt-8",
+                !isRichText(post?.content || '') && "whitespace-pre-line"
+              )}>
                 {(() => {
                   const fullContent = post?.content || '';
+                  if (isRichText(fullContent)) {
+                    const paragraphs = fullContent.match(/<p>[\s\S]*?<\/p>/gi) || [];
+                    if (paragraphs.length > 2) {
+                      return <div 
+                        className="prose prose-sm dark:prose-invert max-w-none text-foreground"
+                        dangerouslySetInnerHTML={{ __html: paragraphs.slice(2).join('') }} 
+                      />;
+                    }
+                    return null;
+                  }
                   const paragraphs = fullContent.split('\n\n');
                   if (paragraphs.length > 2) {
                     return paragraphs.slice(2).join('\n\n');

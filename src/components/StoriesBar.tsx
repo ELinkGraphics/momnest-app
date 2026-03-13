@@ -71,13 +71,14 @@ const StoriesBar: React.FC = () => {
                         </AvatarFallback>
                       </Avatar>
                       {/* Plus badge */}
-                      <button
+                      <div
                         onClick={(e) => { e.stopPropagation(); setIsCreateStoryOpen(true); }}
-                        className="absolute bottom-0 right-0 size-5 bg-primary rounded-full flex items-center justify-center border-2 border-background"
+                        className="absolute bottom-0 right-0 size-5 bg-primary rounded-full flex items-center justify-center border-2 border-background cursor-pointer"
+                        role="button"
                         aria-label="Add story"
                       >
                         <Plus className="size-3 text-white" />
-                      </button>
+                      </div>
                     </div>
                   ) : (
                     /* Other stories — segmented gradient ring */
@@ -150,13 +151,14 @@ const StoriesBar: React.FC = () => {
 
                   {/* Plus for own story with existing stories */}
                   {isOwn && hasStories && !isLive && (
-                    <button
+                    <div
                       onClick={(e) => { e.stopPropagation(); setIsCreateStoryOpen(true); }}
-                      className="absolute bottom-0 right-0 size-5 bg-primary rounded-full flex items-center justify-center border-2 border-background"
+                      className="absolute bottom-0 right-0 size-5 bg-primary rounded-full flex items-center justify-center border-2 border-background cursor-pointer"
+                      role="button"
                       aria-label="Add story"
                     >
                       <Plus className="size-3 text-white" />
-                    </button>
+                    </div>
                   )}
                 </div>
 

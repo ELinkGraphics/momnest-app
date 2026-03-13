@@ -4,10 +4,12 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useNavigate } from 'react-router-dom';
 import { Post } from '@/data/mock';
+import { supabase } from '@/integrations/supabase/client';
 import { useUser } from '@/contexts/UserContext';
 import { usePostMutations } from '@/hooks/usePostMutations';
 import { useFollowMutations } from '@/hooks/useFollowMutations';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import PublicProfileModal from '@/components/PublicProfileModal';
 import LikersModal from '@/components/LikersModal';
 import SharePostToStoryModal from '@/components/story/SharePostToStoryModal';
@@ -153,6 +155,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       }
       return part;
     });
+  };
+
+  const isRichText = (content: string) => {
+    return /<[a-z][\s\S]*>/i.test(content) || content.includes('<p>') || content.includes('<strong>') || content.includes('<ul>');
   };
 
   return (
@@ -390,29 +396,57 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       <div className="px-4 pt-1 pb-4" dir="auto">
         {isPremiumCirclePost ? (
           <>
-            <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap break-words">
-              {post.content.slice(0, 60)}…
-            </p>
+            <div className={cn(
+              "text-[14px] text-foreground leading-relaxed break-words",
+              !isRichText(post.content) && "whitespace-pre-wrap"
+            )}>
+              {isRichText(post.content) ? (
+                <div 
+                  className="prose prose-sm dark:prose-invert max-w-none text-foreground line-clamp-2"
+                  dangerouslySetInnerHTML={{ __html: post.content }} 
+                />
+              ) : (
+                `${post.content.slice(0, 60)}…`
+              )}
+            </div>
             <button className="text-primary text-[13px] font-semibold mt-1 flex items-center gap-1" onClick={handleOpenPost}>
               <Lock className="size-3" />
               {(post as any).premium_price ? `Unlock for ${(post as any).premium_price} 🪙` : 'Premium — tap to unlock'}
             </button>
           </>
         ) : (
-          <>
-            <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap break-words inline">
-              <button
-                className="font-bold text-foreground mr-1 hover:underline"
-                onClick={post.circleId ? handleCircleClick : (e) => { e.stopPropagation(); setShowProfileModal(true); }}
-              >
-                {post.circleId ? post.circleName : post.user.name}
-              </button>
-              {expanded ? renderCaption(post.content) : renderCaption(isTextLong ? post.content.slice(0, 120) : post.content)}
-              {isTextLong && !expanded && (
-                <button className="text-muted-foreground text-[13px] ml-1" onClick={() => setExpanded(true)}>more</button>
-              )}
-            </p>
-          </>
+          <div className={cn(
+            "text-[14px] text-foreground leading-relaxed break-words",
+            !isRichText(post.content) && "whitespace-pre-wrap"
+          )}>
+            <button
+              className="font-bold text-foreground mr-1 hover:underline align-top"
+              onClick={post.circleId ? handleCircleClick : (e) => { e.stopPropagation(); setShowProfileModal(true); }}
+            >
+              {post.circleId ? post.circleName : post.user.name}
+            </button>
+            
+            {isRichText(post.content) ? (
+              <div 
+                className={cn(
+                  "prose prose-sm dark:prose-invert max-w-none text-foreground inline-block",
+                  !expanded && "line-clamp-3"
+                )}
+                dangerouslySetInnerHTML={{ __html: post.content }} 
+              />
+            ) : (
+              <>
+                {expanded ? renderCaption(post.content) : renderCaption(isTextLong ? post.content.slice(0, 120) : post.content)}
+              </>
+            )}
+            
+            {isTextLong && !expanded && !isRichText(post.content) && (
+              <button className="text-muted-foreground text-[13px] ml-1" onClick={() => setExpanded(true)}>more</button>
+            )}
+            {isRichText(post.content) && !expanded && (
+               <button className="text-muted-foreground text-[13px] mt-1 block" onClick={() => setExpanded(true)}>Show more</button>
+            )}
+          </div>
         )}
 
         {/* Tags */}

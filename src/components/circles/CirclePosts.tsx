@@ -3,13 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import Link from '@tiptap/extension-link';
+import TiptapUnderline from '@tiptap/extension-underline';
+import TiptapLink from '@tiptap/extension-link';
 import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins, Send, X, Bold, Italic, Underline as UnderlineIcon, List, Heading1, Heading2, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TipButton } from './TipButton';
 import { PremiumSettingsModal } from './PremiumSettingsModal';
 import { SubscribeCircleModal } from './SubscribeCircleModal';
+import { EditPostModal } from './EditPostModal';
 import { useCirclePosts } from '@/hooks/useCirclePosts';
 import { useCircleSubscription } from '@/hooks/useCircleSubscription';
 import { useToast } from '@/hooks/use-toast';
@@ -42,6 +43,8 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
   const [hasTipsEnabled, setHasTipsEnabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedPostForEdit, setSelectedPostForEdit] = useState<any>(null);
 
   // Initialize Tiptap Editor
   const editor = useEditor({
@@ -51,8 +54,8 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
           levels: [1, 2],
         },
       }),
-      Underline,
-      Link.configure({
+      TiptapUnderline,
+      TiptapLink.configure({
         openOnClick: false,
         HTMLAttributes: {
           class: 'text-primary underline cursor-pointer',
@@ -234,7 +237,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                 {/* Text Area / Rich Text Editor */}
                 <div className="flex-1 space-y-3 pt-1 min-h-[100px]">
                   {editor && (
-                    <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} className="flex items-center gap-1 p-1.5 bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                    <BubbleMenu editor={editor} className="flex items-center gap-1 p-1.5 bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
                       <button
                         onClick={() => editor.chain().focus().toggleBold().run()}
                         className={`p-2 rounded-xl transition-all ${editor.isActive('bold') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
@@ -439,6 +442,13 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedPostForEdit(post);
+                          setIsEditModalOpen(true);
+                        }}>
+                          <Pencil className="size-4 mr-2" />
+                          Edit Post
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDeletePost(post.id)} className="text-red-600">
                           <Trash2 className="size-4 mr-2" />
                           Delete Post
@@ -564,6 +574,15 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
         subscriptionPrice={circle?.subscription_price}
         onSubscribed={() => {
           queryClient.invalidateQueries({ queryKey: ['circle-subscription', circleId] });
+        }}
+      />
+
+      <EditPostModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        post={selectedPostForEdit}
+        onSave={() => {
+          queryClient.invalidateQueries({ queryKey: ['circle-posts', circleId] });
         }}
       />
     </div>
