@@ -4,7 +4,8 @@ import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import TiptapUnderline from '@tiptap/extension-underline';
 import TiptapLink from '@tiptap/extension-link';
-import { X, Bold, Italic, Underline as UnderlineIcon, List, Heading1, Heading2, Link as LinkIcon, Crown, Coins, Image as ImageIcon, Loader2 } from 'lucide-react';
+import TextAlign from '@tiptap/extension-text-align';
+import { X, Bold, Italic, Underline as UnderlineIcon, List, Heading1, Heading2, Link as LinkIcon, Crown, Coins, Image as ImageIcon, Loader2, AlignLeft, AlignCenter, AlignRight, AlignJustify } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,6 +39,9 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ isOpen, onClose, p
         HTMLAttributes: {
           class: 'text-primary underline cursor-pointer',
         },
+      }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
       }),
     ],
     content: post?.content || '',
@@ -141,6 +145,11 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ isOpen, onClose, p
                   <div className="w-px h-4 bg-border/50 mx-1" />
                   <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={`p-2 rounded-xl transition-all ${editor.isActive('heading', { level: 1 }) ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><Heading1 className="w-4 h-4" /></button>
                   <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={`p-2 rounded-xl transition-all ${editor.isActive('bulletList') ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><List className="w-4 h-4" /></button>
+                  <div className="w-px h-4 bg-border/50 mx-1" />
+                  <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`p-2 rounded-xl transition-all ${editor.isActive({ textAlign: 'left' }) ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><AlignLeft className="w-4 h-4" /></button>
+                  <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={`p-2 rounded-xl transition-all ${editor.isActive({ textAlign: 'center' }) ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><AlignCenter className="w-4 h-4" /></button>
+                  <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`p-2 rounded-xl transition-all ${editor.isActive({ textAlign: 'right' }) ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><AlignRight className="w-4 h-4" /></button>
+                  <button onClick={() => editor.chain().focus().setTextAlign('justify').run()} className={`p-2 rounded-xl transition-all ${editor.isActive({ textAlign: 'justify' }) ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><AlignJustify className="w-4 h-4" /></button>
                 </BubbleMenu>
               )}
               <EditorContent editor={editor} />

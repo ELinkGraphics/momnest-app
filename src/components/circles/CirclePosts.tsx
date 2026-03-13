@@ -5,7 +5,8 @@ import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import TiptapUnderline from '@tiptap/extension-underline';
 import TiptapLink from '@tiptap/extension-link';
-import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins, Send, X, Bold, Italic, Underline as UnderlineIcon, List, Heading1, Heading2, Link as LinkIcon, Pencil } from 'lucide-react';
+import TextAlign from '@tiptap/extension-text-align';
+import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins, Send, X, Bold, Italic, Underline as UnderlineIcon, List, Heading1, Heading2, Link as LinkIcon, Pencil, AlignLeft, AlignCenter, AlignRight, AlignJustify } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TipButton } from './TipButton';
 import { PremiumSettingsModal } from './PremiumSettingsModal';
@@ -60,6 +61,9 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
         HTMLAttributes: {
           class: 'text-primary underline cursor-pointer',
         },
+      }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
       }),
     ],
     content: '',
@@ -237,47 +241,26 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                 {/* Text Area / Rich Text Editor */}
                 <div className="flex-1 space-y-3 pt-1 min-h-[100px]">
                   {editor && (
-                    <BubbleMenu editor={editor} className="flex items-center gap-1 p-1.5 bg-card/90 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-                      <button
-                        onClick={() => editor.chain().focus().toggleBold().run()}
-                        className={`p-2 rounded-xl transition-all ${editor.isActive('bold') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
-                      >
-                        <Bold className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleItalic().run()}
-                        className={`p-2 rounded-xl transition-all ${editor.isActive('italic') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
-                      >
-                        <Italic className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleUnderline().run()}
-                        className={`p-2 rounded-xl transition-all ${editor.isActive('underline') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
-                      >
-                        <UnderlineIcon className="w-4 h-4" />
-                      </button>
-                      <div className="w-px h-4 bg-border/50 mx-1" />
-                      <button
-                        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                        className={`p-2 rounded-xl transition-all ${editor.isActive('heading', { level: 1 }) ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
-                      >
-                        <Heading1 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleBulletList().run()}
-                        className={`p-2 rounded-xl transition-all ${editor.isActive('bulletList') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
-                      >
-                        <List className="w-4 h-4" />
-                      </button>
-                      <div className="w-px h-4 bg-border/50 mx-1" />
+                    <BubbleMenu editor={editor} className="flex items-center gap-0.5 p-1 bg-card/90 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl">
+                      <button onClick={() => editor.chain().focus().toggleBold().run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('bold') ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><Bold className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => editor.chain().focus().toggleItalic().run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('italic') ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><Italic className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('underline') ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><UnderlineIcon className="w-3.5 h-3.5" /></button>
+                      <div className="w-px h-3.5 bg-border/50 mx-0.5" />
+                      <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('heading', { level: 1 }) ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><Heading1 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('bulletList') ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><List className="w-3.5 h-3.5" /></button>
+                      <div className="w-px h-3.5 bg-border/50 mx-0.5" />
+                      <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive({ textAlign: 'left' }) ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><AlignLeft className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive({ textAlign: 'center' }) ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><AlignCenter className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive({ textAlign: 'right' }) ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><AlignRight className="w-3.5 h-3.5" /></button>
+                      <div className="w-px h-3.5 bg-border/50 mx-0.5" />
                       <button
                         onClick={() => {
                           const url = window.prompt('URL');
                           if (url) editor.chain().focus().setLink({ href: url }).run();
                         }}
-                        className={`p-2 rounded-xl transition-all ${editor.isActive('link') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
+                        className={`p-1.5 rounded-lg transition-all ${editor.isActive('link') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
                       >
-                        <LinkIcon className="w-4 h-4" />
+                        <LinkIcon className="w-3.5 h-3.5" />
                       </button>
                     </BubbleMenu>
                   )}

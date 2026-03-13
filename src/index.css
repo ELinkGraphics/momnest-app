@@ -379,4 +379,25 @@ All colors MUST be HSL.
   .no-pull-refresh * {
     overscroll-behavior: none !important;
   }
+
+  /* Typography Overrides for Rich Text */
+  .prose p {
+    margin-top: 1.25em !important;
+    margin-bottom: 1.25em !important;
+    line-height: 1.6;
+  }
+
+  .prose :first-child {
+    margin-top: 0 !important;
+  }
+
+  .prose :last-child {
+    margin-bottom: 0 !important;
+  }
+
+  /* Text Alignment Classes for Tiptap */
+  .prose .text-left { text-align: left; }
+  .prose .text-center { text-align: center; }
+  .prose .text-right { text-align: right; }
+  .prose .text-justify { text-align: justify; }
 }
