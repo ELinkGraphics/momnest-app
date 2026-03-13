@@ -13,6 +13,10 @@ import { useUser } from '@/contexts/UserContext';
 import { useCircleSubscription } from '@/hooks/useCircleSubscription';
 import { Input } from '@/components/ui/input';
 import EmojiPicker from '@/components/EmojiPicker';
+import { PremiumUnlockBanner } from '@/components/premium/PremiumUnlockBanner';
+import { PremiumContentSkeleton } from '@/components/premium/PremiumContentSkeleton';
+
+console.log('DEBUG V3: useCircleSubscription hook:', typeof useCircleSubscription);
 
 // Comments component for circle posts
 const CirclePostComments: React.FC<{ postId: string; commentsCount: number }> = ({ postId, commentsCount }) => {
@@ -132,45 +136,6 @@ const CirclePostComments: React.FC<{ postId: string; commentsCount: number }> = 
   );
 };
 
-const PremiumUnlockBanner: React.FC<{ 
-  price: number; 
-  balance: number; 
-  onUnlock: () => void; 
-  isUnlocking: boolean;
-}> = ({ price, balance, onUnlock, isUnlocking }) => {
-  const canAfford = balance >= price;
-
-  return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-tertiary/50 to-tertiary/80 dark:from-primary/20 dark:to-primary/10 border border-tertiary dark:border-primary p-6 my-6">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-primary/20 rounded-full -translate-y-16 translate-x-16" />
-      <div className="relative z-10">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 rounded-full bg-gradient-primary shadow-glow">
-            <Lock className="size-5 text-primary-foreground" />
-          </div>
-          <h3 className="text-lg font-semibold text-foreground">Premium Content</h3>
-        </div>
-        <p className="text-muted-foreground mb-4 leading-relaxed">
-          This is a premium post. Pay <span className="font-bold text-primary">{price} 🪙</span> coins to unlock the full content.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button 
-            onClick={onUnlock}
-            disabled={!canAfford || isUnlocking}
-            className="flex-1 bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground border-0 shadow-glow hover:shadow-xl transition-all duration-200 disabled:opacity-50"
-          >
-            <Coins className="size-4 mr-2" />
-            {isUnlocking ? 'Unlocking...' : `Unlock for ${price} 🪙`}
-          </Button>
-        </div>
-        <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
-          <span>Your balance: <span className={cn("font-semibold", canAfford ? "text-primary" : "text-destructive")}>{balance} 🪙</span></span>
-          {!canAfford && <span className="text-destructive">Insufficient coins — top up your wallet</span>}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const CirclePostDetail: React.FC = () => {
   const { circleId, postId } = useParams();
@@ -264,8 +229,9 @@ const CirclePostDetail: React.FC = () => {
     enabled: !!postId,
   });
 
+  console.log('DEBUG V3: Calling useCircleSubscription', typeof useCircleSubscription);
   const { data: subscription } = useCircleSubscription(circleId);
-  const isOwner = circle?.creator_id === post?.user_id || user?.id === post?.user_id;
+  const isOwner = user?.id === circle?.creator_id || user?.id === post?.user_id;
   const isPaidPremium = post?.is_premium && post?.premium_price && post.premium_price > 0;
   const isSubscriber = subscription?.status === 'active';
   const shouldShowPaywall = isPaidPremium && !post?.has_unlocked && !isOwner && !isSubscriber;
@@ -528,51 +494,56 @@ const CirclePostDetail: React.FC = () => {
             </div>
             
             {shouldShowPaywall && (
-              <>
-                {/* Fade overlay for remaining content */}
-                <div className="relative mt-8">
-                  <div 
-                    className={cn(
-                      "text-foreground leading-relaxed text-base transition-all duration-500",
-                      !isRichText(post?.content || '') && "whitespace-pre-line"
+              <div className="relative mt-8">
+                {/* 
+                  Container for the blurred scrolling content.
+                  We render the FULL content here with heavy blur and low opacity.
+                */}
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-muted/5">
+                  {/* The actual blurred content that scrolls */}
+                  <div className="pt-8 px-8 pb-[100vh] blur-[32px] opacity-20 select-none pointer-events-none grayscale">
+                    {isRichText(post.content) ? (
+                      <div 
+                        className="prose prose-base dark:prose-invert max-w-none text-foreground"
+                        dangerouslySetInnerHTML={{ __html: post.content }} 
+                      />
+                    ) : (
+                      <div className="whitespace-pre-line text-foreground">{post.content}</div>
                     )}
-                    style={{ opacity: 0.3, filter: 'blur(2px)' }}
-                  >
-                    {(() => {
-                      const fullContent = post?.content || '';
-                      if (isRichText(fullContent)) {
-                        const paragraphs = fullContent.match(/<p>[\s\S]*?<\/p>/gi) || [];
-                        if (paragraphs.length > 2) {
-                          return <div 
-                            className="prose prose-base dark:prose-invert max-w-none text-foreground"
-                            dangerouslySetInnerHTML={{ __html: paragraphs.slice(2).join('') }} 
-                          />;
-                        }
-                        return null;
-                      }
-                      const paragraphs = fullContent.split('\n\n');
-                      if (paragraphs.length > 2) {
-                        return paragraphs.slice(2).join('\n\n');
-                      }
-                      return '';
-                    })()}
+                    <PremiumContentSkeleton />
                   </div>
-                  
-                  <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background" />
-                    <div className="absolute bottom-0 left-0 right-0 pointer-events-auto pt-12">
-                      <div className="max-w-md mx-auto px-4">
-                        <PremiumUnlockBanner
-                          price={post.premium_price || 0}
-                          balance={wallet?.balance ?? 0}
-                          onUnlock={handleUnlock}
-                          isUnlocking={isUnlocking}
-                        />
+
+                  {/* 
+                    Fixed-Center Sticky Paywall Notice.
+                    Using sticky top-1/2 and -translate-y-1/2 ensures it stays centered in the viewport
+                    as long as the user is within the blurred section.
+                  */}
+                  <div className="absolute inset-x-0 inset-y-0 z-40 pointer-events-none group/paywall">
+                    <div className="sticky top-0 h-screen flex flex-col items-center justify-center px-6 pointer-events-auto transition-all duration-700 ease-out translate-y-0">
+                      {/* Subdued vignette background that appears when modal is sticky */}
+                      <div className="absolute inset-0 bg-background/20 backdrop-blur-[2px] opacity-0 group-hover/paywall:opacity-100 transition-opacity duration-1000" />
+                      
+                      <div className="relative w-full max-w-md bg-background/80 backdrop-blur-3xl rounded-[2.5rem] border border-white/20 shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] p-1 overflow-hidden group animate-in zoom-in-95 fade-in duration-700">
+                        {/* Animated Mesh Background for the modal effect */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/20 animate-pulse" />
+                        
+                        <div className="relative p-6">
+                          <PremiumUnlockBanner
+                            price={post.premium_price || 0}
+                            balance={wallet?.balance ?? 0}
+                            onUnlock={handleUnlock}
+                            isUnlocking={isUnlocking}
+                            className="my-0 border-0 shadow-none bg-transparent"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
+
+                  {/* High-opacity bottom mask to block peeking at the end */}
+                  <div className="absolute inset-x-0 bottom-0 h-[60vh] bg-gradient-to-t from-background via-background to-transparent pointer-events-none z-10" />
                 </div>
-              </>
+                </div>
             )}
             
             {/* Show full content if unlocked */}
@@ -585,17 +556,17 @@ const CirclePostDetail: React.FC = () => {
                   const fullContent = post?.content || '';
                   if (isRichText(fullContent)) {
                     const paragraphs = fullContent.match(/<p>[\s\S]*?<\/p>/gi) || [];
-                    if (paragraphs.length > 2) {
+                    if (paragraphs.length > 1) {
                       return <div 
                         className="prose prose-base dark:prose-invert max-w-none text-foreground"
-                        dangerouslySetInnerHTML={{ __html: paragraphs.slice(2).join('') }} 
+                        dangerouslySetInnerHTML={{ __html: paragraphs.slice(1).join('') }} 
                       />;
                     }
                     return null;
                   }
                   const paragraphs = fullContent.split('\n\n');
-                  if (paragraphs.length > 2) {
-                    return paragraphs.slice(2).join('\n\n');
+                  if (paragraphs.length > 1) {
+                    return paragraphs.slice(1).join('\n\n');
                   }
                   return '';
                 })()}

@@ -78,33 +78,29 @@ const UpdateNotifier: React.FC = () => {
   }
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-primary text-primary-foreground p-4 rounded-xl shadow-2xl max-w-sm w-[calc(100%-2rem)] animate-slide-down">
-      <div className="flex items-start justify-between gap-3">
+    <div className="fixed bottom-6 right-6 z-[100] bg-zinc-900 text-white p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 max-w-[340px] w-[calc(100%-3rem)] animate-in slide-in-from-bottom-5 fade-in duration-500">
+      <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          <h4 className="font-semibold text-base">🎉 New Update Available!</h4>
-          <p className="text-xs opacity-95 mt-1.5 leading-relaxed">
-            We've made important improvements to MomsNest. Please update now and reinstall the app for the best experience.
+          <h4 className="font-bold text-lg tracking-tight">🚀 Performance Update</h4>
+          <p className="text-sm text-zinc-400 mt-2 leading-relaxed">
+            We've improved the app's performance. Refresh to apply the latest optimizations.
           </p>
         </div>
+        <button 
+          onClick={handleDismiss}
+          className="p-1 hover:bg-white/10 rounded-full transition-colors opacity-60 hover:opacity-100"
+        >
+          <X className="size-5" />
+        </button>
       </div>
       
-      <div className="flex gap-2 mt-4">
+      <div className="flex gap-3 mt-6">
         <Button
-          variant="secondary"
-          size="sm"
           onClick={handleUpdate}
-          className="flex-1 flex items-center justify-center gap-1.5 text-sm font-medium active:scale-95 transition-transform"
+          className="flex-1 bg-white text-black hover:bg-zinc-200 rounded-2xl h-11 font-semibold transition-all active:scale-95"
         >
-          <RefreshCw className="h-3.5 w-3.5" />
+          <RefreshCw className="mr-2 h-4 w-4 animate-spin-slow" />
           Update Now
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleDismiss}
-          className="text-xs text-primary-foreground/80 hover:bg-primary-foreground/10 px-3"
-        >
-          Later
         </Button>
       </div>
     </div>

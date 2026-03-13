@@ -12,6 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import PublicProfileModal from '@/components/PublicProfileModal';
 import LikersModal from '@/components/LikersModal';
+import { PremiumContentSkeleton } from '@/components/premium/PremiumContentSkeleton';
 import SharePostToStoryModal from '@/components/story/SharePostToStoryModal';
 import { Carousel, CarouselContent, CarouselItem, CarouselApi } from '@/components/ui/carousel';
 import {
@@ -395,25 +396,21 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       {/* ── CAPTION ── */}
       <div className="px-4 pt-1 pb-4" dir="auto">
         {isPremiumCirclePost ? (
-          <>
-            <div className={cn(
-              "text-[14px] text-foreground leading-relaxed break-words",
-              !isRichText(post.content) && "whitespace-pre-wrap"
-            )}>
+          <div className="relative overflow-hidden rounded-xl border border-white/5 bg-muted/5 backdrop-blur-sm p-4 mt-2">
+            <div className="max-h-24 overflow-hidden blur-[8px] opacity-20 pointer-events-none select-none grayscale">
               {isRichText(post.content) ? (
-                <div 
-                  className="prose prose-sm dark:prose-invert max-w-none text-foreground line-clamp-2"
-                  dangerouslySetInnerHTML={{ __html: post.content }} 
-                />
+                <div dangerouslySetInnerHTML={{ __html: post.content }} />
               ) : (
-                `${post.content.slice(0, 60)}…`
+                <p>{post.content}</p>
               )}
             </div>
-            <button className="text-primary text-[13px] font-semibold mt-1 flex items-center gap-1" onClick={handleOpenPost}>
-              <Lock className="size-3" />
-              {(post as any).premium_price ? `Unlock for ${(post as any).premium_price} 🪙` : 'Premium — tap to unlock'}
-            </button>
-          </>
+            <div className="absolute inset-0 flex items-center justify-center bg-background/20 backdrop-blur-[2px]">
+              <button className="bg-primary/90 hover:bg-primary text-primary-foreground text-[12px] font-bold px-4 py-2 rounded-full shadow-glow transition-all flex items-center gap-1.5" onClick={handleOpenPost}>
+                <Lock className="size-3" />
+                {(post as any).premium_price ? `Unlock for ${(post as any).premium_price} 🪙` : 'Unlock Premium'}
+              </button>
+            </div>
+          </div>
         ) : (
           <div className={cn(
             "text-[14px] text-foreground leading-relaxed break-words",

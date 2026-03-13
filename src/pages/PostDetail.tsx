@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MessageCircle, Share2, MoreHorizontal, BadgeCheck, Send, Loader2, MapPin, Mic, Pencil, Trash2, Bookmark, Flag, BookmarkCheck, Image, Lock, Crown } from 'lucide-react';
+import { ArrowLeft, Heart, MessageCircle, Share2, MoreHorizontal, BadgeCheck, Send, Loader2, MapPin, Mic, Pencil, Trash2, Bookmark, Flag, BookmarkCheck, Image, Lock, Crown, Coins } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,10 @@ import { Carousel, CarouselContent, CarouselItem, CarouselApi } from '@/componen
 import CommentActionMenu from '@/components/CommentActionMenu';
 import { toast } from 'sonner';
 import { useCircleSubscription } from '@/hooks/useCircleSubscription';
+import { PremiumUnlockBanner } from '@/components/premium/PremiumUnlockBanner';
+import { PremiumContentSkeleton } from '@/components/premium/PremiumContentSkeleton';
+
+console.log('DEBUG V3: useCircleSubscription hook (PostDetail):', typeof useCircleSubscription);
 
 interface Comment {
   id: string;
@@ -60,7 +64,7 @@ const PostDetail: React.FC = () => {
   const { triggerHaptic } = useHapticFeedback();
   const { user } = useUser();
   const { toggleLike, addComment } = usePostMutations();
-  const { transferCoins } = useCoinWallet(user?.id);
+  const { transferCoins, wallet } = useCoinWallet(user?.id);
 
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -77,6 +81,7 @@ const PostDetail: React.FC = () => {
   const [commentAction, setCommentAction] = useState<{ commentId: string; position: { x: number; y: number } } | null>(null);
   const [hasUnlocked, setHasUnlocked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
+  const [circleCreatorId, setCircleCreatorId] = useState<string | null>(null);
 
   // Track detail carousel slide changes
   useEffect(() => {
@@ -111,6 +116,18 @@ const PostDetail: React.FC = () => {
       if (data) {
         setPost(data);
         setLikesCount(data.post_stats?.likes_count || 0);
+
+        // Fetch circle creator if it's a circle post
+        if (data.circle_id) {
+          const { data: circleData } = await supabase
+            .from('circles')
+            .select('creator_id')
+            .eq('id', data.circle_id)
+            .maybeSingle();
+          if (circleData) {
+            setCircleCreatorId(circleData.creator_id);
+          }
+        }
 
         // Check if user has liked this post
         if (user) {
@@ -295,16 +312,18 @@ const PostDetail: React.FC = () => {
       if (error) throw error;
       toast.success('Comment deleted');
     } catch {
-      setComments(prev => [...prev, comment]);
+        setComments(prev => [...prev, comment]);
       toast.error('Failed to delete comment');
     }
   };
 
+  console.log('DEBUG V3: Calling useCircleSubscription (PostDetail)', typeof useCircleSubscription);
   const { data: subscription } = useCircleSubscription(post?.circle_id);
   const isSubscriber = subscription?.status === 'active';
+  const isCircleOwner = user?.id === circleCreatorId;
   const isOwnPost = user?.id === post?.user_id;
   const isPaidPremium = post?.is_premium && post?.premium_price && post.premium_price > 0;
-  const shouldShowPaywall = isPaidPremium && !hasUnlocked && !isOwnPost && !isSubscriber;
+  const shouldShowPaywall = isPaidPremium && !hasUnlocked && !isOwnPost && !isSubscriber && !isCircleOwner;
 
   const handleUnlock = async () => {
     if (!user) {
@@ -520,9 +539,8 @@ const PostDetail: React.FC = () => {
               </div>
             ) : (
               <div className={cn(
-                "text-[14px] text-foreground leading-relaxed break-words",
-                !isRichText(getDisplayContent()) && "whitespace-pre-wrap",
-                shouldShowPaywall && "mask-gradient-bottom"
+                "text-[14px] text-foreground leading-relaxed break-words relative",
+                !isRichText(getDisplayContent()) && "whitespace-pre-wrap"
               )}>
                 {isRichText(getDisplayContent()) ? (
                   <div 
@@ -535,6 +553,46 @@ const PostDetail: React.FC = () => {
                       word.startsWith('#') ? <span key={i} className="text-primary font-medium">{word} </span> : word + ' '
                     )}
                   </p>
+                )}                {shouldShowPaywall && (
+                  <div className="relative mt-8 sticky-paywall-container">
+                    <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-muted/5">
+                      {/* Blurred scrolling actual content */}
+                      <div className="pt-8 px-8 pb-[100vh] blur-[32px] opacity-20 select-none pointer-events-none grayscale">
+                        {isRichText(post.content) ? (
+                          <div 
+                            className="prose prose-base dark:prose-invert max-w-none text-foreground"
+                            dangerouslySetInnerHTML={{ __html: post.content }} 
+                          />
+                        ) : (
+                          <p className="whitespace-pre-wrap text-foreground">{post.content}</p>
+                        )}
+                        <PremiumContentSkeleton />
+                      </div>
+
+                      {/* Fixed-Center Sticky Lock Modal */}
+                      <div className="absolute inset-x-0 inset-y-0 z-40 pointer-events-none group/paywall">
+                        <div className="sticky top-0 h-screen flex flex-col items-center justify-center px-6 pointer-events-auto transition-all duration-700 ease-out translate-y-0">
+                          {/* Subdued vignette background that appears when modal is sticky */}
+                          <div className="absolute inset-0 bg-background/20 backdrop-blur-[2px] opacity-0 group-hover/paywall:opacity-100 transition-opacity duration-1000" />
+                          
+                          <div className="relative w-full max-w-md bg-background/80 backdrop-blur-3xl rounded-[2.5rem] border border-white/20 shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] p-1 overflow-hidden group animate-in zoom-in-95 fade-in duration-700">
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/10 animate-pulse" />
+                            <div className="relative p-6 text-left">
+                              <PremiumUnlockBanner
+                                price={post.premium_price || 0}
+                                balance={wallet?.balance ?? 0}
+                                onUnlock={handleUnlock}
+                                isUnlocking={isUnlocking}
+                                className="my-0 border-0 shadow-none bg-transparent"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="absolute inset-x-0 bottom-0 h-[60vh] bg-gradient-to-t from-background via-background to-transparent pointer-events-none z-10" />
+                    </div>
+                  </div>
                 )}
               </div>
             )}
