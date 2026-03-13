@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins } from 'lucide-react';
+import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { TipButton } from './TipButton';
-import { CreateCirclePostModal } from './CreateCirclePostModal';
+import { PremiumSettingsModal } from './PremiumSettingsModal';
 import { SubscribeCircleModal } from './SubscribeCircleModal';
 import { useCirclePosts } from '@/hooks/useCirclePosts';
 import { useCircleSubscription } from '@/hooks/useCircleSubscription';
@@ -28,7 +29,16 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  // Inline Composer State
+  const [content, setContent] = useState('');
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string>('');
+  const [isPremium, setIsPremium] = useState(false);
+  const [premiumPrice, setPremiumPrice] = useState('50');
+  const [hasTipsEnabled, setHasTipsEnabled] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+
   const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
   
   const { data: posts = [], isLoading } = useCirclePosts(circleId);
@@ -36,13 +46,80 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
 
   const hasSubscription = !!subscription;
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: "File too large", description: "Image must be less than 5MB", variant: "destructive" });
+        return;
+      }
+      setCoverImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setCoverPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setCoverImage(null);
+    setCoverPreview('');
+  };
+
+  const handleSubmit = async () => {
+    if (!content.trim() && !coverImage) {
+      toast({ title: "Content required", description: "Please write something or add an image", variant: "destructive" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      let coverImageUrl = null;
+      if (coverImage) {
+        const fileExt = coverImage.name.split('.').pop();
+        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage.from('post-media').upload(fileName, coverImage);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(uploadData.path);
+        coverImageUrl = publicUrl;
+      }
+
+      const { error: postError } = await supabase.from('posts').insert({
+        user_id: user.id,
+        circle_id: circleId,
+        content: content.trim(),
+        cover_image_url: coverImageUrl,
+        is_premium: isPremium,
+        premium_price: isPremium ? parseInt(premiumPrice) : null,
+        has_tips_enabled: hasTipsEnabled,
+      });
+
+      if (postError) throw postError;
+
+      toast({ title: "Post published!", description: isPremium ? `Premium post set at ${premiumPrice} coins` : "Your post is now live" });
+      
+      // Reset state
+      setContent('');
+      setCoverImage(null);
+      setCoverPreview('');
+      setIsPremium(false);
+      setHasTipsEnabled(true);
+      queryClient.invalidateQueries({ queryKey: ['circle-posts', circleId] });
+    } catch (error: any) {
+      console.error('Error creating post:', error);
+      toast({ title: "Failed to publish", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleReadMore = (post: any) => {
-    // Subscribers and owners always have access
     if (hasSubscription || isOwner || post.user_has_unlocked) {
       navigate(`/circle/${circleId}/post/${post.id}`);
       return;
     }
-    // Premium post without access - show subscribe modal
     if (post.is_premium) {
       setSubscribeModalOpen(true);
       return;
@@ -57,13 +134,11 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
         toast({ title: "Please log in to like posts", variant: "destructive" });
         return;
       }
-
       if (isLiked) {
         await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
       } else {
         await supabase.from('likes').insert({ post_id: postId, user_id: user.id });
       }
-
       queryClient.invalidateQueries({ queryKey: ['circle-posts', circleId] });
     } catch (error: any) {
       console.error('Error liking post:', error);
@@ -78,14 +153,12 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
         toast({ title: "Please log in to tip", variant: "destructive" });
         return;
       }
-
       await supabase.from('circle_tips').insert({
         post_id: postId,
         tipper_id: user.id,
         recipient_id: recipientId,
         amount,
       });
-
       queryClient.invalidateQueries({ queryKey: ['circle-posts', circleId] });
       toast({ title: "Tip sent successfully!", description: `You tipped $${amount}` });
     } catch (error: any) {
@@ -96,23 +169,16 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
 
   const handleDeletePost = async (postId: string) => {
     if (!window.confirm('Are you sure you want to delete this post?')) return;
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({ title: "Please log in to delete posts", variant: "destructive" });
         return;
       }
-
-      // Owners/admins can delete any post in the circle; regular users can only delete their own
       const query = supabase.from('posts').delete().eq('id', postId);
-      if (!isOwner) {
-        query.eq('user_id', user.id);
-      }
+      if (!isOwner) query.eq('user_id', user.id);
       const { error } = await query;
-      
       if (error) throw error;
-
       queryClient.invalidateQueries({ queryKey: ['circle-posts', circleId] });
       toast({ title: "Post deleted successfully" });
     } catch (error: any) {
@@ -123,51 +189,101 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
 
   return (
     <div className="space-y-0 scroll-smooth">
-      {/* Create Post - Only for Owners */}
+      {/* Inline Post Composer - Only for Owners */}
       {isOwner && (
-        <div className="px-4 py-8 bg-muted/40 border-b border-border/50 animate-fade-in">
-          <div className="max-w-xl mx-auto">
-            <div 
-              onClick={() => setIsCreateModalOpen(true)}
-              className="group relative bg-card/40 backdrop-blur-md rounded-2xl p-4 cursor-pointer border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 active:scale-[0.98]"
-            >
-              <div className="flex items-start gap-4">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 flex-shrink-0 animate-scale-in">
+        <div className="px-4 py-8 bg-muted/40 border-b border-border/50 animate-fade-in transition-all">
+          <div className="max-w-2xl mx-auto space-y-4">
+            <div className="relative bg-card/60 backdrop-blur-xl rounded-3xl p-4 border border-border/50 shadow-xl shadow-primary/5 group transition-all duration-300 hover:border-primary/30">
+              <div className="flex gap-4">
+                {/* User Avatar / Owner Role icon */}
+                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 flex-shrink-0">
                   <Crown className="w-6 h-6" />
                 </div>
-                <div className="flex-1 space-y-3">
-                  <div className="pt-2">
-                    <p className="text-base text-muted-foreground group-hover:text-foreground transition-colors">
-                      What's on your mind, Creator?
-                    </p>
-                  </div>
+                
+                {/* Text Area */}
+                <div className="flex-1 space-y-3 pt-1">
+                  <Textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="What's on your mind, Creator?"
+                    className="min-h-[100px] w-full bg-transparent border-none p-0 focus-visible:ring-0 text-lg resize-none placeholder:text-muted-foreground/50 transition-all"
+                  />
                   
-                  <div className="flex items-center gap-4 pt-2 border-t border-border/40">
-                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors">
-                      <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                  {/* Image Preview */}
+                  {coverPreview && (
+                    <div className="relative w-full h-48 rounded-2xl overflow-hidden shadow-md group/img">
+                      <img src={coverPreview} alt="Preview" className="w-full h-full object-cover" />
+                      <button 
+                        onClick={removeImage}
+                        className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full backdrop-blur-md opacity-0 group-hover/img:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Actions Bar */}
+                  <div className="flex items-center justify-between pt-3 border-t border-border/30">
+                    <div className="flex items-center gap-2">
+                      {/* Post Button - Moved to the left middle section */}
+                      <Button 
+                        onClick={handleSubmit}
+                        disabled={isSubmitting || (!content.trim() && !coverImage)}
+                        className="h-10 px-6 rounded-2xl bg-gradient-to-r from-primary to-primary/80 font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                      >
+                        {isSubmitting ? (
+                          <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span>Post</span>
+                            <Send className="w-4 h-4" />
+                          </div>
+                        )}
+                      </Button>
+
+                      <div className="w-px h-6 bg-border/50 mx-1" />
+
+                      {/* Add Image */}
+                      <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/20 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all cursor-pointer">
                         <ImageIcon className="w-4 h-4" />
-                      </div>
-                      <span>Add Image</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-amber-500 transition-colors">
-                      <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+                        <span className="text-xs font-semibold">Image</span>
+                        <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
+                      </label>
+
+                      {/* Premium Toggle */}
+                      <button 
+                        onClick={() => {
+                          if (!isPremium) {
+                            setIsPremiumModalOpen(true);
+                          } else {
+                            setIsPremium(false);
+                          }
+                        }}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all ${
+                          isPremium 
+                            ? 'bg-amber-500/20 text-amber-500 ring-1 ring-amber-500/50' 
+                            : 'bg-muted/20 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-500'
+                        }`}
+                      >
                         <Crown className="w-4 h-4" />
-                      </div>
-                      <span>Premium Post</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-emerald-500 transition-colors">
-                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                        <span className="text-xs font-semibold">{isPremium ? `${premiumPrice} 🪙` : 'Premium'}</span>
+                      </button>
+
+                      {/* Tips Toggle */}
+                      <button 
+                        onClick={() => setHasTipsEnabled(!hasTipsEnabled)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all ${
+                          hasTipsEnabled 
+                            ? 'bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/50' 
+                            : 'bg-muted/20 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500'
+                        }`}
+                      >
                         <Coins className="w-4 h-4" />
-                      </div>
-                      <span>Enable Tips</span>
+                        <span className="text-xs font-semibold">Tips</span>
+                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Decorative accent */}
-              <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
               </div>
             </div>
           </div>
@@ -222,12 +338,12 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
 
                   {/* Premium lock overlay for locked posts */}
                   {!canView && (
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md z-10 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md z-10 flex items-center justify-center cursor-pointer" onClick={() => navigate(`/circle/${circleId}/post/${post.id}`)}>
                       <div className="text-center space-y-4">
                         <Lock className="w-16 h-16 mx-auto text-white" />
                         <div>
                           <h4 className="text-xl font-bold text-white mb-2">Premium Content</h4>
-                          <p className="text-white/80 text-sm">Subscribe to view this post</p>
+                          <p className="text-white/80 text-sm">Tap to unlock or subscribe</p>
                         </div>
                       </div>
                     </div>
@@ -278,7 +394,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                     <p className="text-white/90 text-sm leading-relaxed mb-4 line-clamp-2 whitespace-pre-wrap break-words">
                       {canView ? post.content.split(' ').map((word: string, i: number) =>
                         word.startsWith('#') ? <span key={i} className="text-primary-foreground/80 font-medium">{word} </span> : word + ' '
-                      ) : 'Subscribe to read this exclusive content...'}
+                      ) : 'Tap to unlock exclusive content with coins or subscribe for full access...'}
                     </p>
 
                     {/* Row with social buttons including tip button */}
@@ -317,13 +433,13 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
 
                     {/* Full-width Read more button */}
                     <button 
-                      onClick={() => handleReadMore(post)}
+                      onClick={() => navigate(`/circle/${circleId}/post/${post.id}`)}
                       className="w-full rounded-full py-3 px-6 text-base font-semibold bg-card text-foreground shadow-glow hover:shadow-xl hover:scale-[1.02] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50"
                     >
                       {!canView ? (
                         <>
                           <Lock className="w-4 h-4 inline mr-2" />
-                          Subscribe to Read
+                          Unlock or Subscribe
                         </>
                       ) : (
                         'Read more'
@@ -344,12 +460,14 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
       </div>
 
       {/* Modals */}
-      <CreateCirclePostModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        circleId={circleId || ''}
-        onPostCreated={() => {
-          queryClient.invalidateQueries({ queryKey: ['circle-posts', circleId] });
+      <PremiumSettingsModal
+        isOpen={isPremiumModalOpen}
+        onClose={() => setIsPremiumModalOpen(false)}
+        price={premiumPrice}
+        setPrice={setPremiumPrice}
+        onSave={() => {
+          setIsPremium(true);
+          setIsPremiumModalOpen(false);
         }}
       />
 
