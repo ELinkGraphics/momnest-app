@@ -515,6 +515,7 @@ const CirclePostDetail: React.FC = () => {
               !isRichText(getDisplayContent()) && "whitespace-pre-line"
             )}>
               {isRichText(getDisplayContent()) ? (
+                <div 
                   className="prose prose-base dark:prose-invert max-w-none text-foreground"
                   dangerouslySetInnerHTML={{ __html: getDisplayContent() }} 
                 />
@@ -539,6 +540,7 @@ const CirclePostDetail: React.FC = () => {
                       if (isRichText(fullContent)) {
                         const paragraphs = fullContent.match(/<p>[\s\S]*?<\/p>/gi) || [];
                         if (paragraphs.length > 2) {
+                          return <div 
                             className="prose prose-base dark:prose-invert max-w-none text-foreground"
                             dangerouslySetInnerHTML={{ __html: paragraphs.slice(2).join('') }} 
                           />;

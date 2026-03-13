@@ -352,8 +352,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Section Header */}
       <div className="px-6 py-4 bg-background/50 border-b border-border/50">
