@@ -10,6 +10,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useCoinWallet } from '@/hooks/useCoinWallet';
 import { useUser } from '@/contexts/UserContext';
+import { useCircleSubscription } from '@/hooks/useCircleSubscription';
 import { Input } from '@/components/ui/input';
 import EmojiPicker from '@/components/EmojiPicker';
 
@@ -263,9 +264,11 @@ const CirclePostDetail: React.FC = () => {
     enabled: !!postId,
   });
 
+  const { data: subscription } = useCircleSubscription(circleId);
   const isOwner = circle?.creator_id === post?.user_id || user?.id === post?.user_id;
   const isPaidPremium = post?.is_premium && post?.premium_price && post.premium_price > 0;
-  const shouldShowPaywall = isPaidPremium && !post?.has_unlocked && !isOwner;
+  const isSubscriber = subscription?.status === 'active';
+  const shouldShowPaywall = isPaidPremium && !post?.has_unlocked && !isOwner && !isSubscriber;
 
   if (isLoading) {
     return (
@@ -364,20 +367,20 @@ const CirclePostDetail: React.FC = () => {
     }
     
     if (isRichText(fullContent)) {
-      // For rich text premium posts, try to show the first two paragraph blocks
+      // For rich text premium posts, show only the first paragraph block
       const paragraphs = fullContent.match(/<p>[\s\S]*?<\/p>/gi) || [];
-      if (paragraphs.length <= 2) {
+      if (paragraphs.length <= 1) {
         return fullContent;
       }
-      return paragraphs.slice(0, 2).join('');
+      return paragraphs.slice(0, 1).join('');
     }
 
-    // For plain text, use the original logic
+    // For plain text, show only the first paragraph
     const paragraphs = fullContent.split('\n\n');
-    if (paragraphs.length <= 2) {
+    if (paragraphs.length <= 1) {
       return fullContent;
     }
-    return paragraphs.slice(0, 2).join('\n\n');
+    return paragraphs.slice(0, 1).join('\n\n');
   };
 
   return (

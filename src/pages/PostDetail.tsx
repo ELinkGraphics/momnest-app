@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MessageCircle, Share2, MoreHorizontal, BadgeCheck, Send, Loader2, MapPin, Mic, Pencil, Trash2, Bookmark, Flag, BookmarkCheck, Image } from 'lucide-react';
+import { ArrowLeft, Heart, MessageCircle, Share2, MoreHorizontal, BadgeCheck, Send, Loader2, MapPin, Mic, Pencil, Trash2, Bookmark, Flag, BookmarkCheck, Image, Lock, Crown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +14,7 @@ import { GiftEmoji } from '@/components/GiftEmojiPicker';
 import { Carousel, CarouselContent, CarouselItem, CarouselApi } from '@/components/ui/carousel';
 import CommentActionMenu from '@/components/CommentActionMenu';
 import { toast } from 'sonner';
+import { useCircleSubscription } from '@/hooks/useCircleSubscription';
 
 interface Comment {
   id: string;
@@ -74,6 +75,8 @@ const PostDetail: React.FC = () => {
   const [detailCarouselApi, setDetailCarouselApi] = useState<CarouselApi>();
   const [detailCurrentSlide, setDetailCurrentSlide] = useState(0);
   const [commentAction, setCommentAction] = useState<{ commentId: string; position: { x: number; y: number } } | null>(null);
+  const [hasUnlocked, setHasUnlocked] = useState(false);
+  const [isUnlocking, setIsUnlocking] = useState(false);
 
   // Track detail carousel slide changes
   useEffect(() => {
@@ -119,6 +122,17 @@ const PostDetail: React.FC = () => {
             .maybeSingle();
 
           setLiked(!!likeData);
+        }
+
+        // Check if user has unlocked this premium post
+        if (data.is_premium && data.premium_price && user) {
+          const { data: unlockData } = await supabase
+            .from('post_unlocks')
+            .select('id')
+            .eq('post_id', postId)
+            .eq('user_id', user.id)
+            .maybeSingle();
+          setHasUnlocked(!!unlockData);
         }
 
         // Fetch comments for this post
@@ -286,7 +300,51 @@ const PostDetail: React.FC = () => {
     }
   };
 
-  const isOwnPost = user?.id === post.user_id;
+  const { data: subscription } = useCircleSubscription(post?.circle_id);
+  const isSubscriber = subscription?.status === 'active';
+  const isOwnPost = user?.id === post?.user_id;
+  const isPaidPremium = post?.is_premium && post?.premium_price && post.premium_price > 0;
+  const shouldShowPaywall = isPaidPremium && !hasUnlocked && !isOwnPost && !isSubscriber;
+
+  const handleUnlock = async () => {
+    if (!user) {
+      toast.error("Please log in to unlock");
+      return;
+    }
+    setIsUnlocking(true);
+    try {
+      const { error } = await supabase.rpc('unlock_premium_post', {
+        _user_id: user.id,
+        _post_id: postId!,
+      });
+      if (error) throw error;
+      toast.success(`Post unlocked! 🎉 You paid ${post.premium_price} coins.`);
+      setHasUnlocked(true);
+    } catch (error: any) {
+      toast.error(error.message || "Unlock failed");
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
+
+  const isRichText = (content: string) => {
+    return /<[a-z][\s\S]*>/i.test(content) || content.includes('<p>') || content.includes('<strong>') || content.includes('<ul>');
+  };
+
+  const getDisplayContent = () => {
+    const content = post?.content || '';
+    if (!shouldShowPaywall) return content;
+
+    if (isRichText(content)) {
+      const paragraphs = content.match(/<p>[\s\S]*?<\/p>/gi) || [];
+      if (paragraphs.length <= 1) return content;
+      return paragraphs.slice(0, 1).join('');
+    }
+
+    const paragraphs = content.split('\n\n');
+    if (paragraphs.length <= 1) return content;
+    return paragraphs.slice(0, 1).join('\n\n');
+  };
 
   const handleDeletePost = async () => {
     if (!postId) return;
@@ -463,16 +521,17 @@ const PostDetail: React.FC = () => {
             ) : (
               <div className={cn(
                 "text-[14px] text-foreground leading-relaxed break-words",
-                !(/<[a-z][\s\S]*>/i.test(post.content) || post.content.includes('<p>') || post.content.includes('<strong>') || post.content.includes('<ul>')) && "whitespace-pre-wrap"
+                !isRichText(getDisplayContent()) && "whitespace-pre-wrap",
+                shouldShowPaywall && "mask-gradient-bottom"
               )}>
-                {(/<[a-z][\s\S]*>/i.test(post.content) || post.content.includes('<p>') || post.content.includes('<strong>') || post.content.includes('<ul>')) ? (
+                {isRichText(getDisplayContent()) ? (
                   <div 
                     className="prose prose-base dark:prose-invert max-w-none text-foreground"
-                    dangerouslySetInnerHTML={{ __html: post.content }} 
+                    dangerouslySetInnerHTML={{ __html: getDisplayContent() }} 
                   />
                 ) : (
                   <p dir="auto">
-                    {post.content.split(' ').map((word: string, i: number) =>
+                    {getDisplayContent().split(' ').map((word: string, i: number) =>
                       word.startsWith('#') ? <span key={i} className="text-primary font-medium">{word} </span> : word + ' '
                     )}
                   </p>
@@ -506,8 +565,11 @@ const PostDetail: React.FC = () => {
                         {/\.(mp4|webm|mov|ogg|m3u8)(\?|$)/i.test(url) ? (
                           <video
                             src={url}
-                            className="w-full object-contain max-h-[70vh] bg-black"
-                            controls
+                            className={cn(
+                              "w-full object-contain max-h-[70vh] bg-black transition-all duration-500",
+                              shouldShowPaywall && "blur-xl"
+                            )}
+                            controls={!shouldShowPaywall}
                             preload="metadata"
                             playsInline
                           />
@@ -515,8 +577,42 @@ const PostDetail: React.FC = () => {
                           <img
                             src={url}
                             alt={`${post.media_alt || 'Post image'} ${index + 1}`}
-                            className="w-full object-contain max-h-[70vh] bg-black/5"
+                            className={cn(
+                              "w-full object-contain max-h-[70vh] bg-black/5 transition-all duration-500",
+                              shouldShowPaywall && "blur-xl"
+                            )}
                           />
+                        )}
+                        
+                        {shouldShowPaywall && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 backdrop-blur-[2px] z-10">
+                            <div className="bg-background/80 backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-white/20 flex flex-col items-center text-center max-w-[80%]">
+                              <div className="size-16 bg-primary/20 rounded-full flex items-center justify-center mb-4">
+                                <Lock className="size-8 text-primary" />
+                              </div>
+                              <h3 className="text-lg font-bold mb-2">Premium Post</h3>
+                              <p className="text-sm text-muted-foreground mb-6">
+                                This post is locked. Pay {post.premium_price} coins to unlock full access.
+                              </p>
+                              <Button 
+                                onClick={handleUnlock}
+                                disabled={isUnlocking}
+                                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-6 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+                              >
+                                {isUnlocking ? (
+                                  <Loader2 className="size-5 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Coins className="size-5" />
+                                    Unlock for {post.premium_price} Coins
+                                  </>
+                                )}
+                              </Button>
+                              <p className="mt-4 text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
+                                One-time payment for lifetime access
+                              </p>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </CarouselItem>
