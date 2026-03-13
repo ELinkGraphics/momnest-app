@@ -467,7 +467,7 @@ const PostDetail: React.FC = () => {
               )}>
                 {(/<[a-z][\s\S]*>/i.test(post.content) || post.content.includes('<p>') || post.content.includes('<strong>') || post.content.includes('<ul>')) ? (
                   <div 
-                    className="prose prose-sm dark:prose-invert max-w-none text-foreground"
+                    className="prose prose-base dark:prose-invert max-w-none text-foreground"
                     dangerouslySetInnerHTML={{ __html: post.content }} 
                   />
                 ) : (

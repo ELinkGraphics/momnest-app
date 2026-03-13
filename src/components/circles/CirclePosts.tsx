@@ -287,66 +287,68 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                     </div>
                   )}
 
-                  {/* Actions Bar */}
-                  <div className="flex items-center justify-between pt-3 border-t border-border/30 gap-2 flex-nowrap overflow-x-auto no-scrollbar">
-                    <div className="flex items-center gap-1.5 flex-nowrap">
-                      {/* Add Image */}
-                      <label className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-muted/20 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all cursor-pointer flex-shrink-0">
-                        <ImageIcon className="w-3.5 h-3.5" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Image</span>
-                        <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
-                      </label>
-
-                      {/* Premium Toggle */}
-                      <button 
-                        onClick={() => {
-                          if (!isPremium) {
-                            setIsPremiumModalOpen(true);
-                          } else {
-                            setIsPremium(false);
-                          }
-                        }}
-                        className={`flex items-center gap-1.5 px-2 py-1 rounded-xl transition-all flex-shrink-0 ${
-                          isPremium 
-                            ? 'bg-amber-500/20 text-amber-500 ring-1 ring-amber-500/50' 
-                            : 'bg-muted/20 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-500'
-                        }`}
-                      >
-                        <Crown className="w-3.5 h-3.5" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">{isPremium ? `${premiumPrice}` : 'Premium'}</span>
-                      </button>
-
-                      {/* Tips Toggle */}
-                      <button 
-                        onClick={() => setHasTipsEnabled(!hasTipsEnabled)}
-                        className={`flex items-center gap-1.5 px-2 py-1 rounded-xl transition-all flex-shrink-0 ${
-                          hasTipsEnabled 
-                            ? 'bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/50' 
-                            : 'bg-muted/20 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500'
-                        }`}
-                      >
-                        <Coins className="w-3.5 h-3.5" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Tips</span>
-                      </button>
-                    </div>
-
-                    {/* Post Button - Moved to the right corner */}
-                    <Button 
-                      onClick={handleSubmit}
-                      disabled={isSubmitting || (!content.trim() && !coverImage)}
-                      className="h-9 px-5 rounded-xl bg-gradient-to-r from-primary to-primary/80 font-bold shadow-md shadow-primary/10 hover:scale-[1.02] active:scale-[0.98] transition-all flex-shrink-0"
-                    >
-                      {isSubmitting ? (
-                        <div className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">Post</span>
-                          <Send className="w-3.5 h-3.5" />
-                        </div>
-                      )}
-                    </Button>
                   </div>
                 </div>
+              </div>
+              
+              {/* Actions Bar - Moved out to span full width and use space under avatar */}
+              <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/30 gap-2 flex-wrap min-h-[44px]">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {/* Add Image */}
+                  <label className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-muted/20 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all cursor-pointer flex-shrink-0">
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Image</span>
+                    <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
+                  </label>
+
+                  {/* Premium Toggle */}
+                  <button 
+                    onClick={() => {
+                      if (!isPremium) {
+                        setIsPremiumModalOpen(true);
+                      } else {
+                        setIsPremium(false);
+                      }
+                    }}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl transition-all flex-shrink-0 ${
+                      isPremium 
+                        ? 'bg-amber-500/20 text-amber-500 ring-1 ring-amber-500/50' 
+                        : 'bg-muted/20 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-500'
+                    }`}
+                  >
+                    <Crown className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">{isPremium ? `${premiumPrice}` : 'Premium'}</span>
+                  </button>
+
+                  {/* Tips Toggle */}
+                  <button 
+                    onClick={() => setHasTipsEnabled(!hasTipsEnabled)}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl transition-all flex-shrink-0 ${
+                      hasTipsEnabled 
+                        ? 'bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/50' 
+                        : 'bg-muted/20 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500'
+                    }`}
+                  >
+                    <Coins className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Tips</span>
+                  </button>
+                </div>
+
+                {/* Post Button */}
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || (!content.trim() && !coverImage)}
+                  className="h-9 px-5 rounded-xl bg-gradient-to-r from-primary to-primary/80 font-bold shadow-md shadow-primary/10 hover:scale-[1.02] active:scale-[0.98] transition-all flex-shrink-0"
+                >
+                  {isSubmitting ? (
+                    <div className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">Post</span>
+                      <Send className="w-3.5 h-3.5" />
+                    </div>
+                  )}
+                </Button>
               </div>
             </div>
           </div>

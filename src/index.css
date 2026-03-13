@@ -396,8 +396,8 @@ All colors MUST be HSL.
   }
 
   /* Text Alignment Classes for Tiptap */
-  .prose .text-left { text-align: left; }
-  .prose .text-center { text-align: center; }
-  .prose .text-right { text-align: right; }
-  .prose .text-justify { text-align: justify; }
+  .prose .text-left { text-align: left !important; }
+  .prose .text-center { text-align: center !important; }
+  .prose .text-right { text-align: right !important; }
+  .prose .text-justify { text-align: justify !important; }
 }

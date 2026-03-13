@@ -508,15 +508,14 @@ const CirclePostDetail: React.FC = () => {
           </div>
 
           {/* Post Content */}
-          <div className="prose prose-lg max-w-none mb-8 relative">
+          <div className="mb-8 relative">
             {/* Visible content */}
             <div className={cn(
               "text-foreground leading-relaxed text-base",
               !isRichText(getDisplayContent()) && "whitespace-pre-line"
             )}>
               {isRichText(getDisplayContent()) ? (
-                <div 
-                  className="prose prose-sm dark:prose-invert max-w-none text-foreground"
+                  className="prose prose-base dark:prose-invert max-w-none text-foreground"
                   dangerouslySetInnerHTML={{ __html: getDisplayContent() }} 
                 />
               ) : (
@@ -540,8 +539,7 @@ const CirclePostDetail: React.FC = () => {
                       if (isRichText(fullContent)) {
                         const paragraphs = fullContent.match(/<p>[\s\S]*?<\/p>/gi) || [];
                         if (paragraphs.length > 2) {
-                          return <div 
-                            className="prose prose-sm dark:prose-invert max-w-none text-foreground"
+                            className="prose prose-base dark:prose-invert max-w-none text-foreground"
                             dangerouslySetInnerHTML={{ __html: paragraphs.slice(2).join('') }} 
                           />;
                         }
@@ -584,7 +582,7 @@ const CirclePostDetail: React.FC = () => {
                     const paragraphs = fullContent.match(/<p>[\s\S]*?<\/p>/gi) || [];
                     if (paragraphs.length > 2) {
                       return <div 
-                        className="prose prose-sm dark:prose-invert max-w-none text-foreground"
+                        className="prose prose-base dark:prose-invert max-w-none text-foreground"
                         dangerouslySetInnerHTML={{ __html: paragraphs.slice(2).join('') }} 
                       />;
                     }
