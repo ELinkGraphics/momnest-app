@@ -223,13 +223,13 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                   )}
 
                   {/* Actions Bar */}
-                  <div className="flex items-center justify-between pt-3 border-t border-border/30">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-start md:items-center justify-between pt-3 border-t border-border/30 gap-y-3 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {/* Post Button - Moved to the left middle section */}
                       <Button 
                         onClick={handleSubmit}
                         disabled={isSubmitting || (!content.trim() && !coverImage)}
-                        className="h-10 px-6 rounded-2xl bg-gradient-to-r from-primary to-primary/80 font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        className="h-10 px-6 rounded-2xl bg-gradient-to-r from-primary to-primary/80 font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex-shrink-0"
                       >
                         {isSubmitting ? (
                           <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -241,46 +241,48 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                         )}
                       </Button>
 
-                      <div className="w-px h-6 bg-border/50 mx-1" />
+                      <div className="hidden sm:block w-px h-6 bg-border/50 mx-1 flex-shrink-0" />
 
-                      {/* Add Image */}
-                      <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/20 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all cursor-pointer">
-                        <ImageIcon className="w-4 h-4" />
-                        <span className="text-xs font-semibold">Image</span>
-                        <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
-                      </label>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Add Image */}
+                        <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/20 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all cursor-pointer flex-shrink-0">
+                          <ImageIcon className="w-4 h-4" />
+                          <span className="text-xs font-semibold">Image</span>
+                          <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
+                        </label>
 
-                      {/* Premium Toggle */}
-                      <button 
-                        onClick={() => {
-                          if (!isPremium) {
-                            setIsPremiumModalOpen(true);
-                          } else {
-                            setIsPremium(false);
-                          }
-                        }}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all ${
-                          isPremium 
-                            ? 'bg-amber-500/20 text-amber-500 ring-1 ring-amber-500/50' 
-                            : 'bg-muted/20 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-500'
-                        }`}
-                      >
-                        <Crown className="w-4 h-4" />
-                        <span className="text-xs font-semibold">{isPremium ? `${premiumPrice} 🪙` : 'Premium'}</span>
-                      </button>
+                        {/* Premium Toggle */}
+                        <button 
+                          onClick={() => {
+                            if (!isPremium) {
+                              setIsPremiumModalOpen(true);
+                            } else {
+                              setIsPremium(false);
+                            }
+                          }}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all flex-shrink-0 ${
+                            isPremium 
+                              ? 'bg-amber-500/20 text-amber-500 ring-1 ring-amber-500/50' 
+                              : 'bg-muted/20 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-500'
+                          }`}
+                        >
+                          <Crown className="w-4 h-4" />
+                          <span className="text-xs font-semibold">{isPremium ? `${premiumPrice} 🪙` : 'Premium'}</span>
+                        </button>
 
-                      {/* Tips Toggle */}
-                      <button 
-                        onClick={() => setHasTipsEnabled(!hasTipsEnabled)}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all ${
-                          hasTipsEnabled 
-                            ? 'bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/50' 
-                            : 'bg-muted/20 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500'
-                        }`}
-                      >
-                        <Coins className="w-4 h-4" />
-                        <span className="text-xs font-semibold">Tips</span>
-                      </button>
+                        {/* Tips Toggle */}
+                        <button 
+                          onClick={() => setHasTipsEnabled(!hasTipsEnabled)}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all flex-shrink-0 ${
+                            hasTipsEnabled 
+                              ? 'bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/50' 
+                              : 'bg-muted/20 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500'
+                          }`}
+                        >
+                          <Coins className="w-4 h-4" />
+                          <span className="text-xs font-semibold">Tips</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
