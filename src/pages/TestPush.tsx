@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, Send, Shield, Info } from 'lucide-react';
+import { ArrowLeft, Bell, Send, Shield, Info, RefreshCw, Trash2, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -9,8 +9,9 @@ import { toast } from 'sonner';
 
 const TestPush = () => {
   const navigate = useNavigate();
-  const { isSupported, permission, subscription, requestPermission } = usePushNotifications();
+  const { isSupported, permission, subscription, requestPermission, unregisterServiceWorker } = usePushNotifications();
   const [isSending, setIsSending] = useState(false);
+  const [showRawSub, setShowRawSub] = useState(false);
 
   const handleTestNotification = async () => {
     if (!subscription) {
@@ -162,6 +163,41 @@ const TestPush = () => {
           </CardFooter>
         </Card>
 
+        <Card className="border-destructive/20 bg-destructive/5">
+          <CardHeader>
+            <CardTitle className="text-destructive flex items-center gap-2">
+              <RefreshCw className="h-5 w-5" />
+              Troubleshooting / Reset
+            </CardTitle>
+            <CardDescription>
+              If push registration keeps failing with "Push Service Error", try resetting the service worker.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Resetting will unregister all service workers and clear the current subscription. You will need to reload the page and subscribe again.
+            </p>
+          </CardContent>
+          <CardFooter className="flex gap-2">
+            <Button 
+              variant="outline" 
+              className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-white"
+              onClick={unregisterServiceWorker}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Reset Service Worker
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex-1"
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reload Page
+            </Button>
+          </CardFooter>
+        </Card>
+
         <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
           <h4 className="text-sm font-semibold text-blue-900 mb-1 flex items-center gap-2">
             <Info className="h-4 w-4" />
@@ -169,9 +205,9 @@ const TestPush = () => {
           </h4>
           <ul className="text-xs text-blue-800 space-y-1 list-disc ml-4">
             <li>Ensure you have granted notification permissions in your browser settings.</li>
-            <li>If you don't receive the notification, check the browser console for service worker logs.</li>
-            <li>Make sure the application is served over HTTPS or localhost (required for service workers).</li>
-            <li>Service workers may not trigger notifications if the tab is focused, depending on the implementation.</li>
+            <li>If you get <strong>"AbortError: Registration failed - push service error"</strong>, it usually indicates the browser can't reach the push service or the VAPID key is invalid.</li>
+            <li>Check the <strong>Browser Console</strong> (F12) for detailed logs including VAPID key byte length.</li>
+            <li>Ensure you are not in Incognito/Private mode, as push is often disabled there.</li>
           </ul>
         </div>
       </div>

@@ -5,14 +5,23 @@ import { toast } from 'sonner';
 const VAPID_PUBLIC_KEY = 'BFqWP-OcHrvUNbvh86neKJkpCW9VdJyGrtsQqfyvThN8NuQfLlSO32p2uWvxRkMoW0LOe9xag_qMek_vv5jC0kU';
 
 function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
+  try {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    console.log('VAPID key byte length:', outputArray.length);
+    if (outputArray.length !== 65) {
+      console.warn('VAPID public key should be exactly 65 bytes long. Current length:', outputArray.length);
+    }
+    return outputArray;
+  } catch (error) {
+    console.error('Error converting VAPID key:', error);
+    throw error;
   }
-  return outputArray;
 }
 
 export const usePushNotifications = () => {
@@ -67,27 +76,66 @@ export const usePushNotifications = () => {
 
   const subscribeUser = async () => {
     try {
+      console.log('Checking service worker readiness...');
       const registration = await navigator.serviceWorker.ready;
+      console.log('Service worker ready. Current registration scope:', registration.scope);
       
       // Subscribe with VAPID
+      console.log('Attempting push subscription with key:', VAPID_PUBLIC_KEY);
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
-
+      
+      console.log('Push subscription successful:', sub);
       setSubscription(sub);
-
-      // Save to backend
-      const { data, error } = await supabase.functions.invoke('save-push-subscription', {
-        body: { subscription: sub.toJSON() }
-      });
-
-      if (error) throw error;
+      
+      // Send to backend
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        console.log('Sending subscription to backend for user:', user.id);
+        const { error } = await supabase.functions.invoke('save-push-subscription', {
+          body: {
+            subscription: sub,
+            userId: user.id
+          }
+        });
+        
+        if (error) {
+          console.error('Error saving subscription to backend:', error);
+          throw error;
+        }
+        console.log('Subscription saved to backend successfully');
+      }
+      
       return sub;
     } catch (error) {
       console.error('Error subscribing to push:', error);
-      toast.error('Failed to subscribe to push notifications');
-      return null;
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error name:', error.name);
+        
+        if (error.name === 'AbortError') {
+          console.error('AbortError usually means the push service is unreachable or the VAPID key is invalid.');
+        } else if (error.name === 'NotAllowedError') {
+          console.error('NotAllowedError means the user denied the notification permission.');
+        }
+      }
+      throw error;
+    }
+  };
+
+  const unregisterServiceWorker = async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        await registration.unregister();
+        console.log('Service worker unregistered:', registration.scope);
+      }
+      toast.success('Service workers unregistered. Please reload the page.');
+    } catch (error) {
+      console.error('Error unregistering service workers:', error);
+      toast.error('Failed to unregister service workers');
     }
   };
 
@@ -119,6 +167,8 @@ export const usePushNotifications = () => {
     permission,
     subscription,
     requestPermission,
+    subscribeUser,
     showNotification,
+    unregisterServiceWorker,
   };
 };
