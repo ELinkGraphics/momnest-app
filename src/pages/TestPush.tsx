@@ -130,24 +130,35 @@ const TestPush = () => {
             )}
           </CardContent>
           <CardFooter>
-            <Button 
-              onClick={handleTestNotification} 
-              disabled={!subscription || isSending}
-              className="w-full"
-              variant="secondary"
-            >
-              {isSending ? (
-                <>
-                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Send className="mr-2 h-4 w-4" />
-                  Trigger Test Notification
-                </>
-              )}
-            </Button>
+            {!subscription ? (
+              <Button 
+                onClick={requestPermission} 
+                className="w-full"
+                variant="default"
+              >
+                <Bell className="mr-2 h-4 w-4" />
+                Subscribe Now
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleTestNotification} 
+                disabled={isSending}
+                className="w-full"
+                variant="secondary"
+              >
+                {isSending ? (
+                  <>
+                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Trigger Test Notification
+                  </>
+                )}
+              </Button>
+            )}
           </CardFooter>
         </Card>
 
