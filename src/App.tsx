@@ -66,6 +66,7 @@ import AdminAutoModeration from "./pages/admin/AdminAutoModeration";
 import AdminBulkActions from "./pages/admin/AdminBulkActions";
 import AdminWebhooks from "./pages/admin/AdminWebhooks";
 import AdminEngagement from "./pages/admin/AdminEngagement";
+import TestPush from "./pages/TestPush";
 import AdminContentQueue from "./pages/admin/AdminContentQueue";
 import AdminAuditLog from "./pages/admin/AdminAuditLog";
 import AdminPlatformHealth from "./pages/admin/AdminPlatformHealth";
@@ -144,6 +145,7 @@ const AppRoutes = () => (
     <Route path="/video/:videoId" element={<ProtectedRoute><VideoDetail /></ProtectedRoute>} />
     <Route path="/join/:inviteCode" element={<ProtectedRoute><JoinCircle /></ProtectedRoute>} />
     <Route path="/email-address" element={<ProtectedRoute><EmailAddress /></ProtectedRoute>} />
+    <Route path="/test-push" element={<ProtectedRoute><TestPush /></ProtectedRoute>} />
     {/* Admin Dashboard Routes */}
     <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
       <Route index element={<Navigate to="/admin/dashboard" replace />} />
