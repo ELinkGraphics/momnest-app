@@ -452,7 +452,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                     {/* Title + optional Premium pill */}
                     <div className="mb-3 flex items-start gap-3">
                       <h3 className="text-xl font-bold text-white leading-tight flex-1">
-                        {post.author.name}'s Post
+                        {circle.name}'s Post
                       </h3>
                       {post.is_premium && (
                         <span className={cn(

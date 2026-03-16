@@ -346,7 +346,7 @@ const CirclePostDetail: React.FC = () => {
             <ArrowLeft className="size-5" />
           </button>
           <div className="flex items-center gap-2 flex-1">
-            <h1 className="font-semibold text-lg">Post</h1>
+            <h1 className="font-semibold text-lg">{circle?.name || 'Post'}</h1>
             {post?.is_premium && (
               <span className={cn(
                 "text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1 rounded-full flex items-center gap-1",
