@@ -223,7 +223,7 @@ const CirclePostDetail: React.FC = () => {
         stats: data.post_stats,
         user_has_liked: !!likeData,
         tip_count: tipCount || 0,
-        has_unlocked: hasUnlocked,
+        user_has_unlocked: hasUnlocked,
       };
     },
     enabled: !!postId,
@@ -237,7 +237,7 @@ const CirclePostDetail: React.FC = () => {
   
   // While subscription is still resolving for a premium post, treat it as paywalled to prevent flash
   const subscriptionResolved = !isSubscriptionLoading;
-  const shouldShowPaywall = isPaidPremium && !post?.has_unlocked && !isOwner && (!subscriptionResolved || !isSubscriber);
+  const shouldShowPaywall = isPaidPremium && !post?.user_has_unlocked && !isOwner && (!subscriptionResolved || !isSubscriber);
 
   if (isLoading || (isPaidPremium && isSubscriptionLoading)) {
     return (
@@ -427,7 +427,7 @@ const CirclePostDetail: React.FC = () => {
                   post.user_has_liked ? "text-red-500" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Heart className={cn("size-5", post.user_has_liked && "fill-current")} />
+                <Heart className={cn("size-5", (post.user_has_liked || (post.stats?.likes_count || 0) > 0) && "text-red-500 fill-red-500")} />
                 <span className="text-sm">{post.stats?.likes_count || 0}</span>
               </button>
               
