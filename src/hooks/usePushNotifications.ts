@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 // This must match the VAPID_PUBLIC_KEY secret stored in the backend
-const VAPID_PUBLIC_KEY = 'BFqWP-OcHrvUNbvh86neKJkpCW9VdJyGrtsQqfyvThN8NuQfLlSO32p2uWvxRkMoW0LOe9xag_qMek_vv5jC0kU';
+const VAPID_PUBLIC_KEY = 'BDwPMf3qGdJZ5k76AsOHefMP_ISQJW0oYfezGpEjJQvMgcsQCDIx3vzICpB0sNlcizDoeUYBDqPECRbOL3uEd';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -74,10 +74,11 @@ export const usePushNotifications = () => {
         console.log('Existing push subscription found, reusing it');
       } else {
         console.log('Creating new push subscription with VAPID key');
-        const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer as ArrayBuffer;
+        const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+        console.log('VAPID key byte length:', applicationServerKey.length);
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey,
+          applicationServerKey: applicationServerKey as any,
         });
         console.log('Push subscription created successfully');
       }
