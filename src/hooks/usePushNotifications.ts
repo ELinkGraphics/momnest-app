@@ -19,15 +19,45 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 export const usePushNotifications = () => {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSupported, setIsSupported] = useState(false);
+  const [subscription, setSubscription] = useState<PushSubscription | null>(null);
 
   useEffect(() => {
     // Check if browser supports notifications
     const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
     setIsSupported(supported);
+    
     if ('Notification' in window) {
       setPermission(Notification.permission);
     }
+
+    if (supported) {
+      checkSubscription();
+    }
   }, []);
+
+  const checkSubscription = async () => {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const sub = await registration.pushManager.getSubscription();
+      setSubscription(sub);
+    } catch (error) {
+      console.error('Error checking push subscription:', error);
+    }
+  };
+
+  const unregisterServiceWorker = async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        await registration.unregister();
+      }
+      setSubscription(null);
+      toast.success('Service worker unregistered. Please reload.');
+    } catch (error) {
+      console.error('Error unregistering service worker:', error);
+      toast.error('Failed to unregister service worker');
+    }
+  };
 
   const requestPermission = async () => {
     if (!isSupported) {
@@ -68,23 +98,24 @@ export const usePushNotifications = () => {
       console.log('Service worker ready for push subscription');
 
       // Check existing subscription
-      let subscription = await registration.pushManager.getSubscription();
+      let sub = await registration.pushManager.getSubscription();
 
-      if (subscription) {
+      if (sub) {
         console.log('Existing push subscription found, reusing it');
       } else {
         console.log('Creating new push subscription with VAPID key');
         const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
         console.log('VAPID key byte length:', applicationServerKey.length);
-        subscription = await registration.pushManager.subscribe({
+        sub = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: applicationServerKey as any,
         });
         console.log('Push subscription created successfully');
       }
 
+      setSubscription(sub);
       // Save to backend
-      await saveSubscription(subscription);
+      await saveSubscription(sub);
       return true;
     } catch (error: any) {
       console.error('Error subscribing to push:', error);
@@ -92,7 +123,7 @@ export const usePushNotifications = () => {
     }
   };
 
-  const saveSubscription = async (subscription: PushSubscription) => {
+  const saveSubscription = async (sub: PushSubscription) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -100,7 +131,7 @@ export const usePushNotifications = () => {
         return;
       }
 
-      const subJson = subscription.toJSON();
+      const subJson = sub.toJSON();
       
       // Get project ID from standard Supabase URL if not in env
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -140,6 +171,8 @@ export const usePushNotifications = () => {
   return {
     permission,
     isSupported,
+    subscription,
     requestPermission,
+    unregisterServiceWorker,
   };
 };
