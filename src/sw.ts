@@ -1,5 +1,5 @@
-
 /// <reference lib="webworker" />
+importScripts('sw-push.js');
 
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 

@@ -2,54 +2,36 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// This must match the VAPID_PUBLIC_KEY secret stored in the backend
 const VAPID_PUBLIC_KEY = 'BFqWP-OcHrvUNbvh86neKJkpCW9VdJyGrtsQqfyvThN8NuQfLlSO32p2uWvxRkMoW0LOe9xag_qMek_vv5jC0kU';
 
-function urlBase64ToUint8Array(base64String: string) {
-  try {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    console.log('VAPID key byte length:', outputArray.length);
-    if (outputArray.length !== 65) {
-      console.warn('VAPID public key should be exactly 65 bytes long. Current length:', outputArray.length);
-    }
-    return outputArray;
-  } catch (error) {
-    console.error('Error converting VAPID key:', error);
-    throw error;
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
   }
+  return outputArray;
 }
 
 export const usePushNotifications = () => {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSupported, setIsSupported] = useState(false);
-  const [subscription, setSubscription] = useState<PushSubscription | null>(null);
 
   useEffect(() => {
-    const checkSupport = async () => {
-      const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
-      setIsSupported(supported);
-      
-      if (supported) {
-        setPermission(Notification.permission);
-        
-        // Check for existing subscription
-        const registration = await navigator.serviceWorker.ready;
-        const sub = await registration.pushManager.getSubscription();
-        setSubscription(sub);
-      }
-    };
-
-    checkSupport();
+    // Check if browser supports notifications
+    const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+    setIsSupported(supported);
+    if ('Notification' in window) {
+      setPermission(Notification.permission);
+    }
   }, []);
 
   const requestPermission = async () => {
     if (!isSupported) {
-      toast.error('Notifications not supported in this browser');
+      toast.error('Push notifications not supported in this browser');
       return false;
     }
 
@@ -58,127 +40,105 @@ export const usePushNotifications = () => {
       setPermission(result);
       
       if (result === 'granted') {
-        const sub = await subscribeUser();
-        if (sub) {
+        const subscribed = await subscribeToPush();
+        if (subscribed) {
           toast.success('Notifications enabled!');
           return true;
+        } else {
+          toast.error('Failed to subscribe to push notifications');
+          return false;
         }
       } else {
         toast.error('Notification permission denied');
+        return false;
       }
-      return false;
     } catch (error) {
-      console.error('Error requesting notification permission:', error);
-      toast.error('Failed to request notification permission');
+      console.error('Error requesting permission:', error);
+      toast.error('Error enabling notifications');
       return false;
     }
   };
 
-  const subscribeUser = async () => {
+  const subscribeToPush = async (): Promise<boolean> => {
     try {
-      console.log('Checking service worker readiness...');
-      const registration = await navigator.serviceWorker.ready;
-      console.log('Service worker ready. Current registration scope:', registration.scope);
-      
-      if (!registration.active) {
-        console.error('Service worker is registered but not active. Current state:', registration.installing ? 'installing' : registration.waiting ? 'waiting' : 'unknown');
-        throw new Error('Service worker is not active. Please wait a moment or reload the page.');
-      }
-      
-      // Subscribe with VAPID
-      console.log('Attempting push subscription with key:', VAPID_PUBLIC_KEY);
-      const sub = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-      });
-      
-      console.log('Push subscription successful:', sub);
-      setSubscription(sub);
-      
-      // Send to backend
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        console.log('Sending subscription to backend for user:', user.id);
-        const { error } = await supabase.functions.invoke('save-push-subscription', {
-          body: {
-            subscription: sub,
-            userId: user.id
-          }
-        });
-        
-        if (error) {
-          console.error('Error saving subscription to backend:', error);
-          throw error;
-        }
-        console.log('Subscription saved to backend successfully');
-      }
-      
-      return sub;
-    } catch (error) {
-      console.error('Error subscribing to push:', error);
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        console.error('Error name:', error.name);
-        
-        if (error.name === 'AbortError') {
-          console.error('AbortError: Registration failed - push service error.');
-          console.error('Common causes:');
-          console.error('1. The browser cannot reach the push service (check internet/VPN/firewall).');
-          console.error('2. Conflict with gcm_sender_id in manifest (Fixed in this update).');
-          console.error('3. The VAPID key is invalid or mismatched with the push service.');
-          console.error('4. Testing in Incognito mode.');
-        } else if (error.name === 'NotAllowedError') {
-          console.error('NotAllowedError means the user denied the notification permission.');
-        }
-      }
-      throw error;
-    }
-  };
+      if (!user) return false;
 
-  const unregisterServiceWorker = async () => {
-    try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const registration of registrations) {
-        await registration.unregister();
-        console.log('Service worker unregistered:', registration.scope);
-      }
-      toast.success('Service workers unregistered. Please reload the page.');
-    } catch (error) {
-      console.error('Error unregistering service workers:', error);
-      toast.error('Failed to unregister service workers');
-    }
-  };
+      const registration = await navigator.serviceWorker.ready;
+      console.log('Service worker ready for push subscription');
 
-  const showNotification = (title: string, options?: NotificationOptions) => {
-    if (permission !== 'granted') return;
+      // Check existing subscription
+      let subscription = await registration.pushManager.getSubscription();
 
-    try {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(registration => {
-          registration.showNotification(title, {
-            ...options,
-            icon: '/icon-192.png',
-            badge: '/badge-72.png',
-          });
-        });
+      if (subscription) {
+        console.log('Existing push subscription found, reusing it');
       } else {
-        new Notification(title, {
-          ...options,
-          icon: '/icon-192.png',
+        console.log('Creating new push subscription with VAPID key');
+        const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer as ArrayBuffer;
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey,
         });
+        console.log('Push subscription created successfully');
+      }
+
+      // Save to backend
+      await saveSubscription(subscription);
+      return true;
+    } catch (error: any) {
+      console.error('Error subscribing to push:', error);
+      return false;
+    }
+  };
+
+  const saveSubscription = async (subscription: PushSubscription) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No session found, cannot save push subscription');
+        return;
+      }
+
+      const subJson = subscription.toJSON();
+      
+      // Get project ID from standard Supabase URL if not in env
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+      const projectId = supabaseUrl.split('.')[0].split('//')[1] || import.meta.env.VITE_SUPABASE_PROJECT_ID;
+
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/save-push-subscription`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            subscription: {
+              endpoint: subJson.endpoint,
+              keys: {
+                p256dh: subJson.keys?.p256dh,
+                auth: subJson.keys?.auth,
+              },
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const err = await response.text();
+        console.error('Failed to save push subscription:', err);
+      } else {
+        console.log('Push subscription saved to backend');
       }
     } catch (error) {
-      console.error('Error showing notification:', error);
+      console.error('Error saving push subscription:', error);
     }
   };
 
   return {
-    isSupported,
     permission,
-    subscription,
+    isSupported,
     requestPermission,
-    subscribeUser,
-    showNotification,
-    unregisterServiceWorker,
   };
 };
