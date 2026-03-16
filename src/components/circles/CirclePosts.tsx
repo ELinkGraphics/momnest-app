@@ -402,7 +402,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
 
                   {/* Premium lock overlay for locked posts */}
                   {!canView && (
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md z-10 flex items-center justify-center cursor-pointer" onClick={() => navigate(`/circle/${circleId}/post/${post.id}`)}>
+                    <div className="absolute inset-0 bg-black/60 z-10 flex items-center justify-center cursor-pointer" onClick={() => navigate(`/circle/${circleId}/post/${post.id}`)}>
                       <div className="text-center space-y-4">
                         <Lock className="w-16 h-16 mx-auto text-white" />
                         <div>

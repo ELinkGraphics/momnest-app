@@ -280,7 +280,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                     {isVideoUrl(url) ? (
                       <video
                         src={url}
-                        className={`w-full max-h-[500px] object-contain bg-black ${isPremiumCirclePost ? 'blur-md' : ''}`}
+                        className="w-full max-h-[500px] object-contain bg-black"
                         controls
                         preload="metadata"
                         playsInline
@@ -290,7 +290,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                       <img
                         src={url}
                         alt={`${post.media?.alt || 'Post image'} ${index + 1}`}
-                        className={`w-full aspect-square object-cover ${isPremiumCirclePost ? 'blur-md' : ''}`}
+                        className="w-full aspect-square object-cover"
                         loading="lazy"
                       />
                     )}
@@ -323,7 +323,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           {isVideoUrl(post.media.url) ? (
             <video
               src={post.media.url}
-              className={`w-full max-h-[500px] object-contain bg-black ${isPremiumCirclePost ? 'blur-md' : ''}`}
+              className="w-full max-h-[500px] object-contain bg-black"
               controls
               preload="metadata"
               playsInline
@@ -333,7 +333,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             <img
               src={post.media.url}
               alt={post.media.alt || ""}
-              className={`w-full aspect-square object-cover ${isPremiumCirclePost ? 'blur-md' : ''}`}
+              className="w-full aspect-square object-cover"
               loading="lazy"
             />
           )}

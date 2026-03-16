@@ -366,14 +366,8 @@ const CirclePostDetail: React.FC = () => {
               <img
                 src={post.cover_image_url}
                 alt="Post cover"
-                className={cn(
-                  "w-full h-64 md:h-80 object-cover rounded-2xl",
-                  shouldShowPaywall && "blur-md"
-                )}
+                className="w-full h-64 md:h-80 object-cover rounded-2xl"
               />
-              {shouldShowPaywall && (
-                <div className="absolute inset-0 bg-background/20 backdrop-blur-[2px] flex items-center justify-center rounded-2xl" />
-              )}
               {post?.is_premium && !shouldShowPaywall && (
                 <div className="absolute top-4 right-4 bg-gradient-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-semibold shadow-glow">
                   Premium
