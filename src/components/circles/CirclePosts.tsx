@@ -6,8 +6,9 @@ import StarterKit from '@tiptap/starter-kit';
 import TiptapUnderline from '@tiptap/extension-underline';
 import TiptapLink from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
-import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins, Send, X, Bold, Italic, Underline as UnderlineIcon, List, Heading1, Heading2, Link as LinkIcon, Pencil, AlignLeft, AlignCenter, AlignRight, AlignJustify } from 'lucide-react';
+import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins, Send, X, Bold, Italic, Underline as UnderlineIcon, List, Heading1, Heading2, Link as LinkIcon, Pencil, AlignLeft, AlignCenter, AlignRight, AlignJustify, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { TipButton } from './TipButton';
 import { PremiumSettingsModal } from './PremiumSettingsModal';
 import { SubscribeCircleModal } from './SubscribeCircleModal';
@@ -454,9 +455,12 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                         {post.author.name}'s Post
                       </h3>
                       {post.is_premium && (
-                        <span className="rounded-full bg-gradient-secondary px-3 py-1 text-xs font-semibold text-primary-foreground animate-scale-in shadow-glow">
-                          <Crown className="w-3 h-3 inline mr-1" />
-                          Premium
+                        <span className={cn(
+                          "rounded-full px-3 py-1 text-xs font-semibold flex items-center gap-1 animate-scale-in shadow-glow",
+                          post.user_has_unlocked ? "bg-green-500 text-white" : "bg-gradient-secondary text-primary-foreground"
+                        )}>
+                          {post.user_has_unlocked ? <Check className="w-3 h-3" /> : <Crown className="w-3 h-3" />}
+                          {post.user_has_unlocked ? 'Paid' : 'Premium'}
                         </span>
                       )}
                     </div>

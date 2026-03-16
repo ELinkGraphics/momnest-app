@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MessageCircle, Share2, Bookmark, Crown, Lock, Coins, Send } from 'lucide-react';
+import { ArrowLeft, Heart, MessageCircle, Share2, Bookmark, Crown, Lock, Coins, Send, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TipButton } from '@/components/circles/TipButton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -348,10 +348,13 @@ const CirclePostDetail: React.FC = () => {
           <div className="flex items-center gap-2 flex-1">
             <h1 className="font-semibold text-lg">Post</h1>
             {post?.is_premium && (
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                <Crown className="size-3" />
-                {post.premium_price} 🪙
-              </div>
+              <span className={cn(
+                "text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1 rounded-full flex items-center gap-1",
+                post.user_has_unlocked ? "bg-green-500 text-white" : "bg-gradient-secondary text-primary-foreground"
+              )}>
+                {post.user_has_unlocked ? <Check className="w-3 h-3" /> : <Crown className="w-3 h-3" />}
+                {post.user_has_unlocked ? 'Paid' : 'Premium'}
+              </span>
             )}
           </div>
         </div>

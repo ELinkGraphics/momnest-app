@@ -84,6 +84,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
   const relative = formatRelativeTime(post.time);
   const isPremiumCirclePost = post.isPremium && post.circleId;
+  const isUnlocked = post.userHasUnlocked || user?.id === post.user.id;
+  const shouldShowPaywall = isPremiumCirclePost && !isUnlocked;
 
   const handleLike = async () => {
     if (!user) return;
@@ -213,8 +215,16 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               </TooltipProvider>
             )}
             {isPremiumCirclePost && (
-              <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-tertiary text-primary border border-secondary/30 flex items-center gap-0.5">
-                <Crown className="size-2.5" /> Premium
+              <span className={cn(
+                "text-[9px] font-medium px-1.5 py-0.5 rounded-full border flex items-center gap-0.5",
+                post.userHasUnlocked ? "bg-green-500/10 text-green-600 border-green-500/20" : "bg-tertiary text-primary border-secondary/30"
+              )}>
+                {post.userHasUnlocked ? (
+                  <Check className="size-2.5" />
+                ) : (
+                  <Crown className="size-2.5" />
+                )}
+                {post.userHasUnlocked ? 'Paid' : 'Premium'}
               </span>
             )}
             {post.sponsored && (
@@ -294,7 +304,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                         loading="lazy"
                       />
                     )}
-                    {isPremiumCirclePost && (
+                    {shouldShowPaywall && (
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center" />
                     )}
                   </div>
@@ -342,7 +352,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               +{(post.totalMediaCount ?? 0) - 1} more
             </div>
           )}
-          {isPremiumCirclePost && (
+          {shouldShowPaywall && (
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center" />
           )}
         </div>
@@ -385,7 +395,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
       {/* ── CAPTION ── */}
       <div className="px-4 pt-1 pb-4" dir="auto">
-        {isPremiumCirclePost ? (
+        {shouldShowPaywall ? (
           <div className="relative overflow-hidden rounded-xl border border-white/5 bg-muted/5 backdrop-blur-sm p-4 mt-2">
             <div className="max-h-24 overflow-hidden blur-[8px] opacity-20 pointer-events-none select-none grayscale">
               {isRichText(post.content) ? (
