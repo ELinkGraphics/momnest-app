@@ -230,13 +230,16 @@ const CirclePostDetail: React.FC = () => {
   });
 
   console.log('DEBUG V3: Calling useCircleSubscription', typeof useCircleSubscription);
-  const { data: subscription } = useCircleSubscription(circleId);
+  const { data: subscription, isLoading: isSubscriptionLoading } = useCircleSubscription(circleId);
   const isOwner = user?.id === circle?.creator_id || user?.id === post?.user_id;
   const isPaidPremium = post?.is_premium && post?.premium_price && post.premium_price > 0;
   const isSubscriber = subscription?.status === 'active';
-  const shouldShowPaywall = isPaidPremium && !post?.has_unlocked && !isOwner && !isSubscriber;
+  
+  // While subscription is still resolving for a premium post, treat it as paywalled to prevent flash
+  const subscriptionResolved = !isSubscriptionLoading;
+  const shouldShowPaywall = isPaidPremium && !post?.has_unlocked && !isOwner && (!subscriptionResolved || !isSubscriber);
 
-  if (isLoading) {
+  if (isLoading || (isPaidPremium && isSubscriptionLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -327,26 +330,8 @@ const CirclePostDetail: React.FC = () => {
   };
 
   const getDisplayContent = () => {
-    const fullContent = post?.content || '';
-    if (!shouldShowPaywall) {
-      return fullContent;
-    }
-    
-    if (isRichText(fullContent)) {
-      // For rich text premium posts, show only the first paragraph block
-      const paragraphs = fullContent.match(/<p>[\s\S]*?<\/p>/gi) || [];
-      if (paragraphs.length <= 1) {
-        return fullContent;
-      }
-      return paragraphs.slice(0, 1).join('');
-    }
-
-    // For plain text, show only the first paragraph
-    const paragraphs = fullContent.split('\n\n');
-    if (paragraphs.length <= 1) {
-      return fullContent;
-    }
-    return paragraphs.slice(0, 1).join('\n\n');
+    if (shouldShowPaywall) return ''; // Never expose content when paywalled
+    return post?.content || '';
   };
 
   return (
