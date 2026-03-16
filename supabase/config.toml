@@ -8,3 +8,12 @@ verify_jwt = true
 
 [functions.save-push-subscription]
 verify_jwt = true
+
+[functions.chapa-initialize]
+verify_jwt = true
+
+[functions.chapa-verify]
+verify_jwt = true
+
+[functions.chapa-transfer]
+verify_jwt = true

@@ -24,11 +24,18 @@ serve(async (req) => {
 
     // Get the authenticated user
     const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error("Missing Authorization header");
+      throw new Error("Unauthorized: Missing token");
+    }
+
     const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader?.replace("Bearer ", "") ?? ""
+      authHeader.replace("Bearer ", "")
     );
+    
     if (authError || !user) {
-      throw new Error("Unauthorized");
+      console.error("Auth error:", authError);
+      throw new Error("Unauthorized: Invalid token");
     }
 
     const { txRef } = await req.json();

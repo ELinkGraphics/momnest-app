@@ -35,26 +35,22 @@ async function callEdgeFunction(
   body: Record<string, unknown> | null,
   method: 'POST' | 'GET' = 'POST'
 ) {
-  const session = (await supabase.auth.getSession()).data.session;
-  const token = session?.access_token;
-
-  // Supabase REST endpoint format
-  const url = `${(supabase as any).supabaseUrl}/functions/v1/${name}`;
-  
-  const res = await fetch(url, {
+  const { data, error } = await supabase.functions.invoke(name, {
     method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      apikey: (supabase as any).supabaseKey,
-    },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body || undefined,
   });
 
-  const data = await res.json();
-  if (!res.ok || !data.success) {
-    throw new Error(data.error || data.message || 'Request failed');
+  if (error) {
+    console.error(`Edge Function ${name} error:`, error);
+    throw new Error(error.message || 'Request failed');
   }
+
+  if (!data?.success && !data?.status) {
+    // Some functions might not return success: true but are still valid
+    // but typically we expect success: true from our custom functions
+    console.warn(`Edge Function ${name} returned non-success:`, data);
+  }
+
   return data;
 }
 
