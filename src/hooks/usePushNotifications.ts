@@ -80,6 +80,11 @@ export const usePushNotifications = () => {
       const registration = await navigator.serviceWorker.ready;
       console.log('Service worker ready. Current registration scope:', registration.scope);
       
+      if (!registration.active) {
+        console.error('Service worker is registered but not active. Current state:', registration.installing ? 'installing' : registration.waiting ? 'waiting' : 'unknown');
+        throw new Error('Service worker is not active. Please wait a moment or reload the page.');
+      }
+      
       // Subscribe with VAPID
       console.log('Attempting push subscription with key:', VAPID_PUBLIC_KEY);
       const sub = await registration.pushManager.subscribe({
@@ -116,7 +121,12 @@ export const usePushNotifications = () => {
         console.error('Error name:', error.name);
         
         if (error.name === 'AbortError') {
-          console.error('AbortError usually means the push service is unreachable or the VAPID key is invalid.');
+          console.error('AbortError: Registration failed - push service error.');
+          console.error('Common causes:');
+          console.error('1. The browser cannot reach the push service (check internet/VPN/firewall).');
+          console.error('2. Conflict with gcm_sender_id in manifest (Fixed in this update).');
+          console.error('3. The VAPID key is invalid or mismatched with the push service.');
+          console.error('4. Testing in Incognito mode.');
         } else if (error.name === 'NotAllowedError') {
           console.error('NotAllowedError means the user denied the notification permission.');
         }

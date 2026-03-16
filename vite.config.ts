@@ -24,7 +24,6 @@ export default defineConfig(({ mode }) => ({
         name: 'MomsNest - Connect, Share, Support',
         short_name: 'MomsNest',
         description: 'The supportive community for mothers. Share moments, get advice, find resources, and connect with other moms on their parenting journey.',
-        gcm_sender_id: '1011579550838',
         theme_color: '#4B164C',
         background_color: '#FFFFFF',
         display: 'standalone',
