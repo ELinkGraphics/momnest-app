@@ -32,6 +32,7 @@ export interface Post {
   voiceUrl?: string;
   locationText?: string;
   totalMediaCount?: number;
+  thumbnailUrl?: string;
 }
 
 export interface Comment {

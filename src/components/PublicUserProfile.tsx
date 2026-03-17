@@ -281,6 +281,9 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
       post.cover_image_url || 
       (Array.isArray(post.media_urls) && post.media_urls.length > 0 ? post.media_urls[0] : null);
 
+    const isVideo = (url: string) => /\.(mp4|webm|mov|ogg|m3u8)(\?|$)/i.test(url);
+    const videoUrl = [post.media_url, ...(post.media_urls || [])].find(url => url && isVideo(url));
+
     return (
       <div 
         className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300"
@@ -289,8 +292,17 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
           navigate(`/post/${post.id}`);
         }}
       >
-        <div className="aspect-[4/5] relative overflow-hidden">
-          {displayImage ? (
+        <div className="aspect-[4/5] relative overflow-hidden bg-black/5">
+          {videoUrl ? (
+            <video 
+              src={videoUrl} 
+              poster={displayImage && !isVideo(displayImage) ? displayImage : undefined}
+              className="w-full h-full object-cover"
+              preload="metadata"
+              muted
+              playsInline
+            />
+          ) : displayImage ? (
             <img 
               src={displayImage} 
               alt="" 
@@ -299,6 +311,12 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-muted/30 p-4">
               <p className="text-[10px] text-muted-foreground text-center line-clamp-3 italic opacity-60">{post.content}</p>
+            </div>
+          )}
+          
+          {videoUrl && (
+            <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-md rounded-full p-1.5 border border-white/10 shadow-sm transition-transform group-hover:scale-110">
+              <div className="w-0 h-0 border-y-[4px] border-y-transparent border-l-[6px] border-l-white ml-0.5" />
             </div>
           )}
 

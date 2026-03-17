@@ -290,7 +290,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                     {isVideoUrl(url) ? (
                       <video
                         src={url}
-                        className="w-full max-h-[500px] object-contain bg-black"
+                        poster={post.thumbnailUrl || (post.media.url === url ? post.thumbnailUrl : undefined)}
+                        className="w-full h-full object-cover"
                         controls
                         preload="metadata"
                         playsInline
@@ -333,7 +334,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           {isVideoUrl(post.media.url) ? (
             <video
               src={post.media.url}
-              className="w-full max-h-[500px] object-contain bg-black"
+              poster={post.thumbnailUrl}
+              className="w-full aspect-square object-cover"
               controls
               preload="metadata"
               playsInline
