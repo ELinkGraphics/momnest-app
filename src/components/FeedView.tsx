@@ -134,7 +134,7 @@ export const FeedView: React.FC<FeedViewProps> = ({ onRefresh }) => {
   }, [loading, hasMore, loadingMore, loadMore]);
 
   return (
-    <section aria-labelledby="feed-heading" className="px-3 pt-2 pb-24">
+    <section aria-labelledby="feed-heading" className="px-0 pt-2 pb-24">
       <h2 id="feed-heading" className="sr-only">Feed</h2>
 
       {loading ? (
