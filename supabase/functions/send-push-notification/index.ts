@@ -1,3 +1,4 @@
+// Send push notification 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -153,7 +154,7 @@ async function sendWebPush(
 
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const prkKey = await crypto.subtle.importKey("raw", prk, { name: "HKDF" }, false, ["deriveBits"]);
-  
+
   const cekBits = await crypto.subtle.deriveBits(
     { name: "HKDF", hash: "SHA-256", salt, info: enc.encode("Content-Encoding: aes128gcm\0") },
     prkKey,
@@ -246,7 +247,7 @@ Deno.serve(async (req) => {
 
   try {
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "", 
+      Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
     const payload = await req.json();
@@ -312,7 +313,7 @@ Deno.serve(async (req) => {
         .from("push_subscriptions")
         .select("*")
         .in("user_id", targetUserIds);
-      
+
       if (webSubs?.length) {
         const pushPayload = JSON.stringify({
           title,
@@ -321,7 +322,7 @@ Deno.serve(async (req) => {
           icon: "/icon-192.png",
           badge: "/badge-72.png",
         });
-        
+
         const results = await Promise.allSettled(
           webSubs.map(async (sub) => {
             try {

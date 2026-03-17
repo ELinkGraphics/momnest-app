@@ -83,6 +83,8 @@ const PostDetail: React.FC = () => {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [circleCreatorId, setCircleCreatorId] = useState<string | null>(null);
 
+  const { data: subscription } = useCircleSubscription(post?.circle_id);
+
   // Track detail carousel slide changes
   useEffect(() => {
     if (!detailCarouselApi) return;
@@ -317,8 +319,6 @@ const PostDetail: React.FC = () => {
     }
   };
 
-  console.log('DEBUG V3: Calling useCircleSubscription (PostDetail)', typeof useCircleSubscription);
-  const { data: subscription } = useCircleSubscription(post?.circle_id);
   const isSubscriber = subscription?.status === 'active';
   const isCircleOwner = user?.id === circleCreatorId;
   const isOwnPost = user?.id === post?.user_id;
