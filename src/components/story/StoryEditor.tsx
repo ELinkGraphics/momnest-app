@@ -3,6 +3,7 @@ import { X, Type, Sticker, Sparkles, Image as ImageIcon, Trash2, MapPin, Hash, A
 import StoryTextOverlay, { TextOverlay } from './StoryTextOverlay';
 import StoryStickerPicker, { StickerItem } from './StoryStickerPicker';
 import StoryFilterPicker, { STORY_FILTERS } from './StoryFilterPicker';
+import { CustomFilePicker } from '@/components/CustomFilePicker';
 
 interface EditorExtraData {
   originalVideoUrl?: string;
@@ -127,7 +128,6 @@ const StoryEditor: React.FC<Props> = ({ previewUrl, mediaType = 'image', initial
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLDivElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
   const activeGesture = useRef<{
@@ -186,13 +186,10 @@ const StoryEditor: React.FC<Props> = ({ previewUrl, mediaType = 'image', initial
   }, []);
 
   // Add image sticker
-  const handleAddImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleAddImageSticker = (file: File | Blob) => {
     const url = URL.createObjectURL(file);
     const isVid = file.type.startsWith('video/');
     setImageStickers(prev => [...prev, { id: `img-${Date.now()}`, src: url, x: CANVAS_W / 2, y: CANVAS_H / 2, scale: 1, rotation: 0, isVideo: isVid }]);
-    if (e.target) e.target.value = '';
   };
 
   // ── IMAGE GESTURE HANDLERS ──
@@ -696,12 +693,21 @@ const StoryEditor: React.FC<Props> = ({ previewUrl, mediaType = 'image', initial
           <X className="size-5" />
         </button>
         <div className="flex items-center gap-2">
-          <button onClick={() => imageInputRef.current?.click()}
-            className="p-2.5 rounded-full bg-card/10 text-white hover:bg-card/20 transition-colors touch-target"
-            title="Add image sticker">
-            <ImageIcon className="size-5" />
-          </button>
-          <input ref={imageInputRef} type="file" accept="image/*,video/*" onChange={handleAddImageFile} className="hidden" />
+          <CustomFilePicker
+            manager={undefined}
+            onUpload={async (file) => {
+              handleAddImageSticker(file);
+            }}
+            accept="image/*,video/*"
+            hidePreviewList
+          >
+            <button
+              className="p-2.5 rounded-full bg-card/10 text-white hover:bg-card/20 transition-colors touch-target"
+              title="Add image sticker"
+            >
+              <ImageIcon className="size-5" />
+            </button>
+          </CustomFilePicker>
           <button onClick={() => setActiveTool(activeTool === 'text' ? null : 'text')}
             className={`p-2.5 rounded-full transition-colors touch-target ${activeTool === 'text' ? 'bg-primary text-primary-foreground' : 'bg-card/10 text-white'}`}>
             <Type className="size-5" />

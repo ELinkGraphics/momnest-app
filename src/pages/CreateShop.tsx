@@ -10,6 +10,7 @@ import { useSellerProfile } from '../hooks/useSellerProfile';
 import { toast } from 'sonner';
 import { validateImageFiles } from '../utils/shopImageUpload';
 import { SellerOnboardingModal } from '../components/shop/SellerOnboardingModal';
+import { CustomFilePicker, useFileManager } from '../components/CustomFilePicker';
 
 const CreateShop: React.FC = () => {
   const navigate = useNavigate();
@@ -25,8 +26,9 @@ const CreateShop: React.FC = () => {
   const [condition, setCondition] = useState<'new' | 'used' | 'refurbished'>('new');
   const [brand, setBrand] = useState('');
   const [location, setLocation] = useState('');
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const imageManager = useFileManager();
+  const selectedImages = imageManager.files.map(f => f.file).filter(Boolean) as File[];
+  const imagePreviews = imageManager.files.map(f => f.url);
 
   // Check if user needs to complete seller onboarding
   useEffect(() => {
@@ -35,30 +37,7 @@ const CreateShop: React.FC = () => {
     }
   }, [profile, profileLoading]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const validation = validateImageFiles([...selectedImages, ...files]);
-    
-    if (!validation.valid) {
-      toast.error(validation.error);
-      return;
-    }
-
-    setSelectedImages(prev => [...prev, ...files]);
-    
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreviews(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setSelectedImages(prev => prev.filter((_, i) => i !== index));
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
-  };
+  // handleImageSelect and handleRemoveImage are now handled by imageManager and CustomFilePicker components
 
   const handleCreate = async () => {
     if (!profile) {
@@ -124,34 +103,18 @@ const CreateShop: React.FC = () => {
       <div className="p-4 space-y-4">
         <div className="bg-muted/30 p-4 rounded-lg">
           <Label>Product Photos (Required - Max 5)</Label>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {imagePreviews.map((preview, i) => (
-              <div key={i} className="relative aspect-square">
-                <img 
-                  src={preview} 
-                  alt={`Preview ${i + 1}`}
-                  className="w-full h-full object-cover rounded-lg"
-                />
-                <button
-                  onClick={() => handleRemoveImage(i)}
-                  className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white hover:bg-black/70"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-            {selectedImages.length < 5 && (
-              <label className="aspect-square rounded-lg border-2 border-dashed border-border bg-background flex items-center justify-center hover:border-primary transition-colors cursor-pointer">
+          <div className="mt-2">
+            <CustomFilePicker
+              manager={imageManager}
+              multiple
+              maxFiles={5}
+              accept="image/*"
+              hideUploadButton
+            >
+              <div className="aspect-square w-24 rounded-lg border-2 border-dashed border-border bg-background flex items-center justify-center hover:border-primary transition-colors cursor-pointer">
                 <Camera className="h-6 w-6 text-muted-foreground" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageSelect}
-                  className="hidden"
-                />
-              </label>
-            )}
+              </div>
+            </CustomFilePicker>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
             {selectedImages.length}/5 images

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
 
 interface EditPostModalProps {
   isOpen: boolean;
@@ -23,8 +24,10 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ isOpen, onClose, p
   const [isPremium, setIsPremium] = useState(post?.is_premium || false);
   const [premiumPrice, setPremiumPrice] = useState(post?.premium_price?.toString() || '50');
   const [hasTipsEnabled, setHasTipsEnabled] = useState(post?.has_tips_enabled ?? true);
-  const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string>(post?.cover_image_url || '');
+  
+  const editManager = useFileManager();
+  const coverImage = editManager.files[0]?.file as File | undefined;
+  const coverPreview = editManager.files[0]?.url || '';
 
   const editor = useEditor({
     extensions: [
@@ -58,23 +61,24 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ isOpen, onClose, p
       setIsPremium(post.is_premium);
       setPremiumPrice(post.premium_price?.toString() || '50');
       setHasTipsEnabled(post.has_tips_enabled ?? true);
-      setCoverPreview(post.cover_image_url || '');
+      
+      // Initialize manager with existing URL if no new file selected
+      if (post.cover_image_url && editManager.files.length === 0) {
+        editManager.setFiles([{
+          id: 'existing',
+          file: new File([], 'existing'), // Dummy file for existing URL
+          url: post.cover_image_url,
+          status: 'idle',
+          kind: 'image',
+          name: 'existing',
+          size: 0,
+          mimeType: 'image/jpeg'
+        }]);
+      }
     }
   }, [post, editor]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image must be less than 5MB");
-        return;
-      }
-      setCoverImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setCoverPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
+  // Removed native handleImageSelect in favor of editManager
 
   const handleUpdate = async () => {
     if (!editor || isSubmitting) return;
@@ -89,13 +93,15 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ isOpen, onClose, p
     try {
       let finalCoverUrl = post.cover_image_url;
 
-      if (coverImage) {
+      if (coverImage && coverImage.size > 0) {
         const fileExt = coverImage.name.split('.').pop();
         const fileName = `${post.user_id}-${Date.now()}.${fileExt}`;
         const { data: uploadData, error: uploadError } = await supabase.storage.from('post-media').upload(fileName, coverImage);
         if (uploadError) throw uploadError;
         const { data: { publicUrl } } = supabase.storage.from('post-media').getPublicUrl(uploadData.path);
         finalCoverUrl = publicUrl;
+      } else if (!coverPreview) {
+        finalCoverUrl = null;
       }
 
       const { error: updateError } = await supabase
@@ -156,30 +162,34 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({ isOpen, onClose, p
             </div>
           </div>
 
-          {/* Image Preview / Upload */}
           <div className="space-y-3">
             <label className="text-sm font-semibold text-muted-foreground ml-1 uppercase tracking-wider">Cover Image</label>
-            {coverPreview && (
-              <div className="relative aspect-video w-full rounded-2xl overflow-hidden group shadow-lg border border-border/30">
-                <img src={coverPreview} alt="Preview" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                  <label className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white cursor-pointer hover:bg-white/30 transition-all">
-                    <ImageIcon className="w-6 h-6" />
-                    <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
-                  </label>
-                  <button onClick={() => { setCoverImage(null); setCoverPreview(''); }} className="p-3 bg-red-500/20 backdrop-blur-md rounded-full text-white hover:bg-red-500/40 transition-all">
-                    <X className="w-6 h-6" />
-                  </button>
+            <CustomFilePicker manager={editManager} hideUploadButton hidePreviewList accept="image/*" maxFileSizeMB={5}>
+              {coverPreview ? (
+                <div className="relative aspect-video w-full rounded-2xl overflow-hidden group shadow-lg border border-border/30">
+                  <img src={coverPreview} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                    <div className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white cursor-pointer hover:bg-white/30 transition-all">
+                      <ImageIcon className="w-6 h-6" />
+                    </div>
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation();
+                        editManager.clearAll(); 
+                      }} 
+                      className="p-3 bg-red-500/20 backdrop-blur-md rounded-full text-white hover:bg-red-500/40 transition-all"
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-            {!coverPreview && (
-              <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-border/50 rounded-2xl bg-muted/10 hover:bg-muted/20 transition-all cursor-pointer group">
-                <ImageIcon className="w-10 h-10 text-muted-foreground group-hover:text-primary transition-colors" />
-                <p className="mt-2 text-sm text-muted-foreground font-medium">Add Cover Image</p>
-                <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
-              </label>
-            )}
+              ) : (
+                <div className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-border/50 rounded-2xl bg-muted/10 hover:bg-muted/20 transition-all cursor-pointer group">
+                  <ImageIcon className="w-10 h-10 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <p className="mt-2 text-sm text-muted-foreground font-medium">Add Cover Image</p>
+                </div>
+              )}
+            </CustomFilePicker>
           </div>
 
           {/* Settings Row */}

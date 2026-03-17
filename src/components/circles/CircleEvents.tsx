@@ -11,6 +11,7 @@ import CreateEventModal from './CreateEventModal';
 import EventAttendeesModal from './EventAttendeesModal';
 import { Loader2, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { CustomFilePicker } from '@/components/CustomFilePicker';
 
 interface CircleEventsProps {
   circle: any;
@@ -272,35 +273,29 @@ const CircleEvents: React.FC<CircleEventsProps> = ({ circle, isOwner }) => {
                         </div>
                       ) : isOwner ? (
                         <div className="flex items-center gap-2">
-                          <Input
-                            type="file"
+                          <CustomFilePicker
                             accept="video/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleRecordingUpload(event.id, file);
-                            }}
-                            disabled={uploadingEventId === event.id}
-                            className="hidden"
-                            id={`upload-${event.id}`}
-                          />
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => document.getElementById(`upload-${event.id}`)?.click()}
-                            disabled={uploadingEventId === event.id}
+                            onUpload={async (file) => handleRecordingUpload(event.id, file as File)}
+                            hidePreviewList
                           >
-                            {uploadingEventId === event.id ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Uploading...
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="h-4 w-4 mr-1" />
-                                Upload Recording
-                              </>
-                            )}
-                          </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              disabled={uploadingEventId === event.id}
+                            >
+                              {uploadingEventId === event.id ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-1" />
+                                  Upload Recording
+                                </>
+                              )}
+                            </Button>
+                          </CustomFilePicker>
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground">No recording available</p>

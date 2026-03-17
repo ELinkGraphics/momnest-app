@@ -9,6 +9,8 @@ import { useCircleMutations } from '@/hooks/useCircleMutations';
 import { useUser } from '@/contexts/UserContext';
 import { toast } from 'sonner';
 import InviteLinkModal from '@/components/circles/InviteLinkModal';
+import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
+import { useEffect } from 'react';
 
 const CreateCircle: React.FC = () => {
   const navigate = useNavigate();
@@ -19,34 +21,15 @@ const CreateCircle: React.FC = () => {
   const [privacy, setPrivacy] = useState<'public' | 'private'>('public');
   const [category, setCategory] = useState('');
   const [location, setLocation] = useState('');
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ name?: boolean; description?: boolean; category?: boolean }>({});
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  
+  const circleManager = useFileManager();
+  const avatarFile = circleManager.files[0]?.file as File | undefined;
+  const avatarPreview = circleManager.files[0]?.url;
   const [createdCircle, setCreatedCircle] = useState<{ id: string; invite_code: string; name: string } | null>(null);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image must be less than 5MB');
-        return;
-      }
-      
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
-        return;
-      }
-      
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  // Native handlers removed in favor of CustomFilePicker manager
 
   const handleCreate = async () => {
     if (!user) {
@@ -129,25 +112,18 @@ const CreateCircle: React.FC = () => {
 
       {/* Content */}
       <div className="p-4 space-y-6">
-        {/* Circle Image */}
         <div className="text-center">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleAvatarChange}
-            className="hidden"
-          />
-          <div 
-            onClick={() => fileInputRef.current?.click()}
-            className="w-24 h-24 mx-auto rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors group overflow-hidden"
-          >
-            {avatarPreview ? (
-              <img src={avatarPreview} alt="Circle avatar" className="w-full h-full object-cover" />
-            ) : (
-              <Camera className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
-            )}
-          </div>
+          <CustomFilePicker manager={circleManager} hideUploadButton hidePreviewList accept="image/*" maxFileSizeMB={5}>
+            <div 
+              className="w-24 h-24 mx-auto rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors group overflow-hidden"
+            >
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Circle avatar" className="w-full h-full object-cover" />
+              ) : (
+                <Camera className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
+              )}
+            </div>
+          </CustomFilePicker>
           <p className="text-sm text-muted-foreground mt-2">
             {avatarPreview ? 'Change circle photo' : 'Add circle photo (optional)'}
           </p>

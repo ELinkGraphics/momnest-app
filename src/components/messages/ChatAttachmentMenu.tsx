@@ -4,6 +4,8 @@ import { setFilePickerActive } from '@/utils/cacheManager';
 import InlineCamera from './InlineCamera';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
+import { useEffect } from 'react';
 
 interface ChatAttachmentMenuProps {
   conversationId: string;
@@ -21,9 +23,11 @@ const ChatAttachmentMenu: React.FC<ChatAttachmentMenuProps> = ({
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const videoInputRef = useRef<HTMLInputElement>(null);
+  const photoManager = useFileManager();
+  const videoManager = useFileManager();
+  const cameraManager = useFileManager();
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -37,50 +41,71 @@ const ChatAttachmentMenu: React.FC<ChatAttachmentMenuProps> = ({
     return data.publicUrl;
   };
 
-  const guardedClick = (ref: React.RefObject<HTMLInputElement | null>) => {
-    if (!ref.current) return;
-    setFilePickerActive(true);
-    ref.current.click();
-  };
+  useEffect(() => {
+    const item = photoManager.files[0];
+    if (item) {
+      const process = async () => {
+        setOpen(false);
+        setUploading(true);
+        try {
+          const url = await uploadFile(item.file as File, 'photos');
+          onSendAttachment('photo', url, '📷 Photo');
+        } catch {
+          toast.error('Failed to upload photo');
+        } finally {
+          setUploading(false);
+          photoManager.clearAll();
+        }
+      };
+      process();
+    }
+  }, [photoManager.files]);
 
-  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilePickerActive(false);
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    setOpen(false);
-    try {
-      const url = await uploadFile(file, 'photos');
-      onSendAttachment('photo', url, '📷 Photo');
-    } catch (err) {
-      toast.error('Failed to upload photo');
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      
+  useEffect(() => {
+    const item = videoManager.files[0];
+    if (item) {
+      const process = async () => {
+        if (item.file.size > 50 * 1024 * 1024) {
+          toast.error('Video must be under 50MB');
+          videoManager.clearAll();
+          return;
+        }
+        setOpen(false);
+        setUploading(true);
+        try {
+          const url = await uploadFile(item.file as File, 'videos');
+          onSendAttachment('video', url, '🎥 Video');
+        } catch {
+          toast.error('Failed to upload video');
+        } finally {
+          setUploading(false);
+          videoManager.clearAll();
+        }
+      };
+      process();
     }
-  };
+  }, [videoManager.files]);
 
-  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilePickerActive(false);
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('Video must be under 50MB');
-      return;
+  useEffect(() => {
+    const item = cameraManager.files[0];
+    if (item) {
+      const process = async () => {
+        setUploading(true);
+        try {
+          const url = await uploadFile(item.file as File, 'photos');
+          onSendAttachment('photo', url, '📷 Photo');
+        } catch {
+          toast.error('Failed to upload photo');
+        } finally {
+          setUploading(false);
+          cameraManager.clearAll();
+        }
+      };
+      process();
     }
-    setUploading(true);
-    setOpen(false);
-    try {
-      const url = await uploadFile(file, 'videos');
-      onSendAttachment('video', url, '🎥 Video');
-    } catch (err) {
-      toast.error('Failed to upload video');
-    } finally {
-      setUploading(false);
-      if (videoInputRef.current) videoInputRef.current.value = '';
-    }
-  };
+  }, [cameraManager.files]);
+
+  // handlePhotoSelect and handleVideoSelect removed in favor of effects
 
   const startRecording = async () => {
     try {
@@ -190,18 +215,24 @@ const ChatAttachmentMenu: React.FC<ChatAttachmentMenuProps> = ({
 
       {open && (
         <div className="absolute bottom-12 left-0 bg-background border border-border rounded-2xl shadow-lg p-2 flex gap-1 animate-fade-in z-50">
-          <button onClick={() => setShowCamera(true)} className="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-muted/50 transition-colors">
-            <Camera className="h-5 w-5 text-primary" />
-            <span className="text-[10px] text-muted-foreground">Camera</span>
-          </button>
-          <button onClick={() => guardedClick(fileInputRef)} className="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-muted/50 transition-colors">
-            <Image className="h-5 w-5 text-primary" />
-            <span className="text-[10px] text-muted-foreground">Photo</span>
-          </button>
-          <button onClick={() => guardedClick(videoInputRef)} className="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-muted/50 transition-colors">
-            <Video className="h-5 w-5 text-primary" />
-            <span className="text-[10px] text-muted-foreground">Video</span>
-          </button>
+          <CustomFilePicker manager={cameraManager} hideUploadButton hidePreviewList accept="image/*" useCameraImmediate>
+            <button className="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-muted/50 transition-colors w-full">
+              <Camera className="h-5 w-5 text-primary" />
+              <span className="text-[10px] text-muted-foreground">Camera</span>
+            </button>
+          </CustomFilePicker>
+          <CustomFilePicker manager={photoManager} hideUploadButton hidePreviewList accept="image/*">
+            <button className="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-muted/50 transition-colors w-full">
+              <Image className="h-5 w-5 text-primary" />
+              <span className="text-[10px] text-muted-foreground">Photo</span>
+            </button>
+          </CustomFilePicker>
+          <CustomFilePicker manager={videoManager} hideUploadButton hidePreviewList accept="video/*">
+            <button className="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-muted/50 transition-colors w-full">
+              <Video className="h-5 w-5 text-primary" />
+              <span className="text-[10px] text-muted-foreground">Video</span>
+            </button>
+          </CustomFilePicker>
           <button onClick={startRecording} className="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-muted/50 transition-colors">
             <Mic className="h-5 w-5 text-primary" />
             <span className="text-[10px] text-muted-foreground">Voice</span>
@@ -213,27 +244,7 @@ const ChatAttachmentMenu: React.FC<ChatAttachmentMenuProps> = ({
         </div>
       )}
 
-      <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
-      <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoSelect} className="hidden" />
-
-      {showCamera && (
-        <InlineCamera
-          onCapture={async (blob: Blob) => {
-            setShowCamera(false);
-            setUploading(true);
-            try {
-              const file = new File([blob], `camera_${Date.now()}.jpg`, { type: 'image/jpeg' });
-              const url = await uploadFile(file, 'photos');
-              onSendAttachment('photo', url, '📷 Photo');
-            } catch (err) {
-              toast.error('Failed to upload photo');
-            } finally {
-              setUploading(false);
-            }
-          }}
-          onClose={() => setShowCamera(false)}
-        />
-      )}
+      {/* Hidden inputs and InlineCamera removed in favor of CustomFilePicker */}
     </div>
   );
 };

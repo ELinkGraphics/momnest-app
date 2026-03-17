@@ -10,6 +10,7 @@ import { useCircleMutations } from '@/hooks/useCircleMutations';
 import { useUser } from '@/contexts/UserContext';
 import { toast } from 'sonner';
 import ImageCropper from '@/components/ImageCropper';
+import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
 
 interface EditCircleModalProps {
   open: boolean;
@@ -33,6 +34,14 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
   const [guidelines, setGuidelines] = useState<string[]>(
     circle.guidelines && circle.guidelines.length > 0 ? circle.guidelines : ['']
   );
+  
+  const avatarManager = useFileManager();
+  const coverManager = useFileManager();
+  
+  const avatarFile = avatarManager.files[0]?.file as File | undefined;
+  const avatarPreview = avatarManager.files[0]?.url;
+  const coverFile = coverManager.files[0]?.file as File | undefined;
+  const coverPreview = coverManager.files[0]?.url;
 
   // Update state when circle data changes
   useEffect(() => {
@@ -40,50 +49,83 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
     setDescription(circle.description);
     setAboutSection(circle.about_text || '');
     setGuidelines(circle.guidelines && circle.guidelines.length > 0 ? circle.guidelines : ['']);
-  }, [circle]);
-  
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(circle.avatar_url || null);
-  const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(circle.cover_image_url || null);
-  
+    
+    // Initialize managers with existing URLs
+    if (circle.avatar_url && avatarManager.files.length === 0) {
+      avatarManager.setFiles([{
+        id: 'existing-avatar',
+        file: new File([], 'existing'),
+        url: circle.avatar_url,
+        status: 'idle',
+        kind: 'image',
+        name: 'existing',
+        size: 0,
+        mimeType: 'image/jpeg'
+      }]);
+    }
+    if (circle.cover_image_url && coverManager.files.length === 0) {
+      coverManager.setFiles([{
+        id: 'existing-cover',
+        file: new File([], 'existing'),
+        url: circle.cover_image_url,
+        status: 'idle',
+        kind: 'image',
+        name: 'existing',
+        size: 0,
+        mimeType: 'image/jpeg'
+      }]);
+    }
+  }, [circle, avatarManager, coverManager]); // Added avatarManager, coverManager to dependencies
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cropperImage, setCropperImage] = useState<string | null>(null);
   const [cropperType, setCropperType] = useState<'avatar' | 'cover'>('avatar');
-  
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { toast.error('Avatar image must be less than 5MB'); return; }
-      if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
+  // Handle file selection from CustomFilePicker for cropping
+  useEffect(() => {
+    if (avatarManager.files[0]?.file && avatarManager.files[0].id !== 'existing-avatar' && !cropperImage) {
+      const file = avatarManager.files[0].file;
       const reader = new FileReader();
       reader.onloadend = () => { setCropperImage(reader.result as string); setCropperType('avatar'); };
       reader.readAsDataURL(file);
     }
-  };
+  }, [avatarManager.files, cropperImage]); // Added cropperImage to dependencies
 
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { toast.error('Cover image must be less than 5MB'); return; }
-      if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
+  useEffect(() => {
+    if (coverManager.files[0]?.file && coverManager.files[0].id !== 'existing-cover' && !cropperImage) {
+      const file = coverManager.files[0].file;
       const reader = new FileReader();
       reader.onloadend = () => { setCropperImage(reader.result as string); setCropperType('cover'); };
       reader.readAsDataURL(file);
     }
-  };
+  }, [coverManager.files, cropperImage]); // Added cropperImage to dependencies
+  
+  // Removed native handlers in favor of CustomFilePicker managers
 
   const handleCropComplete = (blob: Blob) => {
     const file = new File([blob], `circle-${cropperType}-${Date.now()}.jpg`, { type: 'image/jpeg' });
     if (cropperType === 'avatar') {
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(blob));
+      avatarManager.setFiles([{
+        id: 'cropped-avatar',
+        file: file,
+        url: URL.createObjectURL(blob),
+        status: 'idle',
+        kind: 'image',
+        name: file.name,
+        size: file.size,
+        mimeType: file.type
+      }]);
     } else {
-      setCoverFile(file);
-      setCoverPreview(URL.createObjectURL(blob));
+      coverManager.setFiles([{
+        id: 'cropped-cover',
+        file: file,
+        url: URL.createObjectURL(blob),
+        status: 'idle',
+        kind: 'image',
+        name: file.name,
+        size: file.size,
+        mimeType: file.type
+      }]);
     }
     setCropperImage(null);
   };
@@ -130,8 +172,8 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
         guidelines: guidelines.filter(g => g.trim() !== ''),
       };
 
-      if (avatarFile) updates.avatar = avatarFile;
-      if (coverFile) updates.cover = coverFile;
+      if (avatarFile && avatarFile.size > 0) updates.avatar = avatarFile;
+      if (coverFile && coverFile.size > 0) updates.cover = coverFile;
 
       await updateCircle(circle.id, user.id, updates);
       
@@ -163,56 +205,44 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
               {/* Cover Image */}
               <div>
                 <Label>Cover Image</Label>
-                <input
-                  ref={coverInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleCoverChange}
-                  className="hidden"
-                />
-                <div 
-                  onClick={() => coverInputRef.current?.click()}
-                  className="mt-2 relative w-full h-32 bg-muted rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-                >
-                  {coverPreview ? (
-                    <img src={coverPreview} alt="Cover preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Camera className="h-8 w-8 text-muted-foreground" />
+                <CustomFilePicker manager={coverManager} hideUploadButton hidePreviewList accept="image/*" maxFileSizeMB={5}>
+                  <div 
+                    className="mt-2 relative w-full h-32 bg-muted rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                  >
+                    {coverPreview ? (
+                      <img src={coverPreview} alt="Cover preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Camera className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
+                      <Camera className="h-6 w-6 text-white" />
                     </div>
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
-                    <Camera className="h-6 w-6 text-white" />
                   </div>
-                </div>
+                </CustomFilePicker>
                 <p className="text-xs text-muted-foreground mt-1">Click to {coverPreview ? 'change' : 'add'} cover image</p>
               </div>
 
               {/* Profile Image */}
               <div>
                 <Label>Profile Image</Label>
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  className="hidden"
-                />
-                <div 
-                  onClick={() => avatarInputRef.current?.click()}
-                  className="mt-2 relative w-24 h-24 bg-muted rounded-full overflow-hidden cursor-pointer hover:opacity-80 transition-opacity mx-auto"
-                >
-                  {avatarPreview ? (
-                    <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary to-accent text-primary-foreground text-2xl font-bold">
-                      {name.slice(0, 2).toUpperCase()}
+                <CustomFilePicker manager={avatarManager} hideUploadButton hidePreviewList accept="image/*" maxFileSizeMB={5}>
+                  <div 
+                    className="mt-2 relative w-24 h-24 bg-muted rounded-full overflow-hidden cursor-pointer hover:opacity-80 transition-opacity mx-auto"
+                  >
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary to-accent text-primary-foreground text-2xl font-bold">
+                        {name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
+                      <Camera className="h-6 w-6 text-white" />
                     </div>
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
-                    <Camera className="h-6 w-6 text-white" />
                   </div>
-                </div>
+                </CustomFilePicker>
                 <p className="text-xs text-muted-foreground mt-1 text-center">Click to {avatarPreview ? 'change' : 'add'} profile image</p>
               </div>
 

@@ -7,6 +7,7 @@ import { useUser } from '@/contexts/UserContext';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import StoryEditor from '@/components/story/StoryEditor';
+import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
 
 interface CreateStoryModalProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ isOpen, onClose, on
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [caption, setCaption] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const storyManager = useFileManager();
 
   // Editor state — supports both images and videos
   const [showEditor, setShowEditor] = useState(false);
@@ -29,20 +30,14 @@ const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ isOpen, onClose, on
   const [pendingMentionIds, setPendingMentionIds] = useState<string[]>([]);
   if (!isOpen) return null;
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setCroppedPreviewUrl(url);
-      if (file.type.startsWith('video/')) {
-        setEditorMediaType('video');
-      } else {
-        setEditorMediaType('image');
-      }
+  React.useEffect(() => {
+    const activeFile = storyManager.files[0];
+    if (activeFile && !showEditor) {
+      setCroppedPreviewUrl(activeFile.url);
+      setEditorMediaType(activeFile.kind === 'video' ? 'video' : 'image');
       setShowEditor(true);
     }
-    if (event.target) event.target.value = '';
-  };
+  }, [storyManager.files, showEditor]);
 
   const handleEditorDone = async (editedBlob: Blob, mentionedUserIds?: string[], extraData?: any) => {
     if (!user) {
@@ -154,12 +149,19 @@ const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ isOpen, onClose, on
       toast({ title: "Upload failed", description: "Could not create your story. Please try again.", variant: "destructive" });
     } finally {
       setIsUploading(false);
+      
+      // Clear the active file so it can be picked again
+      if (storyManager.files[0]) {
+        storyManager.removeFile(storyManager.files[0].id);
+      }
     }
   };
 
   const handleEditorCancel = () => {
     setShowEditor(false);
-    // Go back — don't set media
+    if (storyManager.files[0]) {
+      storyManager.removeFile(storyManager.files[0].id);
+    }
   };
 
   const handleCreateStory = async () => {
@@ -261,10 +263,11 @@ const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ isOpen, onClose, on
                   <Video className="size-8 text-muted-foreground" />
                 </div>
                 <p className="text-muted-foreground mb-4">Share a moment from your day</p>
-                <Button onClick={() => fileInputRef.current?.click()} className="w-full">
-                  <Upload className="size-4 mr-2" /> Choose Photo or Video
-                </Button>
-                <input ref={fileInputRef} type="file" accept="image/*,video/*" onChange={handleFileSelect} className="hidden" />
+                <CustomFilePicker manager={storyManager} hideUploadButton hidePreviewList accept="image/*,video/*">
+                  <Button className="w-full">
+                    <Upload className="size-4 mr-2" /> Choose Photo or Video
+                  </Button>
+                </CustomFilePicker>
               </div>
             ) : (
               <div className="space-y-4">

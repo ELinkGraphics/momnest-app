@@ -10,6 +10,7 @@ import { useGeolocation } from '@/hooks/useGeolocation';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useUser } from '@/contexts/UserContext';
+import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
 
 const EMERGENCY_TYPES = [
   { id: 'medical', label: 'Medical Emergency', color: 'bg-red-100 text-red-800 border-red-200' },
@@ -24,7 +25,8 @@ export const EmergencyRequest: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string>('');
   const [description, setDescription] = useState('');
   const [urgency, setUrgency] = useState<'low' | 'medium' | 'high' | 'critical'>('high');
-  const [photos, setPhotos] = useState<string[]>([]);
+  const photoManager = useFileManager();
+  const photos = photoManager.files.map(f => f.url);
   const [isUploading, setIsUploading] = useState(false);
   
   const { createAlert, updateAlertLocation } = useSOSAlerts();
@@ -76,13 +78,15 @@ export const EmergencyRequest: React.FC = () => {
         location_lat: latitude,
         location_lng: longitude,
         share_live_location: true,
-        photo_urls: photos.length > 0 ? photos : undefined,
+        photo_urls: (photoManager.files.filter(f => f.status === 'done').map(f => f.id).length > 0) 
+          ? photoManager.files.filter(f => f.status === 'done').map(f => f.url) 
+          : undefined, // Note: The original code used URL, but usually we'd want storage paths. For now keeping original logic.
       });
 
       // Reset form
       setSelectedType('');
       setDescription('');
-      setPhotos([]);
+      photoManager.clearAll();
       
       toast.success('Emergency alert sent! Nearby helpers have been notified.');
     } catch (error) {
@@ -90,48 +94,30 @@ export const EmergencyRequest: React.FC = () => {
     }
   };
 
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || !user) return;
-
-    setIsUploading(true);
-    const uploadedUrls: string[] = [];
+  const handleUpload = async (file: File | Blob) => {
+    if (!user) throw new Error('Not authenticated');
     
-    for (const file of Array.from(files)) {
-      if (photos.length + uploadedUrls.length >= 3) break;
-      
-      try {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
+    const fileExt = (file as File).name?.split('.').pop() || 'jpg';
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('sos-photos')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
+    const { error: uploadError } = await supabase.storage
+      .from('sos-photos')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
 
-        if (uploadError) throw uploadError;
+    if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('sos-photos')
-          .getPublicUrl(filePath);
+    const { data: { publicUrl } } = supabase.storage
+      .from('sos-photos')
+      .getPublicUrl(filePath);
 
-        uploadedUrls.push(publicUrl);
-      } catch (error) {
-        console.error('Photo upload error:', error);
-        toast.error('Failed to upload photo');
-      }
-    }
-
-    setPhotos([...photos, ...uploadedUrls]);
-    setIsUploading(false);
+    return publicUrl;
   };
 
-  const removePhoto = (index: number) => {
-    setPhotos(photos.filter((_, i) => i !== index));
-  };
+  // Native handlePhotoUpload and removePhoto replaced by photoManager state and CustomFilePicker props
 
   return (
     <div className="px-4 space-y-6">
@@ -178,46 +164,30 @@ export const EmergencyRequest: React.FC = () => {
             />
           </div>
 
-          {/* Photo Upload */}
-          {photos.length > 0 && (
-            <div className="flex gap-2 flex-wrap">
-              {photos.map((photo, index) => (
-                <div key={index} className="relative">
-                  <img src={photo} alt={`Photo ${index + 1}`} className="h-20 w-20 object-cover rounded-lg" />
-                  <button
-                    onClick={() => removePhoto(index)}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Photo Upload handled by CustomFilePicker preview */}
 
           <div className="grid grid-cols-2 gap-3">
             <Button variant="outline" className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />
               Share Location
             </Button>
-            <Button 
-              variant="outline" 
-              className="flex items-center gap-2 relative"
-              disabled={photos.length >= 3 || isUploading}
-              asChild
+            <CustomFilePicker
+              manager={photoManager}
+              onUpload={handleUpload}
+              multiple
+              hideUploadButton
+              accept="image/*"
+              maxFileSizeMB={10}
             >
-              <label className="cursor-pointer">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2 relative w-full"
+                disabled={photoManager.files.length >= 3 || isUploading}
+              >
                 <Camera className="h-4 w-4" />
                 {isUploading ? 'Uploading...' : 'Add Photo'}
-                <input
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  multiple
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                />
-              </label>
-            </Button>
+              </Button>
+            </CustomFilePicker>
           </div>
 
           <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">

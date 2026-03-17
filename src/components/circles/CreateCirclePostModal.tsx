@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { X, Upload, Image as ImageIcon, Crown, DollarSign, Coins } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
+import { useEffect } from 'react';
 
 interface CreateCirclePostModalProps {
   isOpen: boolean;
@@ -23,37 +25,17 @@ export const CreateCirclePostModal: React.FC<CreateCirclePostModalProps> = ({
   onPostCreated,
 }) => {
   const [content, setContent] = useState('');
-  const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string>('');
+  const coverManager = useFileManager();
+  const coverImage = coverManager.files[0]?.file as File | undefined;
+  const coverPreview = coverManager.files[0]?.url || '';
   const [isPremium, setIsPremium] = useState(false);
   const [premiumPrice, setPremiumPrice] = useState<string>('');
   const [hasTipsEnabled, setHasTipsEnabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleCoverImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Cover image must be less than 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      setCoverImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCoverPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const removeCoverImage = () => {
-    setCoverImage(null);
-    setCoverPreview('');
+    coverManager.clearAll();
   };
 
   const handleSubmit = async () => {
@@ -121,8 +103,7 @@ export const CreateCirclePostModal: React.FC<CreateCirclePostModalProps> = ({
       });
 
       setContent('');
-      setCoverImage(null);
-      setCoverPreview('');
+      coverManager.clearAll();
       setIsPremium(false);
       setPremiumPrice('');
       setHasTipsEnabled(true);
@@ -158,37 +139,36 @@ export const CreateCirclePostModal: React.FC<CreateCirclePostModalProps> = ({
           {/* Cover Image Upload */}
           <div className="space-y-3">
             <Label className="text-sm font-semibold text-foreground/80 ml-1">Cover Image</Label>
-            {!coverPreview ? (
-              <label className="group relative mt-2 flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-border/50 rounded-2xl cursor-pointer bg-muted/10 hover:bg-muted/20 hover:border-primary/50 transition-all duration-300">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <div className="p-4 rounded-2xl bg-primary/10 text-primary mb-4 group-hover:scale-110 transition-transform duration-300">
-                    <ImageIcon className="w-8 h-8" />
+            <CustomFilePicker manager={coverManager} hideUploadButton hidePreviewList accept="image/*" maxFileSizeMB={5}>
+              {!coverPreview ? (
+                <div className="group relative mt-2 flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-border/50 rounded-2xl cursor-pointer bg-muted/10 hover:bg-muted/20 hover:border-primary/50 transition-all duration-300">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <div className="p-4 rounded-2xl bg-primary/10 text-primary mb-4 group-hover:scale-110 transition-transform duration-300">
+                      <ImageIcon className="w-8 h-8" />
+                    </div>
+                    <p className="mb-2 text-sm font-medium">
+                      <span className="text-primary font-bold">Click to upload</span> or drag and drop
+                    </p>
+                    <p className="text-xs text-muted-foreground/60">PNG, JPG, WEBP (MAX. 5MB)</p>
                   </div>
-                  <p className="mb-2 text-sm font-medium">
-                    <span className="text-primary font-bold">Click to upload</span> or drag and drop
-                  </p>
-                  <p className="text-xs text-muted-foreground/60">PNG, JPG, WEBP (MAX. 5MB)</p>
                 </div>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleCoverImageSelect}
-                />
-              </label>
-            ) : (
-              <div className="group relative mt-2 w-full h-64 rounded-2xl overflow-hidden shadow-lg">
-                <img src={coverPreview} alt="Cover preview" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                   <button
-                    onClick={removeCoverImage}
-                    className="p-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all duration-300 shadow-xl transform scale-90 group-hover:scale-100"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+              ) : (
+                <div className="group relative mt-2 w-full h-64 rounded-2xl overflow-hidden shadow-lg">
+                  <img src={coverPreview} alt="Cover preview" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeCoverImage();
+                      }}
+                      className="p-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all duration-300 shadow-xl transform scale-90 group-hover:scale-100"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </CustomFilePicker>
           </div>
 
           {/* Content */}

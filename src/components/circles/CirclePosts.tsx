@@ -8,6 +8,8 @@ import TiptapLink from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
 import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins, Send, X, Bold, Italic, Underline as UnderlineIcon, List, Heading1, Heading2, Link as LinkIcon, Pencil, AlignLeft, AlignCenter, AlignRight, AlignJustify, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
+import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { TipButton } from './TipButton';
 import { PremiumSettingsModal } from './PremiumSettingsModal';
@@ -38,8 +40,9 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
 
   // Inline Composer State
   const [content, setContent] = useState('');
-  const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string>('');
+  const composerManager = useFileManager();
+  const coverImage = composerManager.files[0]?.file as File | undefined;
+  const coverPreview = composerManager.files[0]?.url || '';
   const [isPremium, setIsPremium] = useState(false);
   const [premiumPrice, setPremiumPrice] = useState('50');
   const [hasTipsEnabled, setHasTipsEnabled] = useState(true);
@@ -85,23 +88,8 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
 
   const hasSubscription = !!subscription;
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({ title: "File too large", description: "Image must be less than 5MB", variant: "destructive" });
-        return;
-      }
-      setCoverImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setCoverPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
   const removeImage = () => {
-    setCoverImage(null);
-    setCoverPreview('');
+    composerManager.clearAll();
   };
 
   const handleSubmit = async () => {
@@ -140,7 +128,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
       toast({ title: "Post published!", description: isPremium ? `Premium post set at ${premiumPrice} coins` : "Your post is now live" });
       
       // Reset state
-      setCoverPreview('');
+      composerManager.clearAll();
       setIsPremium(false);
       setHasTipsEnabled(true);
       editor?.commands.setContent('');
@@ -296,11 +284,12 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
               <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/30 gap-2 flex-wrap min-h-[44px]">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {/* Add Image */}
-                  <label className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-muted/20 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all cursor-pointer flex-shrink-0">
-                    <ImageIcon className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Image</span>
-                    <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
-                  </label>
+                  <CustomFilePicker manager={composerManager} hideUploadButton hidePreviewList accept="image/*" maxFileSizeMB={5}>
+                    <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-muted/20 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all cursor-pointer flex-shrink-0">
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Image</span>
+                    </button>
+                  </CustomFilePicker>
 
                   {/* Premium Toggle */}
                   <button 

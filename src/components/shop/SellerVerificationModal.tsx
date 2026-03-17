@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useSellerVerification } from "@/hooks/useSellerVerification";
 import { Loader2, Upload, CheckCircle2, AlertCircle } from "lucide-react";
+import { CustomFilePicker, useFileManager } from "@/components/CustomFilePicker";
 
 interface SellerVerificationModalProps {
   open: boolean;
@@ -25,7 +26,8 @@ export const SellerVerificationModal = ({
   const [businessRegistration, setBusinessRegistration] = useState("");
   const [taxId, setTaxId] = useState("");
   const [description, setDescription] = useState("");
-  const [licenseFile, setLicenseFile] = useState<File | null>(null);
+  const licenseManager = useFileManager();
+  const licenseFile = licenseManager.files[0]?.file as File || null;
 
   const handleSubmit = async () => {
     await submitVerification.mutateAsync({
@@ -147,14 +149,22 @@ export const SellerVerificationModal = ({
               <div className="space-y-2">
                 <Label htmlFor="license">Business License (Optional)</Label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    id="license"
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => setLicenseFile(e.target.files?.[0] || null)}
-                    className="flex-1"
-                  />
-                  <Upload className="w-5 h-5 text-muted-foreground" />
+                  <CustomFilePicker
+                    manager={licenseManager}
+                    accept=".pdf,.jpg,.jpeg,.png,image/*"
+                    hideUploadButton
+                  >
+                    <Button
+                      variant="outline"
+                      type="button"
+                      className="w-full justify-between font-normal"
+                    >
+                      <span className="truncate">
+                        {licenseFile ? licenseFile.name : "Select license file..."}
+                      </span>
+                      <Upload className="w-5 h-5 text-muted-foreground ml-2" />
+                    </Button>
+                  </CustomFilePicker>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Upload your business license (PDF, JPG, or PNG)

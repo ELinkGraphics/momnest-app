@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => ({
           }
         ],
         categories: ['social', 'lifestyle'],
-        // @ts-ignore: gcm_sender_id is a legacy Chrome-specific property needed to prevent Push AbortErrors
+        // @ts-expect-error: gcm_sender_id is a legacy Chrome-specific property needed to prevent Push AbortErrors
         gcm_sender_id: '103953800507',
         shortcuts: [
           {

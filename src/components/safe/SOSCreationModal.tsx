@@ -16,6 +16,7 @@ import { useUser } from '@/contexts/UserContext';
 import { toast } from 'sonner';
 import { compressImage, formatFileSize, getCompressionRatio } from '@/utils/imageCompression';
 import { LocationPrivacyModal } from './LocationPrivacyModal';
+import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
 
 interface SOSCreationModalProps {
   isOpen: boolean;
@@ -43,7 +44,8 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
   const [injuryType, setInjuryType] = useState('');
   const [consciousLevel, setConsciousLevel] = useState('');
   const [threatActive, setThreatActive] = useState(false);
-  const [photos, setPhotos] = useState<string[]>([]);
+  const sosFileManager = useFileManager();
+  const photos = sosFileManager.files.map(f => f.url);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -276,7 +278,9 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
       injury_type: injuryType,
       conscious_level: consciousLevel,
       threat_active: threatActive,
-      photo_urls: photos.length > 0 ? photos : undefined,
+      photo_urls: (sosFileManager.files.filter(f => f.status === 'done').length > 0) 
+        ? sosFileManager.files.filter(f => f.status === 'done').map(f => f.url) 
+        : undefined,
     });
     
     // Auto-notify emergency contacts
@@ -327,7 +331,7 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
       setInjuryType('');
       setConsciousLevel('');
       setUrgency('high');
-      setPhotos([]);
+      sosFileManager.clearAll();
     } catch (error: any) {
       console.error('Failed to create alert:', error);
       toast.error(error.message || 'Failed to create alert. Please try again.');
@@ -341,80 +345,34 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
     window.open('tel:911', '_self');
   };
 
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || !user) return;
-
-    // Validate files
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    const maxSize = 10 * 1024 * 1024; // 10MB
+  const handleUpload = async (file: File | Blob) => {
+    if (!user) throw new Error('Not authenticated');
     
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      
-      if (!validTypes.includes(file.type)) {
-        toast.error(`Invalid file type: ${file.name}. Only JPG, PNG, and WEBP are allowed.`);
-        return;
-      }
-      
-      if (file.size > maxSize) {
-        toast.error(`File too large: ${file.name}. Maximum size is 10MB.`);
-        return;
-      }
-    }
-
-    setIsUploading(true);
-    setUploadProgress(0);
-    const uploadedUrls: string[] = [];
-    const totalFiles = Math.min(files.length, 3 - photos.length);
+    // Compress image
+    const { blob } = await compressImage(file as File, 1200, 0.8);
     
-    for (let i = 0; i < totalFiles; i++) {
-      const file = files[i];
-      
-      try {
-        // Compress image
-        toast.info(`Compressing image ${i + 1}/${totalFiles}...`);
-        const { blob, originalSize, compressedSize } = await compressImage(file, 1200, 0.8);
-        
-        const compressionRatio = getCompressionRatio(originalSize, compressedSize);
-        toast.success(
-          `Compressed ${compressionRatio}%: ${formatFileSize(originalSize)} → ${formatFileSize(compressedSize)}`
-        );
-        
-        // Upload compressed image
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
+    const fileExt = (file as File).name?.split('.').pop() || 'jpg';
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('sos-photos')
-          .upload(filePath, blob, {
-            cacheControl: '3600',
-            upsert: false
-          });
+    const { error: uploadError } = await supabase.storage
+      .from('sos-photos')
+      .upload(filePath, blob, {
+        cacheControl: '3600',
+        upsert: false
+      });
 
-        if (uploadError) throw uploadError;
+    if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('sos-photos')
-          .getPublicUrl(filePath);
+    const { data: { publicUrl } } = supabase.storage
+      .from('sos-photos')
+      .getPublicUrl(filePath);
 
-        uploadedUrls.push(publicUrl);
-        setUploadProgress(((i + 1) / totalFiles) * 100);
-        triggerHaptic('light');
-      } catch (error) {
-        console.error('Photo upload error:', error);
-        toast.error(`Failed to upload photo ${i + 1}`);
-      }
-    }
-
-    setPhotos([...photos, ...uploadedUrls]);
-    setIsUploading(false);
-    setUploadProgress(0);
+    return publicUrl;
   };
 
   const removePhoto = (index: number) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
+    // Replaced by sosFileManager
     triggerHaptic('light');
   };
 
@@ -470,20 +428,24 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                         className="resize-none pr-10"
                       />
                       <div className="absolute bottom-2 right-2">
-                        <input
-                          type="file"
-                          accept="image/*"
+                        <CustomFilePicker
+                          manager={sosFileManager}
+                          onUpload={handleUpload}
                           multiple
-                          onChange={handlePhotoUpload}
-                          className="hidden"
-                          id="medical-photo-upload"
-                        />
-                        <label
-                          htmlFor="medical-photo-upload"
-                          className="flex items-center justify-center w-8 h-8 bg-primary/10 hover:bg-primary/20 rounded-lg cursor-pointer transition-colors"
+                          hideUploadButton
+                          accept="image/*"
+                          maxFileSizeMB={10}
                         >
-                          <Camera className="h-4 w-4 text-primary" />
-                        </label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 bg-primary/10 hover:bg-primary/20 rounded-lg cursor-pointer transition-colors"
+                            disabled={sosFileManager.files.length >= 3 || isUploading}
+                          >
+                            <Camera className="h-4 w-4 text-primary" />
+                          </Button>
+                        </CustomFilePicker>
                       </div>
                     </div>
                     
@@ -505,26 +467,7 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                     )}
                   </div>
                 
-                {photos.length > 0 && (
-                  <div className="flex gap-2 flex-wrap">
-                    {photos.map((photo, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={photo}
-                          alt={`Photo ${index + 1}`}
-                          className="w-12 h-12 object-cover rounded border"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removePhoto(index)}
-                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
-                        >
-                          <X className="h-2 w-2" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* Photo Upload Preview handled by CustomFilePicker */}
                 {isUploading && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs">
@@ -584,20 +527,24 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                         className="resize-none pr-10"
                       />
                       <div className="absolute bottom-2 right-2">
-                        <input
-                          type="file"
-                          accept="image/*"
+                        <CustomFilePicker
+                          manager={sosFileManager}
+                          onUpload={handleUpload}
                           multiple
-                          onChange={handlePhotoUpload}
-                          className="hidden"
-                          id="lost-photo-upload-inline"
-                        />
-                        <label
-                          htmlFor="lost-photo-upload-inline"
-                          className="flex items-center justify-center w-8 h-8 bg-primary/10 hover:bg-primary/20 rounded-lg cursor-pointer transition-colors"
+                          hideUploadButton
+                          accept="image/*"
+                          maxFileSizeMB={10}
                         >
-                          <Camera className="h-4 w-4 text-primary" />
-                        </label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 bg-primary/10 hover:bg-primary/20 rounded-lg cursor-pointer transition-colors"
+                            disabled={sosFileManager.files.length >= 3 || isUploading}
+                          >
+                            <Camera className="h-4 w-4 text-primary" />
+                          </Button>
+                        </CustomFilePicker>
                       </div>
                     </div>
                     
@@ -619,26 +566,7 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                     )}
                   </div>
                 
-                {photos.length > 0 && (
-                  <div className="flex gap-2 flex-wrap">
-                    {photos.map((photo, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={photo}
-                          alt={`Photo ${index + 1}`}
-                          className="w-12 h-12 object-cover rounded border"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removePhoto(index)}
-                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
-                        >
-                          <X className="h-2 w-2" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* Photo Upload Preview handled by CustomFilePicker */}
                 {isUploading && (
                   <div className="text-xs text-muted-foreground">Uploading photos...</div>
                 )}
@@ -682,20 +610,24 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                         className="resize-none pr-10"
                       />
                       <div className="absolute bottom-2 right-2">
-                        <input
-                          type="file"
-                          accept="image/*"
+                        <CustomFilePicker
+                          manager={sosFileManager}
+                          onUpload={handleUpload}
                           multiple
-                          onChange={handlePhotoUpload}
-                          className="hidden"
-                          id="safety-photo-upload-inline"
-                        />
-                        <label
-                          htmlFor="safety-photo-upload-inline"
-                          className="flex items-center justify-center w-8 h-8 bg-primary/10 hover:bg-primary/20 rounded-lg cursor-pointer transition-colors"
+                          hideUploadButton
+                          accept="image/*"
+                          maxFileSizeMB={10}
                         >
-                          <Camera className="h-4 w-4 text-primary" />
-                        </label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 bg-primary/10 hover:bg-primary/20 rounded-lg cursor-pointer transition-colors"
+                            disabled={sosFileManager.files.length >= 3 || isUploading}
+                          >
+                            <Camera className="h-4 w-4 text-primary" />
+                          </Button>
+                        </CustomFilePicker>
                       </div>
                     </div>
                     
@@ -717,26 +649,7 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                     )}
                   </div>
                 
-                {photos.length > 0 && (
-                  <div className="flex gap-2 flex-wrap">
-                    {photos.map((photo, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={photo}
-                          alt={`Photo ${index + 1}`}
-                          className="w-12 h-12 object-cover rounded border"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removePhoto(index)}
-                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
-                        >
-                          <X className="h-2 w-2" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* Photo Upload Preview handled by CustomFilePicker */}
                 {isUploading && (
                   <div className="text-xs text-muted-foreground">Uploading photos...</div>
                 )}
@@ -773,20 +686,24 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                       className="resize-none pr-10"
                     />
                     <div className="absolute bottom-2 right-2">
-                      <input
-                        type="file"
-                        accept="image/*"
+                      <CustomFilePicker
+                        manager={sosFileManager}
+                        onUpload={handleUpload}
                         multiple
-                        onChange={handlePhotoUpload}
-                        className="hidden"
-                        id="emergency-photo-upload"
-                      />
-                      <label
-                        htmlFor="emergency-photo-upload"
-                        className="flex items-center justify-center w-8 h-8 bg-primary/10 hover:bg-primary/20 rounded-lg cursor-pointer transition-colors"
+                        hideUploadButton
+                        accept="image/*"
+                        maxFileSizeMB={10}
                       >
-                        <Camera className="h-4 w-4 text-primary" />
-                      </label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 bg-primary/10 hover:bg-primary/20 rounded-lg cursor-pointer transition-colors"
+                          disabled={sosFileManager.files.length >= 3 || isUploading}
+                        >
+                          <Camera className="h-4 w-4 text-primary" />
+                        </Button>
+                      </CustomFilePicker>
                     </div>
                   </div>
                   
@@ -807,28 +724,12 @@ export const SOSCreationModal: React.FC<SOSCreationModalProps> = ({
                     </div>
                   )}
                 </div>
+                <div className="flex items-center gap-2">
+                  {/* CustomFilePicker integrated into textarea overlay above */}
+                </div>
                 
-                {photos.length > 0 && (
-                  <div className="flex gap-2 flex-wrap">
-                    {photos.map((photo, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={photo}
-                          alt={`Photo ${index + 1}`}
-                          className="w-12 h-12 object-cover rounded border"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removePhoto(index)}
-                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
-                        >
-                          <X className="h-2 w-2" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {isUploading && (
+                {/* Photo Upload Preview handled by CustomFilePicker */}
+                 {isUploading && (
                   <div className="text-xs text-muted-foreground">Uploading photos...</div>
                 )}
               </div>

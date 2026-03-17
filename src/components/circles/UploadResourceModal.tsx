@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
 
 interface UploadResourceModalProps {
   open: boolean;
@@ -24,7 +25,8 @@ const UploadResourceModal: React.FC<UploadResourceModalProps> = ({ open, onOpenC
   const [description, setDescription] = useState('');
   const [resourceType, setResourceType] = useState('PDF');
   const [isPremium, setIsPremium] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
+  const resourceManager = useFileManager();
+  const file = resourceManager.files[0]?.file as File | undefined;
   const [uploading, setUploading] = useState(false);
 
   const resetForm = () => {
@@ -32,7 +34,7 @@ const UploadResourceModal: React.FC<UploadResourceModalProps> = ({ open, onOpenC
     setDescription('');
     setResourceType('PDF');
     setIsPremium(false);
-    setFile(null);
+    resourceManager.clearAll();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -121,9 +123,12 @@ const UploadResourceModal: React.FC<UploadResourceModalProps> = ({ open, onOpenC
             </div>
           )}
           <div>
-            <Label htmlFor="file">File *</Label>
-            <Input id="file" type="file" onChange={e => setFile(e.target.files?.[0] || null)} required />
-            {file && <p className="text-xs text-muted-foreground mt-1">{file.name} ({(file.size / (1024 * 1024)).toFixed(2)} MB)</p>}
+            <Label>File *</Label>
+            <CustomFilePicker 
+              manager={resourceManager} 
+              hideUploadButton 
+              maxFileSizeMB={50}
+            />
           </div>
           <Button type="submit" className="w-full" disabled={uploading}>
             <Upload className="h-4 w-4 mr-2" />

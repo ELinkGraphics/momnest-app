@@ -18,6 +18,7 @@ import { useReviewMutations } from '@/hooks/useReviewMutations';
 import { useShopMessageMutations } from '@/hooks/useShopMessages';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
 
 const reviewSchema = z.object({
   rating: z.number().min(1, { message: "Please select a rating" }).max(5),
@@ -36,7 +37,7 @@ const ProductDetail: React.FC = () => {
   const [isFavorited, setIsFavorited] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
-  const [reviewImages, setReviewImages] = useState<File[]>([]);
+  const reviewFileManager = useFileManager();
   const [uploadingImages, setUploadingImages] = useState(false);
   const [reviewErrors, setReviewErrors] = useState<{ rating?: string; comment?: string }>({});
   const [showReviewInput, setShowReviewInput] = useState(false);
@@ -109,6 +110,21 @@ const ProductDetail: React.FC = () => {
     }
   };
 
+  const handleReviewImageUpload = async (file: File | Blob, meta: any) => {
+    const fileName = `${Date.now()}-${meta.name}`;
+    const { data, error } = await supabase.storage
+      .from('review-images')
+      .upload(fileName, file);
+    
+    if (error) throw error;
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('review-images')
+      .getPublicUrl(fileName);
+    
+    return publicUrl;
+  };
+
   const handleSubmitReview = async () => {
     try {
       setReviewErrors({});
@@ -118,26 +134,18 @@ const ProductDetail: React.FC = () => {
         comment: reviewComment
       });
       
-      // Upload images if any
-      let imageUrls: string[] = [];
-      if (reviewImages.length > 0) {
-        setUploadingImages(true);
+      // Use images already uploaded via CustomFilePicker
+      const imageUrls = reviewFileManager.files
+        .filter(f => f.status === 'done' && f.result)
+        .map(f => f.result as string);
         
-        for (const file of reviewImages) {
-          const fileName = `${Date.now()}-${file.name}`;
-          const { data, error } = await supabase.storage
-            .from('review-images')
-            .upload(fileName, file);
-          
-          if (error) throw error;
-          
-          const { data: { publicUrl } } = supabase.storage
-            .from('review-images')
-            .getPublicUrl(fileName);
-          
-          imageUrls.push(publicUrl);
-        }
-        setUploadingImages(false);
+      setUploadingImages(reviewFileManager.files.some(f => f.status === 'uploading'));
+      if (uploadingImages) {
+        toast({
+          title: "Wait a moment",
+          description: "Photos are still uploading...",
+        });
+        return;
       }
       
       // Submit review
@@ -151,7 +159,7 @@ const ProductDetail: React.FC = () => {
       // Reset form
       setReviewRating(0);
       setReviewComment('');
-      setReviewImages([]);
+      reviewFileManager.clearAll();
       setShowReviewInput(false);
       
     } catch (error) {
@@ -567,38 +575,18 @@ const ProductDetail: React.FC = () => {
                         Photos (Optional)
                       </label>
                       <div className="flex flex-wrap gap-2">
-                        {reviewImages.map((file, index) => (
-                          <div key={index} className="relative">
-                            <img
-                              src={URL.createObjectURL(file)}
-                              alt={`Preview ${index + 1}`}
-                              className="w-20 h-20 object-cover rounded-lg"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setReviewImages(prev => prev.filter((_, i) => i !== index))}
-                              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                        
-                        {reviewImages.length < 5 && (
-                          <label className="w-20 h-20 border-2 border-dashed border-border rounded-lg flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              className="hidden"
-                              onChange={(e) => {
-                                const files = Array.from(e.target.files || []);
-                                setReviewImages(prev => [...prev, ...files].slice(0, 5));
-                              }}
-                            />
+                        <CustomFilePicker
+                          manager={reviewFileManager}
+                          onUpload={handleReviewImageUpload}
+                          multiple
+                          maxFiles={5}
+                          accept="image/*"
+                          hideUploadButton
+                        >
+                          <div className="w-20 h-20 border-2 border-dashed border-border rounded-lg flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
                             <Upload className="w-6 h-6 text-muted-foreground" />
-                          </label>
-                        )}
+                          </div>
+                        </CustomFilePicker>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         Add up to 5 photos to help others

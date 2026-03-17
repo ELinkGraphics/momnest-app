@@ -12,10 +12,11 @@ import { Switch } from '@/components/ui/switch';
 import {
   Pencil, UserPlus, Link2, Check, X, Loader2, Users, Crown,
   Shield, ShieldOff, LogOut, UserMinus, BellOff, Bell, Camera,
-  Image, BarChart3, Plus, QrCode, Volume2, VolumeX
+  Image, BarChart3, Plus, QrCode, Volume2, VolumeX, Upload
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { CustomFilePicker } from '@/components/CustomFilePicker';
 import { useQueryClient } from '@tanstack/react-query';
 import FriendPicker from '@/components/circles/FriendPicker';
 import { useGroupMembers, useGroupInfo, useGroupMute, useSharedMedia, useGroupPolls } from '@/hooks/useGroupManagement';
@@ -36,7 +37,6 @@ const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
   isOpen, onClose, conversationId, groupName, groupAvatarUrl, currentUserId, createdBy,
 }) => {
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State
   const [isEditingName, setIsEditingName] = useState(false);
@@ -80,10 +80,7 @@ const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
     setIsEditingDesc(false);
   };
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) updateAvatar.mutate(file);
-  };
+
 
   const handleAddMembers = async () => {
     if (selectedFriends.length === 0) return;
@@ -145,11 +142,18 @@ const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
               </AvatarFallback>
             </Avatar>
             {isAdmin && (
-              <button onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 rounded-full p-1.5 shadow-md bg-primary text-primary-foreground">
-                <Camera className="h-3.5 w-3.5" />
-              </button>
+              <CustomFilePicker
+                onUpload={async (file) => {
+                  await updateAvatar.mutateAsync(file as File);
+                }}
+                accept="image/*"
+                hidePreviewList
+              >
+                <button className="absolute bottom-0 right-0 rounded-full p-1.5 shadow-md bg-primary text-primary-foreground touch-target">
+                  <Camera className="h-3.5 w-3.5" />
+                </button>
+              </CustomFilePicker>
             )}
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
           </div>
 
           {isEditingName ? (

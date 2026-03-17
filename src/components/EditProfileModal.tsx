@@ -8,6 +8,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import ImageCropper from '@/components/ImageCropper';
+import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -31,6 +32,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  const avatarManager = useFileManager();
+  const coverManager = useFileManager();
 
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const [cropTarget, setCropTarget] = useState<'avatar' | 'cover' | null>(null);
@@ -84,31 +88,31 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
 
   if (!isOpen || !user) return null;
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  useEffect(() => {
+    const item = avatarManager.files[0];
+    if (item) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setCropImageSrc(reader.result as string);
         setCropTarget('avatar');
+        avatarManager.removeFile(item.id);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(item.file as File);
     }
-    e.target.value = '';
-  };
+  }, [avatarManager.files]);
 
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  useEffect(() => {
+    const item = coverManager.files[0];
+    if (item) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setCropImageSrc(reader.result as string);
         setCropTarget('cover');
+        coverManager.removeFile(item.id);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(item.file as File);
     }
-    e.target.value = '';
-  };
+  }, [coverManager.files]);
 
   const handleCropComplete = (croppedBlob: Blob) => {
     const file = new File([croppedBlob], `${cropTarget}-${Date.now()}.jpg`, { type: 'image/jpeg' });
@@ -274,21 +278,16 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
               }}
             />
             <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-              <label htmlFor="cover-upload" className="cursor-pointer">
-                <div className="flex flex-col items-center gap-2 text-white">
-                  <div className="p-3 bg-black/50 rounded-full backdrop-blur-sm">
-                    <Camera className="h-6 w-6" />
+              <CustomFilePicker manager={coverManager} hideUploadButton hidePreviewList accept="image/*">
+                <div className="cursor-pointer">
+                  <div className="flex flex-col items-center gap-2 text-white">
+                    <div className="p-3 bg-black/50 rounded-full backdrop-blur-sm">
+                      <Camera className="h-6 w-6" />
+                    </div>
+                    <span className="text-sm font-medium">Change cover</span>
                   </div>
-                  <span className="text-sm font-medium">Change cover</span>
                 </div>
-                <input
-                  id="cover-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleCoverChange}
-                />
-              </label>
+              </CustomFilePicker>
             </div>
           </div>
 
@@ -304,18 +303,13 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
                   {user.initials}
                 </AvatarFallback>
               </Avatar>
-              <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 cursor-pointer">
-                <div className="p-2 bg-primary rounded-full border-2 border-background shadow-lg">
-                  <Camera className="h-4 w-4 text-primary-foreground" />
+              <CustomFilePicker manager={avatarManager} hideUploadButton hidePreviewList accept="image/*">
+                <div className="absolute bottom-0 right-0 cursor-pointer z-10">
+                  <div className="p-2 bg-primary rounded-full border-2 border-background shadow-lg">
+                    <Camera className="h-4 w-4 text-primary-foreground" />
+                  </div>
                 </div>
-                <input
-                  id="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
-              </label>
+              </CustomFilePicker>
             </div>
           </div>
 
