@@ -196,6 +196,14 @@ const UserProfile: React.FC<UserProfileProps> = ({
             </div>
           )}
           
+          {videoUrl && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="bg-black/30 backdrop-blur-md rounded-full p-2 border border-white/20 shadow-2xl">
+                <Play className="size-5 text-white fill-white opacity-90" />
+              </div>
+            </div>
+          )}
+
           {/* Glassmorphic Overlay for Caption */}
           <div className="absolute inset-x-0 bottom-0 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="bg-background/20 backdrop-blur-md border border-white/10 rounded-xl p-2 shadow-lg">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Calendar, Link as LinkIcon, Check, MessageCircle, ExternalLink, Lock, X, BadgeCheck } from 'lucide-react';
+import { MapPin, Calendar, Link as LinkIcon, Check, MessageCircle, ExternalLink, Lock, X, BadgeCheck, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
@@ -311,6 +311,14 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-muted/30 p-4">
               <p className="text-[10px] text-muted-foreground text-center line-clamp-3 italic opacity-60">{post.content}</p>
+            </div>
+          )}
+          
+          {videoUrl && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="bg-black/30 backdrop-blur-md rounded-full p-2 border border-white/20 shadow-2xl">
+                <Play className="size-5 text-white fill-white opacity-90" />
+              </div>
             </div>
           )}
           

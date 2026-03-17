@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Share2, MoreHorizontal, BadgeCheck, Plus, Check, Trash2, Bookmark, Flag, Crown, Lock, MapPin, Mic, BookImage } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, BadgeCheck, Plus, Check, Trash2, Bookmark, Flag, Crown, Lock, MapPin, Mic, BookImage, Play } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useNavigate } from 'react-router-dom';
@@ -308,6 +308,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                     {shouldShowPaywall && (
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center" />
                     )}
+                    {isVideoUrl(url) && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="bg-black/30 backdrop-blur-md rounded-full p-4 border border-white/20 shadow-2xl">
+                          <Play className="size-8 text-white fill-white opacity-90" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CarouselItem>
               ))}
@@ -356,6 +363,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           )}
           {shouldShowPaywall && (
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center" />
+          )}
+          {isVideoUrl(post.media.url) && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="bg-black/30 backdrop-blur-md rounded-full p-4 border border-white/20 shadow-2xl">
+                <Play className="size-8 text-white fill-white opacity-90" />
+              </div>
+            </div>
           )}
         </div>
       ) : null}

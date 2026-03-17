@@ -5,6 +5,8 @@ interface PostData {
   id: string;
   content: string;
   media_url: string | null;
+  cover_image_url?: string | null;
+  media_urls?: string[] | null;
   created_at: string;
   likes_count: number;
   comments_count: number;
@@ -39,6 +41,8 @@ export const useUserPosts = (userId: string | undefined) => {
           id,
           content,
           media_url,
+          cover_image_url,
+          media_urls,
           created_at,
           profiles:user_id (
             name,
@@ -81,6 +85,8 @@ export const useUserPosts = (userId: string | undefined) => {
         id: post.id,
         content: post.content,
         media_url: post.media_url,
+        cover_image_url: post.cover_image_url,
+        media_urls: post.media_urls,
         created_at: post.created_at,
         profiles: post.profiles,
         likes_count: (Array.isArray(post.post_stats) ? post.post_stats[0]?.likes_count : (post.post_stats as any)?.likes_count) || 0,
