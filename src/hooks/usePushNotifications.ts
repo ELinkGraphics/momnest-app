@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// This must match the VAPID_PUBLIC_KEY secret stored in the backend
-const VAPID_PUBLIC_KEY = 'BECK7w0rW4BHnDYU_30w4pB1KUajgkHkp3RW7zvCDEnWYEv2IUhePBPva-wbzQBnn-VaqXiapfpFyJadnTZPg_Y';
+// This must match the VAPID_PUBLIC_KEY secret stored in the backend. 
+// Ideally provided via .env as VITE_VAPID_PUBLIC_KEY
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BECK7w0rW4BHnDYU_30w4pB1KUajgkHkp3RW7zvCDEnWYEv2IUhePBPva-wbzQBnn-VaqXiapfpFyJadnTZPg_Y';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
