@@ -97,6 +97,15 @@ export const usePushNotifications = () => {
       const registration = await navigator.serviceWorker.ready;
       console.log('Service worker ready for push subscription');
 
+      // Uniquely solving AbortError by ensuring active state and adding a tiny initialization delay
+      if (!registration.active) {
+        console.log('Service worker is not active yet. Waiting...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } else {
+        // Even if active, Chromium push service sometimes races. 500ms delay helps immensely.
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
       // Check existing subscription
       let sub = await registration.pushManager.getSubscription();
 
@@ -104,13 +113,33 @@ export const usePushNotifications = () => {
         console.log('Existing push subscription found, reusing it');
       } else {
         console.log('Creating new push subscription with VAPID key');
-        const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+        let applicationServerKey;
+        try {
+          applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+        } catch (e) {
+          console.error('Failed to parse VAPID key:', e);
+          toast.error('Push configuration error (VAPID key invalid).');
+          return false;
+        }
+
         console.log('VAPID key byte length:', applicationServerKey.length);
-        sub = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: applicationServerKey as any,
-        });
-        console.log('Push subscription created successfully');
+        try {
+          sub = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: applicationServerKey,
+          });
+          console.log('Push subscription created successfully');
+        } catch (subErr: any) {
+          console.error('Push Service Subscription Failed:', subErr.name, subErr.message, subErr);
+          if (subErr.name === 'NotAllowedError') {
+             toast.error('Notifications blocked by browser settings.');
+          } else if (subErr.name === 'AbortError') {
+             toast.error('Push service error. Check browser (Brave?), adblockers, or GCM ID.');
+          } else {
+             toast.error(`Subscription failed: ${subErr.message}`);
+          }
+          return false;
+        }
       }
 
       setSubscription(sub);
