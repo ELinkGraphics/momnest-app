@@ -11,6 +11,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ImageCropper from '@/components/ImageCropper';
 import MentionTextarea from '@/components/MentionTextarea';
+import { generateVideoThumbnail } from '@/lib/videoUtils';
+import VideoThumbnailModal from '@/components/VideoThumbnailModal';
+
+interface MediaItem {
+  id: string;
+  url: string;
+  file: File;
+  type: 'image' | 'video';
+  thumbnailUrl?: string;
+  thumbnailFile?: File;
+}
 
 const CreatePost: React.FC = () => {
   const navigate = useNavigate();
@@ -19,7 +30,7 @@ const CreatePost: React.FC = () => {
   const [postText, setPostText] = useState('');
   const [privacy, setPrivacy] = useState<'public' | 'friends' | 'private'>('public');
   const [selectedMedia, setSelectedMedia] = useState<File[]>([]);
-  const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [locationText, setLocationText] = useState<string | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
@@ -34,45 +45,69 @@ const CreatePost: React.FC = () => {
   // Preview & Edit state
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [videoToEditThumbnail, setVideoToEditThumbnail] = useState<{ index: number, file: File } | null>(null);
 
   const handleMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const newFiles = [...selectedMedia, ...files].slice(0, MAX_PHOTOS);
-    const previews = await Promise.all(
-      newFiles.map(file => new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      }))
+    const availableSlots = MAX_PHOTOS - mediaItems.length;
+    const filesToAdd = files.slice(0, availableSlots);
+    
+    const newItems: MediaItem[] = await Promise.all(
+      filesToAdd.map(async (file) => {
+        const type = file.type.startsWith('video/') ? 'video' : 'image';
+        const url = URL.createObjectURL(file);
+        
+        let thumbnailUrl: string | undefined;
+        let thumbnailFile: File | undefined;
+        
+        if (type === 'video') {
+          try {
+            const thumb = await generateVideoThumbnail(file);
+            thumbnailUrl = thumb.url;
+            thumbnailFile = new File([thumb.blob], `thumb_${file.name}.jpg`, { type: 'image/jpeg' });
+          } catch (err) {
+            console.error('Failed to generate video thumbnail:', err);
+          }
+        }
+        
+        return {
+          id: Math.random().toString(36).substr(2, 9),
+          url,
+          file,
+          type: type as 'image' | 'video',
+          thumbnailUrl,
+          thumbnailFile
+        };
+      })
     );
-    setSelectedMedia(newFiles);
-    setMediaPreviews(previews);
+
+    setMediaItems(prev => [...prev, ...newItems]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const removePhoto = (index: number) => {
-    setSelectedMedia(prev => prev.filter((_, i) => i !== index));
-    setMediaPreviews(prev => prev.filter((_, i) => i !== index));
+  const removeMedia = (index: number) => {
+    const item = mediaItems[index];
+    if (item.url) URL.revokeObjectURL(item.url);
+    if (item.thumbnailUrl) URL.revokeObjectURL(item.thumbnailUrl);
+    
+    setMediaItems(prev => prev.filter((_, i) => i !== index));
     if (previewIndex === index) setPreviewIndex(null);
   };
 
   const handleCropComplete = useCallback((croppedBlob: Blob) => {
     if (editingIndex === null) return;
     const idx = editingIndex;
+    const originalItem = mediaItems[idx];
 
     // Replace the file
-    const newFile = new File([croppedBlob], selectedMedia[idx].name, { type: 'image/jpeg' });
-    setSelectedMedia(prev => prev.map((f, i) => i === idx ? newFile : f));
+    const newFile = new File([croppedBlob], originalItem.file.name, { type: 'image/jpeg' });
+    const newUrl = URL.createObjectURL(croppedBlob);
+    
+    if (originalItem.url) URL.revokeObjectURL(originalItem.url);
 
-    // Replace the preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setMediaPreviews(prev => prev.map((p, i) => i === idx ? (reader.result as string) : p));
-    };
-    reader.readAsDataURL(croppedBlob);
-
+    setMediaItems(prev => prev.map((item, i) => i === idx ? { ...item, file: newFile, url: newUrl } : item));
     setEditingIndex(null);
-  }, [editingIndex, selectedMedia]);
+  }, [editingIndex, mediaItems]);
 
   const resolveLocation = async (pos: GeolocationPosition) => {
     const { latitude, longitude } = pos.coords;
@@ -197,12 +232,15 @@ const CreatePost: React.FC = () => {
         voiceUrl = data.publicUrl;
       }
 
+      const firstVideoWithThumb = mediaItems.find(item => item.type === 'video' && item.thumbnailFile);
+
       await createPost(
         {
           content: postText,
-          media: selectedMedia.length > 0 ? selectedMedia : undefined,
+          media: mediaItems.map(item => item.file),
           locationText: locationText || undefined,
           voiceUrl,
+          coverImage: firstVideoWithThumb?.thumbnailFile,
         },
         user.id
       );
@@ -309,16 +347,26 @@ const CreatePost: React.FC = () => {
         )}
 
         {/* Media Thumbnails */}
-        {mediaPreviews.length > 0 && (
+        {mediaItems.length > 0 && (
           <div className="space-y-2">
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {mediaPreviews.map((preview, index) => (
+              {mediaItems.map((item, index) => (
                 <div
-                  key={index}
-                  className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden group cursor-pointer border-2 border-transparent hover:border-primary/40 transition-all"
+                  key={item.id}
+                  className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden group cursor-pointer border-2 border-transparent hover:border-primary/40 transition-all bg-card/40"
                   onClick={() => setPreviewIndex(index)}
                 >
-                  <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                  <img src={item.type === 'video' ? item.thumbnailUrl : item.url} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                  
+                  {/* Video Badge */}
+                  {item.type === 'video' && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="bg-black/30 backdrop-blur-sm rounded-full p-2 border border-white/20">
+                        <Video className="w-4 h-4 text-white fill-white" />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Edit badge */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-full p-1.5">
@@ -327,7 +375,7 @@ const CreatePost: React.FC = () => {
                   </div>
                   {/* Remove button */}
                   <button
-                    onClick={(e) => { e.stopPropagation(); removePhoto(index); }}
+                    onClick={(e) => { e.stopPropagation(); removeMedia(index); }}
                     className="absolute -top-1 -right-1 p-1 bg-black/70 rounded-full text-white hover:bg-black/90 transition-colors z-10"
                   >
                     <X className="w-3 h-3" />
@@ -339,7 +387,7 @@ const CreatePost: React.FC = () => {
                 </div>
               ))}
             </div>
-            <p className="text-sm text-muted-foreground">{selectedMedia.length}/{MAX_PHOTOS} photos • Tap to preview & edit</p>
+            <p className="text-sm text-muted-foreground">{mediaItems.length}/{MAX_PHOTOS} items • Tap to preview & edit</p>
           </div>
         )}
 
@@ -387,7 +435,7 @@ const CreatePost: React.FC = () => {
       </div>
 
       {/* ── Full-screen Image Preview Modal ── */}
-      {previewIndex !== null && mediaPreviews[previewIndex] && (
+      {previewIndex !== null && mediaItems[previewIndex] && (
         <div
           className="fixed inset-0 z-[100] bg-black/95 flex flex-col"
           onClick={() => setPreviewIndex(null)}
@@ -401,11 +449,16 @@ const CreatePost: React.FC = () => {
               <X className="h-5 w-5 text-white" />
             </button>
             <span className="text-white/70 text-sm font-medium">
-              {previewIndex + 1} / {mediaPreviews.length}
+              {previewIndex + 1} / {mediaItems.length}
             </span>
             <button
               onClick={() => {
-                setEditingIndex(previewIndex);
+                const item = mediaItems[previewIndex];
+                if (item.type === 'video') {
+                  setVideoToEditThumbnail({ index: previewIndex, file: item.file });
+                } else {
+                  setEditingIndex(previewIndex);
+                }
                 setPreviewIndex(null);
               }}
               className="h-10 px-4 rounded-full bg-secondary hover:bg-secondary/90 flex items-center gap-2 transition-all shadow-lg shadow-secondary/30"
@@ -415,7 +468,7 @@ const CreatePost: React.FC = () => {
             </button>
           </div>
 
-          {/* Image */}
+          {/* Container */}
           <div className="flex-1 flex items-center justify-center min-h-0 relative px-4" onClick={(e) => e.stopPropagation()}>
             {/* Prev arrow */}
             {previewIndex > 0 && (
@@ -427,14 +480,23 @@ const CreatePost: React.FC = () => {
               </button>
             )}
 
-            <img
-              src={mediaPreviews[previewIndex]}
-              alt={`Photo ${previewIndex + 1}`}
-              className="max-w-full max-h-full object-contain rounded-lg"
-            />
+            {mediaItems[previewIndex].type === 'video' ? (
+              <video
+                src={mediaItems[previewIndex].url}
+                controls
+                className="max-w-full max-h-full object-contain rounded-lg"
+                poster={mediaItems[previewIndex].thumbnailUrl}
+              />
+            ) : (
+              <img
+                src={mediaItems[previewIndex].url}
+                alt={`Photo ${previewIndex + 1}`}
+                className="max-w-full max-h-full object-contain rounded-lg"
+              />
+            )}
 
             {/* Next arrow */}
-            {previewIndex < mediaPreviews.length - 1 && (
+            {previewIndex < mediaItems.length - 1 && (
               <button
                 onClick={() => setPreviewIndex(previewIndex + 1)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-card/10 hover:bg-card/20 flex items-center justify-center transition-all z-10"
@@ -448,7 +510,7 @@ const CreatePost: React.FC = () => {
           <div className="flex items-center justify-center gap-4 px-4 py-4 shrink-0" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => {
-                removePhoto(previewIndex);
+                removeMedia(previewIndex);
                 setPreviewIndex(null);
               }}
               className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-destructive/20 hover:bg-destructive/30 text-destructive transition-all"
@@ -456,24 +518,57 @@ const CreatePost: React.FC = () => {
               <X className="h-4 w-4" />
               <span className="text-sm font-medium">Remove</span>
             </button>
-            <button
-              onClick={() => {
-                setEditingIndex(previewIndex);
-                setPreviewIndex(null);
-              }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-secondary/20 hover:bg-secondary/30 text-secondary transition-all"
-            >
-              <Pencil className="h-4 w-4" />
-              <span className="text-sm font-medium">Edit & Crop</span>
-            </button>
+            
+            {mediaItems[previewIndex].type === 'video' ? (
+              <button
+                onClick={() => {
+                  setVideoToEditThumbnail({ index: previewIndex, file: mediaItems[previewIndex].file });
+                  setPreviewIndex(null);
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary/20 hover:bg-primary/30 text-primary transition-all"
+              >
+                <Video className="h-4 w-4" />
+                <span className="text-sm font-medium">Edit Thumbnail</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setEditingIndex(previewIndex);
+                  setPreviewIndex(null);
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-secondary/20 hover:bg-secondary/30 text-secondary transition-all"
+              >
+                <Pencil className="h-4 w-4" />
+                <span className="text-sm font-medium">Edit & Crop</span>
+              </button>
+            )}
           </div>
         </div>
       )}
 
+      {/* ── Video Thumbnail Selector ── */}
+      {videoToEditThumbnail && (
+        <VideoThumbnailModal
+          isOpen={!!videoToEditThumbnail}
+          onClose={() => setVideoToEditThumbnail(null)}
+          videoFile={videoToEditThumbnail.file}
+          onSelect={(blob, url) => {
+            const idx = videoToEditThumbnail.index;
+            const newThumbFile = new File([blob], `thumb_${mediaItems[idx].file.name}.jpg`, { type: 'image/jpeg' });
+            
+            if (mediaItems[idx].thumbnailUrl) URL.revokeObjectURL(mediaItems[idx].thumbnailUrl);
+            
+            setMediaItems(prev => prev.map((item, i) => i === idx ? { ...item, thumbnailUrl: url, thumbnailFile: newThumbFile } : item));
+            setVideoToEditThumbnail(null);
+            toast.success('Thumbnail updated successfully');
+          }}
+        />
+      )}
+
       {/* ── Image Cropper/Editor ── */}
-      {editingIndex !== null && mediaPreviews[editingIndex] && (
+      {editingIndex !== null && mediaItems[editingIndex] && (
         <ImageCropper
-          imageSrc={mediaPreviews[editingIndex]}
+          imageSrc={mediaItems[editingIndex].url}
           aspectRatio={undefined}
           onCropComplete={handleCropComplete}
           onCancel={() => setEditingIndex(null)}

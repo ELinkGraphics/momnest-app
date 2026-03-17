@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useVideoMutations } from "@/hooks/useVideoMutations";
+import { generateVideoThumbnail } from "@/lib/videoUtils";
+import VideoThumbnailModal from "@/components/VideoThumbnailModal";
 
 const CreateVideo = () => {
   const navigate = useNavigate();
@@ -18,6 +20,7 @@ const CreateVideo = () => {
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isVideoThumbModalOpen, setIsVideoThumbModalOpen] = useState(false);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,6 +43,12 @@ const CreateVideo = () => {
     setVideoFile(file);
     const url = URL.createObjectURL(file);
     setVideoPreview(url);
+
+    // Auto-generate thumbnail
+    generateVideoThumbnail(file).then(thumb => {
+      setThumbnailFile(new File([thumb.blob], `thumb_${file.name}.jpg`, { type: 'image/jpeg' }));
+      setThumbnailPreview(thumb.url);
+    }).catch(err => console.error('Failed to generate automatic thumb:', err));
   };
 
   const handleThumbnailSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,13 +168,23 @@ const CreateVideo = () => {
                   src={videoPreview}
                   controls
                   className="w-full max-h-96"
+                  poster={thumbnailPreview}
                 />
-                <button
-                  onClick={handleRemoveVideo}
-                  className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors"
-                >
-                  <X className="w-4 h-4 text-white" />
-                </button>
+                <div className="absolute top-2 right-2 flex gap-2">
+                  <button
+                    onClick={() => setIsVideoThumbModalOpen(true)}
+                    className="p-2 bg-primary/80 hover:bg-primary text-white rounded-full backdrop-blur-md transition-colors shadow-lg"
+                    title="Edit thumbnail"
+                  >
+                    <Image className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleRemoveVideo}
+                    className="p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors"
+                  >
+                    <X className="w-4 h-4 text-white" />
+                  </button>
+                </div>
               </div>
             )}
             <input
@@ -256,6 +275,21 @@ const CreateVideo = () => {
           </div>
         </div>
       </div>
+
+      {/* Video Thumbnail Selector Modal */}
+      {videoFile && (
+        <VideoThumbnailModal
+          isOpen={isVideoThumbModalOpen}
+          onClose={() => setIsVideoThumbModalOpen(false)}
+          videoFile={videoFile}
+          onSelect={(blob, url) => {
+            setThumbnailFile(new File([blob], `thumb_${videoFile.name}.jpg`, { type: 'image/jpeg' }));
+            setThumbnailPreview(url);
+            setIsVideoThumbModalOpen(false);
+            toast.success('Thumbnail selected successfully');
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -8,6 +8,7 @@ export interface CreatePostData {
   tags?: string[];
   locationText?: string;
   voiceUrl?: string;
+  coverImage?: File;
 }
 
 export const usePostMutations = () => {
@@ -41,12 +42,30 @@ export const usePostMutations = () => {
         mediaUrls = await Promise.all(uploadPromises);
       }
 
+      let coverImageUrl: string | undefined;
+      if (data.coverImage) {
+        const fileExt = data.coverImage.name.split('.').pop() || 'jpg';
+        const fileName = `${userId}/cover-${Date.now()}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('post-media')
+          .upload(fileName, data.coverImage);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('post-media')
+          .getPublicUrl(uploadData.path);
+        
+        coverImageUrl = publicUrl;
+      }
+
       // Insert post with media_urls array
       const insertData: any = {
         user_id: userId,
         content: data.content,
         media_url: mediaUrls[0] || null,
         media_urls: mediaUrls,
+        cover_image_url: coverImageUrl || null,
         tags: data.tags || [],
         is_sponsored: false,
       };
