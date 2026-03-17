@@ -28,7 +28,6 @@ const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ isOpen, onClose, on
   const [croppedPreviewUrl, setCroppedPreviewUrl] = useState<string>('');
   const [editorMediaType, setEditorMediaType] = useState<'image' | 'video'>('image');
   const [pendingMentionIds, setPendingMentionIds] = useState<string[]>([]);
-  if (!isOpen) return null;
 
   React.useEffect(() => {
     const activeFile = storyManager.files[0];
@@ -38,6 +37,8 @@ const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ isOpen, onClose, on
       setShowEditor(true);
     }
   }, [storyManager.files, showEditor]);
+
+  if (!isOpen) return null;
 
   const handleEditorDone = async (editedBlob: Blob, mentionedUserIds?: string[], extraData?: any) => {
     if (!user) {

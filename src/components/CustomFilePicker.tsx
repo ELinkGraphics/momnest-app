@@ -233,15 +233,21 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
-    let listenerHandle: any;
-    import('@capacitor/app').then(({ App }) => {
-      listenerHandle = App.addListener('backButton', () => {
+    let listener: Promise<{ remove: () => void }> | null = null;
+    
+    const setupListener = async () => {
+      const { App } = await import('@capacitor/app');
+      listener = App.addListener('backButton', () => {
         if (sheetOpen) setSheetOpen(false);
       });
-    });
+    };
+
+    setupListener();
 
     return () => {
-      listenerHandle?.then?.((h: any) => h.remove());
+      if (listener) {
+        listener.then(h => h.remove());
+      }
     };
   }, [sheetOpen]);
 
