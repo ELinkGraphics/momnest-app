@@ -274,26 +274,34 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
     return formatDistanceToNow(new Date(dateString), { addSuffix: true });
   };
 
-  const PostCard = ({ post }: { post: any }) => (
-    <div 
-      className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300"
-      onClick={() => {
-        onClose?.();
-        navigate(`/post/${post.id}`);
-      }}
-    >
-      <div className="aspect-[4/5] relative overflow-hidden">
-        {post.media_url ? (
-          <img 
-            src={post.media_url} 
-            alt="" 
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-muted/30 p-4">
-            <p className="text-[10px] text-muted-foreground text-center line-clamp-3 italic opacity-60">{post.content}</p>
-          </div>
-        )}
+  const PostCard = ({ post }: { post: any }) => {
+    // Detect image from regular posts or circle premium posts
+    const displayImage = 
+      post.media_url || 
+      post.cover_image_url || 
+      (Array.isArray(post.media_urls) && post.media_urls.length > 0 ? post.media_urls[0] : null);
+
+    return (
+      <div 
+        className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300"
+        onClick={() => {
+          onClose?.();
+          navigate(`/post/${post.id}`);
+        }}
+      >
+        <div className="aspect-[4/5] relative overflow-hidden">
+          {displayImage ? (
+            <img 
+              src={displayImage} 
+              alt="" 
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-muted/30 p-4">
+              <p className="text-[10px] text-muted-foreground text-center line-clamp-3 italic opacity-60">{post.content}</p>
+            </div>
+          )}
+
         
         {/* Glassmorphic Overlay for Caption */}
         <div className="absolute inset-x-0 bottom-0 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -304,6 +312,7 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
       </div>
     </div>
   );
+};
 
   const VideoCard = ({ video }: { video: any }) => (
     <div 

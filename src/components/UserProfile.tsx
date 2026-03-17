@@ -157,12 +157,18 @@ const UserProfile: React.FC<UserProfileProps> = ({
       navigate(`/post/${post.id}`);
     };
 
+    // Detect image from regular posts or circle premium posts
+    const displayImage = 
+      post.media_url || 
+      post.cover_image_url || 
+      (Array.isArray(post.media_urls) && post.media_urls.length > 0 ? post.media_urls[0] : null);
+
     return (
       <div className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300" onClick={handlePostClick}>
         <div className="aspect-[4/5] relative overflow-hidden">
-          {post.media_url ? (
+          {displayImage ? (
             <img 
-              src={post.media_url} 
+              src={displayImage} 
               alt="" 
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
             />
