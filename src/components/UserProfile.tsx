@@ -357,7 +357,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
       </div>
 
       {/* Profile Content */}
-      <div className="relative bg-background pb-8">
+      <div className="relative bg-background pb-32">
         {/* Avatar */}
         <div className="absolute -top-16 left-4 sm:left-6">
           <Avatar className="h-32 w-32 ring-4 ring-background shadow-xl">

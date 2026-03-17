@@ -440,7 +440,7 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
   const websites = Array.isArray(user.website) ? user.website : user.website ? [user.website] : [];
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`w-full pb-32 ${className}`}>
       {/* Cover Image */}
       <div className="relative h-48 bg-gradient-to-br from-primary/20 to-primary/5">
         {user.coverImage && (
