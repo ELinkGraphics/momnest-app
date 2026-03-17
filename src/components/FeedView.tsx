@@ -44,9 +44,9 @@ const formatPost = (item: any): Post => ({
   media: (() => {
     const base = { kind: "image" as const, alt: item.media_alt || '', colorFrom: item.media_color_from || '#4B164C', colorTo: item.media_color_to || '#22194D' };
     if (item.media_urls && item.media_urls.length > 1) return { ...base, urls: item.media_urls };
-    if (item.cover_image_url) return { ...base, url: item.cover_image_url };
     if (item.media_url) return { ...base, url: item.media_url };
     if (item.media_urls && item.media_urls.length === 1) return { ...base, url: item.media_urls[0] };
+    if (item.cover_image_url) return { ...base, url: item.cover_image_url };
     return undefined;
   })(),
   tags: item.tags || [],
