@@ -746,7 +746,8 @@ ALTER TABLE public.circle_notification_preferences ENABLE ROW LEVEL SECURITY;
 -- --------------------------------------------------------------------------
 CREATE TABLE public.circle_tips (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  post_id uuid NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  post_id uuid REFERENCES posts(id) ON DELETE CASCADE,
+  video_id uuid REFERENCES circle_videos(id) ON DELETE SET NULL,
   tipper_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   recipient_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   amount numeric NOT NULL,
@@ -755,6 +756,54 @@ CREATE TABLE public.circle_tips (
   created_at timestamp with time zone DEFAULT now()
 );
 ALTER TABLE public.circle_tips ENABLE ROW LEVEL SECURITY;
+
+-- --------------------------------------------------------------------------
+-- video_playlists
+-- --------------------------------------------------------------------------
+CREATE TABLE public.video_playlists (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  circle_id uuid NOT NULL REFERENCES circles(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  description text,
+  thumbnail_url text,
+  created_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE public.video_playlists ENABLE ROW LEVEL SECURITY;
+
+-- --------------------------------------------------------------------------
+-- circle_videos
+-- --------------------------------------------------------------------------
+CREATE TABLE public.circle_videos (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  circle_id uuid NOT NULL REFERENCES circles(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  playlist_id uuid REFERENCES video_playlists(id) ON DELETE SET NULL,
+  video_url text NOT NULL,
+  thumbnail_url text,
+  title text NOT NULL,
+  description text,
+  is_premium boolean DEFAULT false,
+  price integer DEFAULT 0,
+  duration text,
+  views_count integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now()
+);
+ALTER TABLE public.circle_videos ENABLE ROW LEVEL SECURITY;
+
+-- --------------------------------------------------------------------------
+-- video_unlocks
+-- --------------------------------------------------------------------------
+CREATE TABLE public.video_unlocks (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  video_id uuid NOT NULL REFERENCES circle_videos(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  amount_paid integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  UNIQUE (video_id, user_id)
+);
+ALTER TABLE public.video_unlocks ENABLE ROW LEVEL SECURITY;
 
 -- --------------------------------------------------------------------------
 -- coin_wallets
@@ -1950,6 +1999,22 @@ CREATE POLICY "Anyone can view active SOS alerts from others" ON sos_alerts FOR 
 CREATE POLICY "Authenticated users can create SOS alerts" ON sos_alerts FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own SOS alerts" ON sos_alerts FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can delete own SOS alerts" ON sos_alerts FOR DELETE USING (auth.uid() = user_id);
+
+-- video_playlists
+CREATE POLICY "video_playlists_select_policy" ON video_playlists FOR SELECT USING (EXISTS(SELECT 1 FROM circles WHERE circles.id = video_playlists.circle_id AND NOT circles.is_private) OR is_circle_member(circle_id, auth.uid()) OR user_id = auth.uid());
+CREATE POLICY "video_playlists_insert_policy" ON video_playlists FOR INSERT WITH CHECK (auth.uid() = user_id AND (EXISTS(SELECT 1 FROM circles WHERE circles.id = circle_id AND circles.creator_id = auth.uid())));
+CREATE POLICY "video_playlists_update_policy" ON video_playlists FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "video_playlists_delete_policy" ON video_playlists FOR DELETE USING (auth.uid() = user_id);
+
+-- circle_videos
+CREATE POLICY "circle_videos_select_policy" ON circle_videos FOR SELECT USING (auth.uid() = user_id OR EXISTS(SELECT 1 FROM circles WHERE circles.id = circle_videos.circle_id AND circles.creator_id = auth.uid()) OR is_circle_member(circle_id, auth.uid()) OR (EXISTS(SELECT 1 FROM circles WHERE circles.id = circle_videos.circle_id AND NOT circles.is_private)));
+CREATE POLICY "circle_videos_insert_policy" ON circle_videos FOR INSERT WITH CHECK (auth.uid() = user_id AND (EXISTS(SELECT 1 FROM circles WHERE circles.id = circle_id AND circles.creator_id = auth.uid())));
+CREATE POLICY "circle_videos_update_policy" ON circle_videos FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "circle_videos_delete_policy" ON circle_videos FOR DELETE USING (auth.uid() = user_id);
+
+-- video_unlocks
+CREATE POLICY "video_unlocks_select_policy" ON video_unlocks FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "video_unlocks_insert_policy" ON video_unlocks FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- (Additional policies for remaining tables follow the same patterns above)
 -- Full policy list includes 180+ policies across all 103 tables.

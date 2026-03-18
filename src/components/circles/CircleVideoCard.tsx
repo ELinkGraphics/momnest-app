@@ -1,0 +1,100 @@
+import React from 'react';
+import { Play, Lock, Eye, Clock, Crown } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { CircleVideo } from '@/hooks/useCircleVideos';
+import { formatDistanceToNow } from 'date-fns';
+
+interface CircleVideoCardProps {
+  video: CircleVideo;
+  onClick: (video: CircleVideo) => void;
+}
+
+const CircleVideoCard: React.FC<CircleVideoCardProps> = ({ video, onClick }) => {
+  const isLocked = video.is_premium && !video.user_has_unlocked;
+
+  return (
+    <Card 
+      className="overflow-hidden cursor-pointer group hover:shadow-lg transition-all border-none bg-card/50 backdrop-blur-sm"
+      onClick={() => onClick(video)}
+    >
+      <div className="relative aspect-video overflow-hidden bg-muted">
+        {video.thumbnail_url ? (
+          <img 
+            src={video.thumbnail_url} 
+            alt={video.title} 
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+            <Play className="size-12 text-primary/20" />
+          </div>
+        )}
+        
+        {/* Overlay Badges */}
+        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
+        
+        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 text-white text-[10px] font-medium rounded">
+          {video.duration || '0:00'}
+        </div>
+
+        {video.is_premium && (
+          <div className="absolute top-2 right-2">
+            <Badge variant={video.user_has_unlocked ? "secondary" : "default"} className="gap-1 shadow-md bg-secondary text-secondary-foreground border-none">
+              {video.user_has_unlocked ? (
+                <Lock className="size-3 opacity-50" />
+              ) : (
+                <Crown className="size-3 text-yellow-400" />
+              )}
+              {video.user_has_unlocked ? 'Unlocked' : `${video.price} Coins`}
+            </Badge>
+          </div>
+        )}
+
+        {/* Play Icon on Hover */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="size-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white scale-90 group-hover:scale-100 transition-transform">
+            {isLocked ? <Lock className="size-6" /> : <Play className="size-6 fill-current" />}
+          </div>
+        </div>
+      </div>
+
+      <div className="p-3">
+        <h3 className="font-semibold text-sm line-clamp-2 leading-tight mb-1 group-hover:text-primary transition-colors">
+          {video.title}
+        </h3>
+        
+        <div className="flex items-center gap-2 mb-2">
+          <div className="size-5 rounded-full overflow-hidden border border-border">
+            {video.author.avatar_url ? (
+              <img src={video.author.avatar_url} alt={video.author.name} className="w-full h-full object-cover" />
+            ) : (
+              <div 
+                className="w-full h-full flex items-center justify-center text-[8px] text-white font-bold"
+                style={{ backgroundColor: video.author.avatar_color }}
+              >
+                {video.author.initials}
+              </div>
+            )}
+          </div>
+          <span className="text-[11px] text-muted-foreground font-medium truncate">
+            {video.author.name}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Eye className="size-3" />
+            {video.views_count.toLocaleString()} views
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock className="size-3" />
+            {formatDistanceToNow(new Date(video.created_at), { addSuffix: true })}
+          </span>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+export default CircleVideoCard;

@@ -1,0 +1,23 @@
+# Circle Feed Video Tab Implementation
+
+- [x] Database Schema Setup
+    - [x] Create `20260318085500_circle_videos.sql` migration
+    - [x] Create `video_playlists` table
+    - [x] Create `circle_videos` table
+    - [x] Create `video_unlocks` table
+    - [x] Modify `circle_tips` table
+- [x] Hooks & Logic
+    - [x] Refine `useCircleVideos.ts` hook
+    - [x] Create `useVideoPlaylists.ts` hook
+- [x] UI Components
+    - [x] Create `CircleVideoCard.tsx`
+    - [x] Create `CircleVideoPlayer.tsx`
+    - [x] Create `CircleVideoComposer.tsx`
+    - [x] Create `CircleVideos.tsx` (Main Tab)
+- [x] Integration
+    - [x] Modify `CircleDetail.tsx` to add the Videos tab
+- [x] Verification
+    - [x] Verify upload flow
+    - [x] Verify monetization/unlocking
+    - [x] Verify playlists & autoplay
+    - [x] Add documentation to `walkthrough.md`

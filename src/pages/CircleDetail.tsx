@@ -16,6 +16,7 @@ import CircleResources from '@/components/circles/CircleResources';
 import CircleMembers from '@/components/circles/CircleMembers';
 import CircleAbout from '@/components/circles/CircleAbout';
 import CircleMessages from '@/components/circles/CircleMessages';
+import CircleVideos from '@/components/circles/CircleVideos';
 import EditCircleModal from '@/components/circles/EditCircleModal';
 import CircleSettingsModal from '@/components/circles/CircleSettingsModal';
 import { useCircle } from '@/hooks/useCircles';
@@ -373,8 +374,9 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
       <div className="border-t border-border">
         <Tabs value={circleActiveTab} onValueChange={setCircleActiveTab} className="w-full">
           <div className="px-4 pt-4 flex items-center justify-between">
-            <TabsList className="grid grid-cols-4 h-9 flex-1 mr-2">
+            <TabsList className="grid grid-cols-5 h-9 flex-1 mr-2">
               <TabsTrigger value="posts" className="text-xs px-1">Posts</TabsTrigger>
+              <TabsTrigger value="videos" className="text-xs px-1">Videos</TabsTrigger>
               <TabsTrigger value="services" className="text-xs px-1">Services</TabsTrigger>
               <TabsTrigger value="events" className="text-xs px-1">Events</TabsTrigger>
               <TabsTrigger value="about" className="text-xs px-1">About</TabsTrigger>
@@ -409,6 +411,9 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
             </TabsContent>
             <TabsContent value="posts">
               <CirclePosts circle={circle} isOwner={canManage} />
+            </TabsContent>
+            <TabsContent value="videos">
+              <CircleVideos circle={circle} isOwner={canManage} />
             </TabsContent>
             <TabsContent value="services">
               <CircleServices circle={circle} isOwner={canManage} />
