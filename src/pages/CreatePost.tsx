@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { ArrowLeft, Camera, MapPin, Users, Globe, Image, Video, Mic, X, Loader2, Square, Pencil, ChevronLeft, ChevronRight, Wand2 } from 'lucide-react';
 import ImageCropper from '@/components/ImageCropper';
+import VideoEditorModal from '@/components/VideoEditorModal';
 import { InlineVideoLoader } from '@/components/ui/VideoLoader';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,8 @@ const CreatePost: React.FC = () => {
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [editingImage, setEditingImage] = useState<{ id: string; url: string } | null>(null);
+  const [editingVideo, setEditingVideo] = useState<{ id: string; url: string; file: File } | null>(null);
+  const [videoEdits, setVideoEdits] = useState<Map<string, { thumbnailBlob: Blob; trimStart: number; trimEnd: number }>>(new Map());
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -156,12 +159,17 @@ const CreatePost: React.FC = () => {
       const firstVideo = fileManager.files.find(item => item.kind === 'video');
       
       if (firstVideo) {
-        try {
-          const { generateVideoThumbnail } = await import('@/lib/videoUtils');
-          const thumb = await generateVideoThumbnail(firstVideo.file as File);
-          coverImage = new File([thumb.blob], `thumb_${firstVideo.name}.jpg`, { type: 'image/jpeg' });
-        } catch (err) {
-          console.error('Thumbnail generation failed', err);
+        const storedEdit = videoEdits.get(firstVideo.id);
+        if (storedEdit) {
+          coverImage = new File([storedEdit.thumbnailBlob], `thumb_${firstVideo.name}.jpg`, { type: 'image/jpeg' });
+        } else {
+          try {
+            const { generateVideoThumbnail } = await import('@/lib/videoUtils');
+            const thumb = await generateVideoThumbnail(firstVideo.file as File);
+            coverImage = new File([thumb.blob], `thumb_${firstVideo.name}.jpg`, { type: 'image/jpeg' });
+          } catch (err) {
+            console.error('Thumbnail generation failed', err);
+          }
         }
       }
 
@@ -272,6 +280,15 @@ const CreatePost: React.FC = () => {
                         onClick={() => setEditingImage({ id: item.id, url: item.url })}
                         className="p-3 bg-white/20 backdrop-blur-xl text-white rounded-2xl hover:bg-white/30 transition-all transform scale-90 group-hover:scale-100 shadow-xl border border-white/10"
                         title="Edit Photo"
+                      >
+                        <Pencil className="w-5 h-5" />
+                      </button>
+                    )}
+                    {item.kind === 'video' && (
+                      <button
+                        onClick={() => setEditingVideo({ id: item.id, url: item.url, file: item.file as File })}
+                        className="p-3 bg-white/20 backdrop-blur-xl text-white rounded-2xl hover:bg-white/30 transition-all transform scale-90 group-hover:scale-100 shadow-xl border border-white/10"
+                        title="Edit Video"
                       >
                         <Pencil className="w-5 h-5" />
                       </button>
@@ -403,6 +420,24 @@ const CreatePost: React.FC = () => {
           }}
           onCancel={() => setEditingImage(null)}
           aspectRatio={undefined}
+        />
+      )}
+
+      {/* Video Editor Modal */}
+      {editingVideo && (
+        <VideoEditorModal
+          videoFile={editingVideo.file}
+          videoUrl={editingVideo.url}
+          onDone={(result) => {
+            setVideoEdits(prev => {
+              const next = new Map(prev);
+              next.set(editingVideo.id, result);
+              return next;
+            });
+            setEditingVideo(null);
+            toast.success('Video edited!');
+          }}
+          onCancel={() => setEditingVideo(null)}
         />
       )}
     </div>
