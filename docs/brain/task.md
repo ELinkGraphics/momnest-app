@@ -1,30 +1,22 @@
-# Circle Feed Video Tab Implementation
-
-- [x] Database Schema Setup
-    - [x] Create `20260318085500_circle_videos.sql` migration
-    - [x] Create `video_playlists` table
-    - [x] Create `circle_videos` table
-    - [x] Create `video_unlocks` table
-    - [x] Modify `circle_tips` table
-- [x] Hooks & Logic
-    - [x] Refine `useCircleVideos.ts` hook
-    - [x] Create `useVideoPlaylists.ts` hook
-- [x] UI Components
-    - [x] Create `CircleVideoCard.tsx`
-    - [x] Create `CircleVideoPlayer.tsx`
-    - [x] Create `CircleVideoComposer.tsx`
-    - [x] Create `CircleVideos.tsx` (Main Tab)
-- [x] Integration
-    - [x] Modify `CircleDetail.tsx` to add the Videos tab
-- [x] Verification
-    - [x] Verify upload flow
-    - [x] Verify monetization/unlocking
-    - [x] Verify playlists & autoplay
-    - [x] Add documentation to `walkthrough.md`
-    - [x] Push all changes to GitHub
-- [x] Navigation Fix
-    - [x] Streamline `FooterNav` navigation
-    - [x] Remove redundant `navigate` in `CircleDetailWrapper`
-    - [x] Update `ArrowLeft` in `CircleDetail`
-    - [x] Verify fix across all navigation points
-- [x] Verification
+- [x] Circle Feed Video Tab
+    - [x] Database Schema Setup
+    - [x] Hooks & Logic
+    - [x] UI Components
+    - [x] Integration & Verification
+    - [x] Push to GitHub
+- [x] Navigation & Route Fixes
+    - [x] Fix Circle Navigation (Stuck UI Issue)
+    - [x] Implement robust `handleBack` and route remounting
+    - [x] Push to GitHub
+- [x] Stories Experience Enhancements
+    - [x] Flatten story array for seamless user-to-user navigation in `StoriesBar.tsx`
+    - [x] Implement smooth opening/closing animations for `StoryViewer.tsx`
+    - [x] Add slide/zoom transitions between individual stories
+    - [x] Ensure automatic progression between users' stories
+    - [x] Final Verification & Push to GitHub
+- [x] Story Seen Status Persistence
+    - [x] Research and Planning
+    - [x] Update `useStoryPersistence.tsx` to fetch view data and calculate `isViewed`
+    - [x] Update `StoryViewer.tsx` to record views in `story_views` table
+    - [x] Verify automatic reset when new stories are posted
+    - [x] Final Verification & Push to GitHub
