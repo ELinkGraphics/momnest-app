@@ -17,13 +17,15 @@ interface StoryViewerProps {
   initialIndex: number;
   isOpen: boolean;
   onClose: () => void;
+  onStoryViewed?: (storyId: string) => void;
 }
 
 const StoryViewer: React.FC<StoryViewerProps> = ({ 
   stories, 
   initialIndex, 
   isOpen, 
-  onClose 
+  onClose,
+  onStoryViewed,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [progress, setProgress] = useState(0);
@@ -80,13 +82,15 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
         if (error) {
           if (error.code === '23505') {
-            // Already viewed, ignore duplicate error
+            // Already viewed — still fire optimistic callback so ring turns grey
             console.log('[StoryViewer] Story already viewed by this user.');
+            onStoryViewed?.(storyId);
           } else {
             console.error('[StoryViewer] Failed to record story view:', error);
           }
         } else {
           console.log('[StoryViewer] Successfully recorded view.');
+          onStoryViewed?.(storyId);
         }
       } catch (err) {
         console.error('[StoryViewer] Unexpected error recording view:', err);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import { Story } from '@/data/mock';
 import StoryViewer from './StoryViewer';
@@ -16,6 +16,17 @@ const StoriesBar: React.FC = () => {
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
   const [selectedLiveStreamId, setSelectedLiveStreamId] = useState<string | null>(null);
   const [stories, refreshStories, isLoading] = useStoryPersistence();
+  // Optimistic local viewed ids — turns rings grey without waiting for DB refresh
+  const [localViewedIds, setLocalViewedIds] = useState<Set<string>>(new Set());
+
+  const handleStoryViewed = useCallback((storyId: string) => {
+    setLocalViewedIds(prev => {
+      if (prev.has(storyId)) return prev;
+      const next = new Set(prev);
+      next.add(storyId);
+      return next;
+    });
+  }, []);
 
   const handleStoryClick = (story: Story, index: number) => {
     if ((story as any).isLive && (story as any).liveStreamId) {
@@ -47,7 +58,11 @@ const StoriesBar: React.FC = () => {
             const isOwn = story.isOwn;
             const hasStories = story.allStories && story.allStories.length > 0;
             const isLive = (story as any).isLive;
-            const isViewed = story.isViewed;
+            // isViewed: true if server says so OR all stories in this group are locally viewed
+            const groupStories = story.allStories || [story];
+            const isViewed = groupStories.every(
+              s => s.isViewed || localViewedIds.has(String(s.id))
+            );
 
             return (
               <button
@@ -108,7 +123,14 @@ const StoriesBar: React.FC = () => {
                                 cy={cy}
                                 r={radius}
                                 fill="none"
-                                stroke={isLive ? '#ef4444' : isViewed ? '#9ca3af' : 'url(#storyGradient)'}
+                                stroke={isLive ? '#ef4444' : (() => {
+                                  // Per-segment colour: grey if that specific story is viewed
+                                  const segStory = story.allStories?.[i];
+                                  const segViewed = segStory
+                                    ? (segStory.isViewed || localViewedIds.has(String(segStory.id)))
+                                    : isViewed;
+                                  return segViewed ? '#9ca3af' : 'url(#storyGradient)';
+                                })()}
                                 strokeWidth={strokeWidth}
                                 strokeDasharray={`${segmentLength} ${circumference - segmentLength}`}
                                 strokeDashoffset={dashOffset}
@@ -190,6 +212,7 @@ const StoriesBar: React.FC = () => {
             initialIndex={initialFlatIndex}
             isOpen={isStoryViewerOpen}
             onClose={() => { setIsStoryViewerOpen(false); refreshStories(); }}
+            onStoryViewed={handleStoryViewed}
           />
         );
       })()}
