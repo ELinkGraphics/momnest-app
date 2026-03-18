@@ -30,15 +30,17 @@ import { type TabKey } from '@/hooks/useAppNav';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface CircleDetailProps {
-  activeTab?: TabKey;
-  onTabSelect?: (tab: TabKey) => void;
-  onOpenCreate?: () => void;
+  activeTab: TabKey;
+  setActiveTab: (tab: TabKey) => void;
+  onTabSelect: (tab: TabKey) => void;
+  onOpenCreate: () => void;
 }
 
 const CircleDetail: React.FC<CircleDetailProps> = ({
-  activeTab = "circles",
-  onTabSelect = () => {},
-  onOpenCreate = () => {}
+  activeTab,
+  setActiveTab,
+  onTabSelect,
+  onOpenCreate
 }) => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -125,11 +127,8 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
   };
 
   const handleBack = () => {
-    if (window.history.length > 2) {
-      navigate(-1);
-    } else {
-      navigate('/', { replace: true });
-    }
+    setActiveTab('circles');
+    navigate('/', { replace: true });
   };
 
   if (isLoading) {

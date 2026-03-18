@@ -18,6 +18,7 @@ const CircleDetailWrapper: React.FC = () => {
   return (
     <CircleDetail
       activeTab={activeTab}
+      setActiveTab={setActiveTab}
       onTabSelect={setActiveTab}
       onOpenCreate={handleOpenCreate}
     />

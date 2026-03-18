@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { UserProvider, useUser } from "@/contexts/UserContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CartProvider } from "@/contexts/CartContext";
@@ -111,8 +111,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const AppRoutes = () => (
-  <Routes>
+const AppRoutes = () => {
+  const location = useLocation();
+  return (
+    <Routes key={location.pathname}>
     <Route path="/login" element={<Login />} />
     <Route path="/signup" element={<Signup />} />
     <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
@@ -178,10 +180,10 @@ const AppRoutes = () => (
       <Route path="settings" element={<AdminSettings />} />
       <Route path="expert-verification" element={<AdminExpertVerification />} />
     </Route>
-    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
     <Route path="*" element={<NotFound />} />
   </Routes>
-);
+  );
+};
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
