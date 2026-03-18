@@ -610,12 +610,17 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
       {/* Story content */}
       <div
-        className="relative w-full h-full flex items-center justify-center touch-none"
+        className="relative w-full h-full flex items-center justify-center bg-black touch-none"
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
         {...swipeHandlers}
       >
+        {/* Unified Aspect Ratio Container (390:844) */}
+        <div 
+          className="relative w-full h-full max-w-[calc(100vh*(390/844))] aspect-[390/844] bg-black shadow-2xl flex items-center justify-center overflow-hidden"
+          style={{ height: '100dvh' }}
+        >
         {/* Current story */}
         <div className={`absolute inset-0 transition-all duration-500 ease-in-out transform ${
           isTransitioning && isImagePreloaded
@@ -653,12 +658,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                       const vid = e.currentTarget;
                       setVideoDuration(vid.duration);
                       if (!isTransitioning) setProgress(0);
-                      // Size the video to match how it was in the editor
+                      
+                      // Size the video relatively to ensure it fits the safe area
                       const safeW = currentStory.videoTransform!.canvasW - 24;
                       const safeH = currentStory.videoTransform!.canvasH - 24;
                       const fitScale = Math.min(safeW / vid.videoWidth, safeH / vid.videoHeight, 1);
-                      vid.style.width = `${vid.videoWidth * fitScale}px`;
-                      vid.style.height = `${vid.videoHeight * fitScale}px`;
+                      
+                      vid.style.width = `${(vid.videoWidth * fitScale / currentStory.videoTransform!.canvasW) * 100}%`;
+                      vid.style.height = 'auto'; // Maintain aspect ratio
                     }}
                     onError={(e) => console.error('Video playback error:', e)}
                   />
@@ -719,6 +726,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             )}
           </div>
         )}
+
+        </div> {/* End of Aspect Ratio Container */}
 
         {/* Clickable link stickers overlay */}
         {currentStory.stickerData && currentStory.stickerData.length > 0 && (
