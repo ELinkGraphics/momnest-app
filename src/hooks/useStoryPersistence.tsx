@@ -53,12 +53,18 @@ export const useStoryPersistence = () => {
       // Fetch viewed stories for the current user
       let viewedStoryIds: Set<string> = new Set();
       if (user) {
-        const { data: viewedData } = await supabase
+        console.log(`[useStoryPersistence] Fetching views for user: ${user.id}`);
+        const { data: viewedData, error: viewsError } = await supabase
           .from('story_views')
           .select('story_id')
           .eq('viewer_id', user.id);
         
+        if (viewsError) {
+          console.error('[useStoryPersistence] Failed to fetch story views:', viewsError);
+        }
+
         if (viewedData) {
+          console.log(`[useStoryPersistence] Found ${viewedData.length} viewed stories.`);
           viewedStoryIds = new Set(viewedData.map(v => v.story_id));
         }
       }
@@ -117,7 +123,7 @@ export const useStoryPersistence = () => {
         if (story.isOwn) {
           ownStories.push(story);
         } else {
-          const userId = activeData?.find((s: any) => s.id === story.id)?.user_id;
+          const userId = story.user.id;
           if (userId) {
             if (!userStoriesMap.has(userId)) {
               userStoriesMap.set(userId, []);
@@ -150,9 +156,11 @@ export const useStoryPersistence = () => {
       // Add other users' story circles (first story of each user)
       userStoriesMap.forEach((stories, userId) => {
         if (stories.length > 0) {
+          const allViewed = stories.every(s => s.isViewed);
+          console.log(`[useStoryPersistence] User ${userId} has ${stories.length} stories. All viewed: ${allViewed}`);
           groupedStories.push({
             ...stories[0],
-            isViewed: stories.every(s => s.isViewed),
+            isViewed: allViewed,
             allStories: stories,
           });
         }
@@ -200,8 +208,23 @@ export const useStoryPersistence = () => {
           table: 'stories'
         },
         () => {
-          // Refresh stories when any story is added, updated, or deleted
+          console.log('[useStoryPersistence] Realtime: stories table changed, refreshing...');
           fetchStories();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'story_views'
+        },
+        (payload) => {
+          // Only refresh if the view belongs to the current user
+          if (user && (payload.new as any)?.viewer_id === user.id) {
+            console.log('[useStoryPersistence] Realtime: current user viewed a story, refreshing...');
+            fetchStories();
+          }
         }
       )
       .on(
@@ -214,6 +237,7 @@ export const useStoryPersistence = () => {
         (payload) => {
           // Refresh stories when a live stream ends to remove its story
           if ((payload.new as any).status === 'ended') {
+            console.log('[useStoryPersistence] Realtime: live stream ended, refreshing...');
             fetchStories();
           }
         }
