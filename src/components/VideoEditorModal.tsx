@@ -52,9 +52,24 @@ const VideoEditorModal: React.FC<VideoEditorModalProps> = ({
   const handleLoadedMetadata = () => {
     const v = videoRef.current;
     if (!v) return;
+    console.log('[VideoEditor] Metadata loaded. Duration:', v.duration);
     setDuration(v.duration);
-    setTrimEnd(v.duration);
+    if (trimEnd === null || trimEnd === 0) {
+      setTrimEnd(v.duration);
+    }
   };
+
+  // Sync duration if video is already ready or changed
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v && v.readyState >= 1) { // HAVE_METADATA
+      console.log('[VideoEditor] Video already has metadata. Duration:', v.duration);
+      setDuration(v.duration);
+      if (trimEnd === null || trimEnd === 0) {
+        setTrimEnd(v.duration);
+      }
+    }
+  }, [videoUrl, trimEnd]);
 
   const handleTimeUpdate = () => {
     const v = videoRef.current;
@@ -90,10 +105,11 @@ const VideoEditorModal: React.FC<VideoEditorModalProps> = ({
     }
   }, [activeTab]);
 
-  // ─── Load filmstrip when thumbnail tab opens ───────────────────────────────
+  // ─── Load filmstrip when thumbnail or trim tab opens ────────────────────────
   useEffect(() => {
-    if (activeTab !== 'thumbnail' || filmstrip.length > 0) return;
+    if ((activeTab !== 'thumbnail' && activeTab !== 'trim') || filmstrip.length > 0) return;
     setLoadingFilmstrip(true);
+    console.log('[VideoEditor] Loading filmstrip for tab:', activeTab);
     sampleFrames(videoFile, 5)
       .then((frames) => {
         setFilmstrip(frames);
@@ -137,7 +153,7 @@ const VideoEditorModal: React.FC<VideoEditorModalProps> = ({
     if (videoRef.current) videoRef.current.currentTime = s;
   };
   const handleTrimEndChange = (val: number[]) => {
-    const e = Math.max(val[0], trimStart + 0.5);
+    const e = Math.max(val[0], trimStart + 0.1);
     setTrimEnd(e);
     if (videoRef.current) videoRef.current.currentTime = e;
   };
