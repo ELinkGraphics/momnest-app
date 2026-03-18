@@ -37,10 +37,10 @@ export const SellerAnalyticsEnhanced = ({ sellerId }: SellerAnalyticsEnhancedPro
 
   // Order status distribution
   const statusData = [
-    { name: 'Pending', value: orders?.filter(o => o.status === 'pending').length || 0, color: '#f59e0b' },
-    { name: 'Processing', value: orders?.filter(o => o.status === 'processing').length || 0, color: '#3b82f6' },
-    { name: 'Shipped', value: orders?.filter(o => o.status === 'shipped').length || 0, color: '#8b5cf6' },
-    { name: 'Delivered', value: orders?.filter(o => o.status === 'delivered').length || 0, color: '#10b981' },
+    { name: 'Pending', value: orders?.filter(o => o.status === 'pending').length || 0, color: 'hsl(var(--chart-1))' },
+    { name: 'Processing', value: orders?.filter(o => o.status === 'processing').length || 0, color: 'hsl(var(--chart-2))' },
+    { name: 'Shipped', value: orders?.filter(o => o.status === 'shipped').length || 0, color: 'hsl(var(--chart-3))' },
+    { name: 'Delivered', value: orders?.filter(o => o.status === 'delivered').length || 0, color: 'hsl(var(--chart-4))' },
   ];
 
   // Category performance

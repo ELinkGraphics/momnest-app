@@ -83,20 +83,20 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+    <div className="fixed inset-0 z-50 bg-[var(--black)] flex flex-col">
       {/* Top Header */}
       <div className={cn(
-        "absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 z-10",
+        "absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-[var(--black)]/80 to-transparent transition-opacity duration-300 z-10",
         showControls ? "opacity-100" : "opacity-0"
       )}>
-        <Button variant="ghost" size="icon" onClick={onClose} className="text-white hover:bg-white/10">
+        <Button variant="ghost" size="icon" onClick={onClose} className="text-[var(--white)] hover:bg-[var(--white)]/10">
           <ChevronLeft className="size-6" />
         </Button>
         <div className="flex-1 px-4 truncate">
-          <h2 className="text-white font-medium truncate">{video.title}</h2>
-          <p className="text-white/60 text-xs truncate">by {video.author.name}</p>
+          <h2 className="text-[var(--white)] font-medium truncate">{video.title}</h2>
+          <p className="text-[var(--white)]/60 text-xs truncate">by {video.author.name}</p>
         </div>
-        <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+        <Button variant="ghost" size="icon" className="text-[var(--white)] hover:bg-[var(--white)]/10">
           <Maximize className="size-5" />
         </Button>
       </div>
@@ -107,13 +107,13 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
         onClick={() => setShowControls(true)}
       >
         {isLocked ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 px-6 text-center space-y-6">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[var(--gray-900)] px-6 text-center space-y-6">
             <div className="size-20 rounded-full bg-primary/20 flex items-center justify-center mb-2">
               <Crown className="size-10 text-yellow-400" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white mb-2">Premium Content</h3>
-              <p className="text-zinc-400 text-sm max-w-xs">
+              <h3 className="text-xl font-bold text-[var(--white)] mb-2">Premium Content</h3>
+              <p className="text-[var(--gray-400)] text-sm max-w-xs">
                 This video is exclusive to circle members who have unlocked it.
               </p>
             </div>
@@ -164,7 +164,7 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
 
       {/* Bottom Controls */}
       <div className={cn(
-        "absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-300 z-10",
+        "absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[var(--black)]/80 to-transparent transition-opacity duration-300 z-10",
         showControls ? "opacity-100" : "opacity-0"
       )}>
         {/* Timeline Slider */}
@@ -184,14 +184,14 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
               variant="ghost" 
               size="icon" 
               onClick={togglePlay} 
-              className="text-white hover:bg-white/10"
+              className="text-[var(--white)] hover:bg-[var(--white)]/10"
               disabled={isLocked}
             >
               {isPlaying ? <Pause className="size-6 fill-current" /> : <Play className="size-6 fill-current" />}
             </Button>
             
             <div className="flex items-center gap-2 group/volume">
-              <Button variant="ghost" size="icon" onClick={toggleMute} className="text-white hover:bg-white/10">
+              <Button variant="ghost" size="icon" onClick={toggleMute} className="text-[var(--white)] hover:bg-[var(--white)]/10">
                 {isMuted || volume === 0 ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
               </Button>
               <div className="w-0 group-hover/volume:w-20 transition-all overflow-hidden">
@@ -209,19 +209,19 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
               </div>
             </div>
 
-            <div className="text-white/80 text-xs font-medium font-mono">
+            <div className="text-[var(--white)]/80 text-xs font-medium font-mono">
               {formatTime(currentTime)} / {formatTime(duration)}
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             {onPrevious && (
-              <Button variant="ghost" size="icon" onClick={onPrevious} className="text-white hover:bg-white/10">
+              <Button variant="ghost" size="icon" onClick={onPrevious} className="text-[var(--white)] hover:bg-[var(--white)]/10">
                 <ChevronLeft className="size-6" />
               </Button>
             )}
             {onNext && (
-              <Button variant="ghost" size="icon" onClick={onNext} className="text-white hover:bg-white/10">
+              <Button variant="ghost" size="icon" onClick={onNext} className="text-[var(--white)] hover:bg-[var(--white)]/10">
                 <ChevronRight className="size-6" />
               </Button>
             )}

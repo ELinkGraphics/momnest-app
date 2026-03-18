@@ -7,10 +7,15 @@ All colors MUST be HSL.
 */
 
 @layer base {
-  :root {
+  [data-theme="light"],
+  :root:not([data-theme="dark"]) {
     /* MomsNest Design System - Beautiful purple/pink theme */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
+    --bg: #ffffff;
+    --text: #111111;
+    --white: #ffffff;
+    --black: #000000;
 
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -101,12 +106,21 @@ All colors MUST be HSL.
     --shadow-elegant: 0 10px 30px -10px hsl(19 55% 28% / 0.25);
     --shadow-glow: 0 0 40px hsl(33 69% 59% / 0.4);
     --shadow-soft: 0 2px 20px hsl(19 55% 28% / 0.1);
+
+    --chart-1: 33 69% 59%;  /* secondary */
+    --chart-2: 210 100% 50%; /* blue */
+    --chart-3: 162 78% 46%; /* success */
+    --chart-4: 280 60% 50%; /* purple */
   }
 
-  .dark {
+  [data-theme="dark"] {
     /* Deep dark backgrounds for a premium feel */
     --background: 220 22% 7%;
     --foreground: 210 30% 93%;
+    --bg: #111111;
+    --text: #ffffff;
+    --white: #ffffff;
+    --black: #000000;
 
     /* Cards slightly lighter than background for depth */
     --card: 220 20% 11%;
@@ -165,6 +179,11 @@ All colors MUST be HSL.
     --shadow-elegant: 0 10px 30px -10px hsl(0 0% 0% / 0.6);
     --shadow-glow: 0 0 40px hsl(19 60% 45% / 0.25);
     --shadow-soft: 0 2px 20px hsl(0 0% 0% / 0.4);
+
+    --chart-1: 33 70% 55%;
+    --chart-2: 210 90% 60%;
+    --chart-3: 162 70% 42%;
+    --chart-4: 280 50% 60%;
   }
 }
 

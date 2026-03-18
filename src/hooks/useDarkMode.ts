@@ -1,28 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const STORAGE_KEY = 'momsnest-theme';
+const STORAGE_KEY = 'theme';
 
-function applyTheme(dark: boolean) {
-    if (dark) {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-    }
+function applyTheme(mode: 'light' | 'dark') {
+    document.documentElement.setAttribute('data-theme', mode);
 }
 
 export function useDarkMode() {
     const [isDark, setIsDark] = useState<boolean>(() => {
-        // Read from localStorage, defaulting to dark
         const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored !== null) return stored === 'dark';
-        // Default: dark mode on
-        return true;
+        return stored === 'dark';
     });
 
-    // Apply class on mount and whenever isDark changes
     useEffect(() => {
-        applyTheme(isDark);
-        localStorage.setItem(STORAGE_KEY, isDark ? 'dark' : 'light');
+        const mode = isDark ? 'dark' : 'light';
+        applyTheme(mode);
+        localStorage.setItem(STORAGE_KEY, mode);
     }, [isDark]);
 
     const toggle = useCallback(() => setIsDark(prev => !prev), []);
@@ -33,6 +26,6 @@ export function useDarkMode() {
 /** Call this once at app startup (before React renders) to prevent flash of light mode */
 export function initTheme() {
     const stored = localStorage.getItem(STORAGE_KEY);
-    const dark = stored !== null ? stored === 'dark' : true; // default dark
-    applyTheme(dark);
+    const theme = (stored === 'dark' || stored === 'light') ? stored : 'light';
+    applyTheme(theme as 'light' | 'dark');
 }

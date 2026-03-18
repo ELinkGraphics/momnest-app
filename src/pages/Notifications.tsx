@@ -419,7 +419,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
               <AvatarImage src={profile.avatar_url} />
               <AvatarFallback
                 className="text-xs font-semibold"
-                style={{ backgroundColor: profile.avatar_color, color: '#fff' }}
+                style={{ backgroundColor: profile.avatar_color, color: 'var(--primary-foreground)' }}
               >
                 {profile.initials}
               </AvatarFallback>

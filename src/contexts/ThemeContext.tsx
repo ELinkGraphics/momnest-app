@@ -10,9 +10,11 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+const STORAGE_KEY = 'theme';
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
-    const stored = localStorage.getItem('app-theme');
+    const stored = localStorage.getItem(STORAGE_KEY);
     return (stored as Theme) || 'light';
   });
 
@@ -22,9 +24,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove('light', 'dark');
-    root.classList.add(resolvedTheme);
-    localStorage.setItem('app-theme', theme);
+    root.setAttribute('data-theme', resolvedTheme);
+    localStorage.setItem(STORAGE_KEY, theme);
   }, [theme, resolvedTheme]);
 
   // Listen for system theme changes when in system mode
