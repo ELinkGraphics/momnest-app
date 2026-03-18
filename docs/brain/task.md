@@ -20,8 +20,9 @@
     - [x] Update `StoryViewer.tsx` to record views in `story_views` table
     - [x] Verify automatic reset when new stories are posted
     - [x] Final Verification & Push to GitHub
-- [x] Fix Story View RLS Policies
+- [x] Fix Story View RLS Policies (Refined)
     - [x] Research and Planning
-    - [x] Create migration `20260318111500_fix_story_views_rls.sql`
+    - [x] Create migration `20260318113500_refined_story_views_rls.sql` (clean recreation)
+    - [x] Simplify `StoryViewer.tsx` to use `insert()` instead of `upsert()`
     - [x] Apply migration and verify fixes
     - [x] Push to GitHub

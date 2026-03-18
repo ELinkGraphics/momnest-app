@@ -69,21 +69,27 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       if (!isOpen || !storyId || !user?.id || isOwnStory || isTransitioning) return;
 
       try {
+        console.log(`[StoryViewer] Recording view for story: ${storyId} by user: ${user.id}`);
+        
         const { error } = await supabase
           .from('story_views')
-          .upsert({ 
+          .insert({ 
             story_id: storyId, 
-            viewer_id: user.id,
-            viewed_at: new Date().toISOString()
-          }, { 
-            onConflict: 'story_id, viewer_id' 
+            viewer_id: user.id
           });
 
-        if (error && !error.message?.includes('duplicate') && !error.code?.includes('23505')) {
-          console.error('Failed to record story view:', error);
+        if (error) {
+          if (error.code === '23505') {
+            // Already viewed, ignore duplicate error
+            console.log('[StoryViewer] Story already viewed by this user.');
+          } else {
+            console.error('[StoryViewer] Failed to record story view:', error);
+          }
+        } else {
+          console.log('[StoryViewer] Successfully recorded view.');
         }
       } catch (err) {
-        console.error('Error in recordView:', err);
+        console.error('[StoryViewer] Unexpected error recording view:', err);
       }
     };
 
