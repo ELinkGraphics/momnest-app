@@ -1,24 +1,24 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import CircleDetail from '@/pages/CircleDetail';
 import { type TabKey } from '@/hooks/useAppNav';
+import { usePersistedNavState } from '@/hooks/usePersistedNavState';
 
 const CircleDetailWrapper: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabKey>("circles");
-
-  const handleTabSelect = (tab: TabKey) => {
-    setActiveTab(tab);
-  };
+  const { id } = useParams();
+  const { activeTab, setActiveTab } = usePersistedNavState();
 
   const handleOpenCreate = () => {
     navigate('/');
   };
 
+  if (!id) return null;
+
   return (
     <CircleDetail
       activeTab={activeTab}
-      onTabSelect={handleTabSelect}
+      onTabSelect={setActiveTab}
       onOpenCreate={handleOpenCreate}
     />
   );
