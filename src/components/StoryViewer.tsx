@@ -212,12 +212,13 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
   // Get unique users and group stories by user
   const getUniqueUsers = () => {
-    const userMap = new Map();
+    const userMap = new Map<string, typeof stories>();
     stories.forEach((story, index) => {
-      if (!userMap.has(story.user.name)) {
-        userMap.set(story.user.name, []);
+      const uid = story.user.id || story.user.name;
+      if (!userMap.has(uid)) {
+        userMap.set(uid, []);
       }
-      userMap.get(story.user.name).push({ ...story, originalIndex: index });
+      userMap.get(uid)!.push({ ...story, originalIndex: index } as any);
     });
     return Array.from(userMap.values());
   };
@@ -539,10 +540,11 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
               className="flex-1 h-1 bg-card/30 rounded-full overflow-hidden"
             >
               <div
-                className="h-full bg-card transition-all duration-100 ease-linear"
+                className="h-full bg-card"
                 style={{
                   width: index < storyIndex ? '100%' : 
-                         index === storyIndex ? `${progress}%` : '0%'
+                         index === storyIndex ? `${progress}%` : '0%',
+                  transition: index === storyIndex ? 'width 100ms linear' : 'none',
                 }}
               />
             </div>
