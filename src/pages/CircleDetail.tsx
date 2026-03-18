@@ -124,13 +124,21 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
     }
   };
 
+  const handleBack = () => {
+    if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate('/', { replace: true });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-[100dvh] w-full max-w-[480px] mx-auto bg-background text-foreground pb-20">
         <div className="relative">
           <Skeleton className="w-full h-48" />
           <div className="absolute top-4 left-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="icon" onClick={handleBack}>
               <ArrowLeft className="h-6 w-6" />
             </Button>
           </div>
@@ -173,7 +181,12 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           
           {/* Back Button */}
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="absolute top-4 left-4 bg-black/20 backdrop-blur-sm text-white hover:bg-black/40 z-10">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleBack} 
+            className="absolute top-4 left-4 bg-black/20 backdrop-blur-sm text-white hover:bg-black/40 z-10"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
 
