@@ -32,6 +32,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   const [transitionDirection, setTransitionDirection] = useState<'next' | 'prev'>('next');
   const [nextStoryIndex, setNextStoryIndex] = useState<number | null>(null);
   const [isImagePreloaded, setIsImagePreloaded] = useState(false);
+  
   const [isLiked, setIsLiked] = useState(false);
   const [message, setMessage] = useState('');
   const [isMessageFocused, setIsMessageFocused] = useState(false);
@@ -62,23 +63,41 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
   // Record view when story changes
   useEffect(() => {
-    if (!isOpen || !currentStoryDbId || !user?.id || isOwnStory) return;
-    supabase.from('story_views')
-      .insert({ story_id: currentStoryDbId, viewer_id: user.id })
-      .then(({ error }) => {
-        if (error) {
-          // Only log non-duplicate errors as actual errors
-          if (!error.message?.includes('duplicate') && !error.code?.includes('23505')) {
-            console.error('Failed to record story view:', error);
-          }
+    const recordView = async () => {
+      // Must be a string (UUID) to work with Supabase
+      const storyId = typeof currentStory?.id === 'string' ? currentStory.id : null;
+      if (!isOpen || !storyId || !user?.id || isOwnStory || isTransitioning) return;
+
+      try {
+        const { error } = await supabase
+          .from('story_views')
+          .upsert({ 
+            story_id: storyId, 
+            viewer_id: user.id,
+            viewed_at: new Date().toISOString()
+          }, { 
+            onConflict: 'story_id, viewer_id' 
+          });
+
+        if (error && !error.message?.includes('duplicate') && !error.code?.includes('23505')) {
+          console.error('Failed to record story view:', error);
         }
-      });
-  }, [currentStoryDbId, isOpen, user?.id, isOwnStory]);
+      } catch (err) {
+        console.error('Error in recordView:', err);
+      }
+    };
+
+    recordView();
+  }, [isOpen, currentIndex, user?.id, isOwnStory, isTransitioning, stories]);
 
   // Check if user already liked this story
   useEffect(() => {
     if (!currentStoryDbId || !user?.id) return;
-    supabase.from('story_likes').select('id').eq('story_id', currentStoryDbId).eq('user_id', user.id).maybeSingle()
+    supabase.from('story_likes')
+      .select('id')
+      .eq('story_id', currentStoryDbId)
+      .eq('user_id', user.id)
+      .maybeSingle()
       .then(({ data }) => setIsLiked(!!data));
   }, [currentStoryDbId, user?.id]);
 

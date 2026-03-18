@@ -50,6 +50,19 @@ export const useStoryPersistence = () => {
         return story.live_streams?.status === 'live';
       }) || [];
 
+      // Fetch viewed stories for the current user
+      let viewedStoryIds: Set<string> = new Set();
+      if (user) {
+        const { data: viewedData } = await supabase
+          .from('story_views')
+          .select('story_id')
+          .eq('viewer_id', user.id);
+        
+        if (viewedData) {
+          viewedStoryIds = new Set(viewedData.map(v => v.story_id));
+        }
+      }
+
       // Transform Supabase data to Story format
       const transformedStories: Story[] = activeData?.map((story: any) => {
         const stickerData = story.sticker_data || [];
@@ -84,6 +97,7 @@ export const useStoryPersistence = () => {
             to: bgGradientEntry.to,
           } : undefined,
           isOwn: story.user_id === user?.id,
+          isViewed: viewedStoryIds.has(story.id),
           isLive: story.live_streams?.status === 'live',
           liveStreamId: story.live_stream_id,
           stickerData: filteredStickerData.length > 0 ? filteredStickerData : undefined,
@@ -126,6 +140,7 @@ export const useStoryPersistence = () => {
           },
           image: ownStories.length > 0 ? ownStories[0].image : '',
           isOwn: true,
+          isViewed: ownStories.length > 0 ? ownStories.every(s => s.isViewed) : true,
           // Store all user's stories in a custom property
           allStories: ownStories.length > 0 ? ownStories : undefined,
         };
@@ -137,6 +152,7 @@ export const useStoryPersistence = () => {
         if (stories.length > 0) {
           groupedStories.push({
             ...stories[0],
+            isViewed: stories.every(s => s.isViewed),
             allStories: stories,
           });
         }
