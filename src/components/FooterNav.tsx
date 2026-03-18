@@ -66,17 +66,16 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
   const handleTabClick = (tabKey: TabKey) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    if (tabKey === 'add') {
-      if (typeof onSelect === 'function') {
-        onSelect(tabKey);
-      }
-    } else if (tabKey === 'messages') {
+    // If it's a "special" tab like 'messages' or 'safe', handle accordingly
+    if (tabKey === 'messages') {
       navigateToMessages();
-    } else {
+    } else if (tabKey === 'home' || tabKey === 'circles' || tabKey === 'ask' || tabKey === 'shop') {
       navigateToTab(tabKey);
-      if (typeof onSelect === 'function') {
-        onSelect(tabKey);
-      }
+    }
+    
+    // Notify parent of the selection
+    if (typeof onSelect === 'function') {
+      onSelect(tabKey);
     }
   };
   if (videoMode) {

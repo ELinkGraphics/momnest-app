@@ -9,16 +9,6 @@ const CircleDetailWrapper: React.FC = () => {
 
   const handleTabSelect = (tab: TabKey) => {
     setActiveTab(tab);
-    if (tab === "home") {
-      navigate('/');
-    } else if (tab === "circles") {
-      navigate('/');
-    } else if (tab === "ask") {
-      // Handle ask anonymously functionality
-      navigate('/');
-    } else if (tab === "safe") {
-      navigate('/');
-    }
   };
 
   const handleOpenCreate = () => {

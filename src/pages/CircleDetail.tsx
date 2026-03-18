@@ -173,7 +173,7 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           
           {/* Back Button */}
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="absolute top-4 left-4 bg-black/20 backdrop-blur-sm text-white hover:bg-black/40 z-10">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="absolute top-4 left-4 bg-black/20 backdrop-blur-sm text-white hover:bg-black/40 z-10">
             <ArrowLeft className="h-5 w-5" />
           </Button>
 
