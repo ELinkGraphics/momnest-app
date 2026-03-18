@@ -499,7 +499,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 bg-black z-[100] flex items-center justify-center animate-in fade-in duration-300">
       {/* Progress bars - only show current user's stories */}
       <div className="absolute top-4 left-12 right-4 flex gap-1 z-10">
         {(() => {
@@ -586,10 +586,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         {...swipeHandlers}
       >
         {/* Current story */}
-        <div className={`absolute inset-0 transition-all duration-500 ease-in-out ${
+        <div className={`absolute inset-0 transition-all duration-500 ease-in-out transform ${
           isTransitioning && isImagePreloaded
-            ? 'opacity-0 scale-[0.98]'
-            : 'opacity-100 scale-100'
+            ? (transitionDirection === 'next' ? '-translate-x-full opacity-0' : 'translate-x-full opacity-0')
+            : 'translate-x-0 opacity-100'
         }`}>
           {isCurrentVideo ? (
             <>
@@ -676,10 +676,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
         {/* Next story (for crossfade transition) */}
         {isTransitioning && nextStory && (
-          <div className={`absolute inset-0 transition-all duration-500 ease-in-out ${
+          <div className={`absolute inset-0 transition-all duration-500 ease-in-out transform ${
             isImagePreloaded
-              ? 'opacity-100 scale-100'
-              : 'opacity-0 scale-[1.02]'
+              ? 'translate-x-0 opacity-100'
+              : (transitionDirection === 'next' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0')
           }`}>
             {nextStory.mediaType === 'video' ? (
               <video src={nextStory.image} className="w-full h-full object-contain" playsInline muted />

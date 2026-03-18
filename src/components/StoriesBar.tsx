@@ -171,14 +171,28 @@ const StoriesBar: React.FC = () => {
         </div>
       </section>
 
-      <StoryViewer
-        stories={selectedStoryIndex >= 0 && stories[selectedStoryIndex]?.allStories
-          ? stories[selectedStoryIndex].allStories!
-          : stories.filter(story => !story.isOwn || (story.allStories && story.allStories.length > 0))}
-        initialIndex={0}
-        isOpen={isStoryViewerOpen}
-        onClose={() => { setIsStoryViewerOpen(false); refreshStories(); }}
-      />
+      {(() => {
+        const allUserStories = stories
+          .filter(s => s.allStories && s.allStories.length > 0)
+          .flatMap(s => s.allStories!);
+        
+        // Find the index of the first story of the selected user group in the flattened array
+        let initialFlatIndex = 0;
+        if (selectedStoryIndex >= 0 && stories[selectedStoryIndex]) {
+          const selectedUserId = stories[selectedStoryIndex].user.id;
+          initialFlatIndex = allUserStories.findIndex(s => s.user.id === selectedUserId);
+          if (initialFlatIndex === -1) initialFlatIndex = 0;
+        }
+
+        return (
+          <StoryViewer
+            stories={allUserStories}
+            initialIndex={initialFlatIndex}
+            isOpen={isStoryViewerOpen}
+            onClose={() => { setIsStoryViewerOpen(false); refreshStories(); }}
+          />
+        );
+      })()}
 
       <CreateStoryModal
         isOpen={isCreateStoryOpen}
