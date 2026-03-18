@@ -6,11 +6,11 @@ The Circle Detail page currently experiences "stuck" navigation where the back b
 
 ### [MODIFY] [FooterNav](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/FooterNav.tsx)
 
-- Update `handleTabClick` to prioritize `navigateToTab` and ensure `onSelect` only handles internal state without triggering redundant navigations.
+- Update [handleTabClick](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/FooterNav.tsx#66-82) to prioritize `navigateToTab` and ensure `onSelect` only handles internal state without triggering redundant navigations.
 
 ### [MODIFY] [CircleDetailWrapper](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CircleDetailWrapper.tsx)
 
-- Refactor `handleTabSelect` to simplify logic and move the responsibility of state management to the router where possible.
+- Refactor [handleTabSelect](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/Index.tsx#71-75) to simplify logic and move the responsibility of state management to the router where possible.
 - Ensure that clicking tabs in the footer correctly unmounts the circle view.
 
 ### [MODIFY] [CircleDetail](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/CircleDetail.tsx)

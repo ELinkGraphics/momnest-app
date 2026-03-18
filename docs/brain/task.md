@@ -21,3 +21,10 @@
     - [x] Verify monetization/unlocking
     - [x] Verify playlists & autoplay
     - [x] Add documentation to `walkthrough.md`
+    - [x] Push all changes to GitHub
+- [x] Navigation Fix
+    - [x] Streamline `FooterNav` navigation
+    - [x] Remove redundant `navigate` in `CircleDetailWrapper`
+    - [x] Update `ArrowLeft` in `CircleDetail`
+    - [x] Verify fix across all navigation points
+- [x] Verification

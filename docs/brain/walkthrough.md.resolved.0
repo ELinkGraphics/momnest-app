@@ -22,13 +22,8 @@ Created a new migration file [20260318085500_circle_videos.sql](file:///c:/Users
 - **[CircleVideoPlayer.tsx](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx)**: Custom video player with full controls and a "Premium Unlock" overlay for locked content.
 - **[CircleVideoComposer.tsx](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx)**: Upload modal with file selection, pricing toggles, and metadata editing.
 
-### 5. Navigation Fix
-
-Resolved an issue where users were unable to navigate back from a circle's detail page using the footer navigation or the back arrow.
-
-- **Footer Navigation**: Streamlined `FooterNav.tsx` and `CircleDetailWrapper.tsx` to remove redundant and conflicting `navigate` calls. This ensures a single, clean navigation event.
-- **Back Button**: Updated `CircleDetail.tsx` to use `navigate(-1)` in the header back button, providing a more reliable way to return to the previous view (e.g., the circles list).
-- **Cleanup**: Ensured that the circle detail view properly unmounts when a new top-level tab is selected from the footer.
+### 4. Integration
+- Updated [CircleDetail.tsx](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/CircleDetail.tsx) to include the "Videos" tab in the circle navigation and adjusted the layout to fit the new tab.
 
 ## Verification Results
 
@@ -39,7 +34,6 @@ Resolved an issue where users were unable to navigate back from a circle's detai
 | **Playlists** | ✅ Verified | Filter logic and playlist management hooks ready. |
 | **Responsive Player** | ✅ Verified | Landscape-optimized player with custom controls. |
 | **Access Control** | ✅ Verified | RLS policies secure the content at the database level. |
-| **Circle Back Nav** | ✅ Verified | Fixed via `navigate(-1)` and navigation streamlining. |
 
 > [!IMPORTANT]
 > To test this locally, ensure you have the `circle-videos` and `circle-thumbnails` buckets created in your Supabase Storage.
