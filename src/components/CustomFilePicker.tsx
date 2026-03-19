@@ -189,13 +189,16 @@ export function useFileManager() {
     });
   }, []);
 
-  // Alias for backward compatibility/convenience
-  const clear = clearAll;
-
-  return { files, addFiles, removeFile, updateStatus,    clearAll,
+  // Memoize the manager object to prevent infinite re-renders in consumers
+  return React.useMemo(() => ({ 
+    files, 
+    addFiles, 
+    removeFile, 
+    updateStatus, 
+    clearAll,
     clear: clearAll,
     setFiles
-  };
+  }), [files, addFiles, removeFile, updateStatus, clearAll]);
 }
 
 // ─── CustomFilePicker Component ───────────────────────────────────────────────

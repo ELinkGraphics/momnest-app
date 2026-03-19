@@ -18,24 +18,17 @@ export const useVideoPlaylists = (circleId: string | undefined) => {
 
   const query = useQuery({
     queryKey: ['video-playlists', circleId],
-    queryFn: async () => {
+    queryFn: async (): Promise<VideoPlaylist[]> => {
       if (!circleId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('video_playlists' as any)
-        .select(`
-          *,
-          circle_videos(count)
-        `)
+        .select('*')
         .eq('circle_id', circleId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) as any);
 
       if (error) throw error;
-
-      return data?.map((p: any) => ({
-        ...p,
-        video_count: p.circle_videos?.[0]?.count || 0
-      })) as VideoPlaylist[];
+      return (data || []) as VideoPlaylist[];
     },
     enabled: !!circleId,
   });
@@ -46,8 +39,12 @@ export const useVideoPlaylists = (circleId: string | undefined) => {
       description?: string;
       thumbnailFile?: File;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !circleId) throw new Error('Not authenticated');
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+      
+      if (!user || !circleId) {
+        throw new Error('Not authenticated');
+      }
 
       let thumbnailUrl = null;
       if (data.thumbnailFile) {
@@ -65,7 +62,7 @@ export const useVideoPlaylists = (circleId: string | undefined) => {
         }
       }
 
-      const { data: playlist, error } = await supabase
+      const { data: playlist, error } = await (supabase
         .from('video_playlists' as any)
         .insert({
           circle_id: circleId,
@@ -75,10 +72,10 @@ export const useVideoPlaylists = (circleId: string | undefined) => {
           thumbnail_url: thumbnailUrl
         })
         .select()
-        .single();
+        .single() as any);
 
       if (error) throw error;
-      return playlist;
+      return playlist as VideoPlaylist;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['video-playlists', circleId] });

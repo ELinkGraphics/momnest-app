@@ -1,16 +1,35 @@
 import React from 'react';
-import { Play, Lock, Eye, Clock, Crown } from 'lucide-react';
+import { Play, Clock, BarChart2, Lock, MoreVertical, Edit2, Trash2, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { CircleVideo } from '@/hooks/useCircleVideos';
 import { formatDistanceToNow } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from '@/lib/utils';
 
 interface CircleVideoCardProps {
-  video: CircleVideo;
-  onClick: (video: CircleVideo) => void;
+  video: any;
+  onClick: (video: any) => void;
+  isUnlocked?: boolean;
+  isOwner?: boolean;
+  onEdit?: (video: any) => void;
+  onDelete?: (video: any) => void;
 }
 
-const CircleVideoCard: React.FC<CircleVideoCardProps> = ({ video, onClick }) => {
+export const CircleVideoCard: React.FC<CircleVideoCardProps> = ({ 
+  video, 
+  onClick, 
+  isUnlocked = false,
+  isOwner = false,
+  onEdit,
+  onDelete
+}) => {
   const isLocked = video.is_premium && !video.user_has_unlocked;
 
   return (
@@ -34,7 +53,32 @@ const CircleVideoCard: React.FC<CircleVideoCardProps> = ({ video, onClick }) => 
         {/* Overlay Badges */}
         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
         
-        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 text-white text-[10px] font-medium rounded">
+        {isOwner && (
+          <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-8 w-8 bg-black/50 hover:bg-black/70 text-white rounded-full">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-32">
+                <DropdownMenuItem onClick={() => onEdit?.(video)}>
+                  <Edit2 className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => onDelete?.(video)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+
+        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/70 text-white text-[10px] font-medium rounded">
           {video.duration || '0:00'}
         </div>
 

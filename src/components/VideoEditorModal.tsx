@@ -108,18 +108,42 @@ const VideoEditorModal: React.FC<VideoEditorModalProps> = ({
   // ─── Load filmstrip when thumbnail or trim tab opens ────────────────────────
   useEffect(() => {
     if ((activeTab !== 'thumbnail' && activeTab !== 'trim') || filmstrip.length > 0) return;
+    
+    let isMounted = true;
     setLoadingFilmstrip(true);
     console.log('[VideoEditor] Loading filmstrip for tab:', activeTab);
+    
     sampleFrames(videoFile, 5)
       .then((frames) => {
+        if (!isMounted) {
+          // If unmounted during sampling, cleanup the new blobs immediately
+          frames.forEach(f => URL.revokeObjectURL(f.url));
+          return;
+        }
         setFilmstrip(frames);
         if (!selectedThumb && frames.length > 0) {
           setSelectedThumb({ blob: frames[0].blob, url: frames[0].url });
         }
       })
       .catch(console.error)
-      .finally(() => setLoadingFilmstrip(false));
+      .finally(() => {
+        if (isMounted) setLoadingFilmstrip(false);
+      });
+      
+    return () => {
+      isMounted = false;
+    };
   }, [activeTab, videoFile]);
+
+  // Clean up all filmstrip blob URLs when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (filmstrip.length > 0) {
+        console.log('[VideoEditor] Revoking filmstrip blob URLs on unmount');
+        filmstrip.forEach(frame => URL.revokeObjectURL(frame.url));
+      }
+    };
+  }, [filmstrip]);
 
   // ─── Capture current frame as thumbnail ───────────────────────────────────
   const handleCaptureCurrent = useCallback(async () => {

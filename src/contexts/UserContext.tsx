@@ -135,6 +135,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       } else if (!getCachedProfile()) {
         setUser(null);
         setIsLoading(false);
+      } else {
+        // If we have a cached profile but no session and we are online, clear it
+        if (navigator.onLine) {
+          setUserAndCache(null);
+        }
+        setIsLoading(false);
       }
     });
 
@@ -160,6 +166,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         // Offline but had a session before — use cached profile
         setIsLoading(false);
       } else {
+        // No session found and not offline with cache — clear user to stay in sync
+        if (navigator.onLine) {
+          setUserAndCache(null);
+        }
         setIsLoading(false);
       }
     }).catch(() => {
@@ -174,7 +184,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string, isRetry = false) => {
     // If offline and we already have a cached profile, skip the network call entirely
     if (!navigator.onLine && getCachedProfile()) {
       console.log('Offline: skipping profile fetch, using cache');
@@ -257,6 +267,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             setUserAndCache(fallbackProfile);
             return;
           }
+        }
+        // If it's a network error and we haven't retried yet, try once more after a short delay
+        if (error.message?.includes('Failed to fetch') && !isRetry) {
+          console.log(`Retrying profile fetch for ${userId}...`);
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          return fetchUserProfile(userId, true);
         }
         throw error;
       }
@@ -384,6 +400,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const value: UserContextType = {
     user,
+    session,
     preferences,
     isLoading,
     error,

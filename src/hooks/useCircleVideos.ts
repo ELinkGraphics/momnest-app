@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
 export interface CircleVideo {
   id: string;
   circle_id: string;
@@ -12,205 +11,253 @@ export interface CircleVideo {
   title: string;
   description: string | null;
   is_premium: boolean;
-  price: number;
+  price: number | null;
   duration: string | null;
   views_count: number;
   created_at: string;
-  updated_at: string;
+  updated_at: string | null;
+  user_has_unlocked?: boolean;
   author: {
     name: string;
     username: string;
     avatar_url: string | null;
-    initials: string;
     avatar_color: string;
+    initials: string;
   };
-  user_has_unlocked: boolean;
-  user_has_tipped: boolean;
-  tip_count: number;
 }
-
-export const useCircleVideos = (circleId: string | undefined) => {
+export const useCircleVideos = (circleId: string) => {
   const queryClient = useQueryClient();
-
   const query = useQuery({
     queryKey: ['circle-videos', circleId],
-    queryFn: async () => {
-      if (!circleId) return [];
-
+    queryFn: async (): Promise<CircleVideo[]> => {
       const { data: { user } } = await supabase.auth.getUser();
-
       const { data, error } = await supabase
-        .from('circle_videos' as any)
+        .from('circle_videos')
         .select(`
           *,
-          profiles:user_id (
-            name,
-            username,
-            avatar_url,
-            initials,
-            avatar_color
-          )
+          profiles:user_id (name, username, avatar_url, avatar_color, initials)
         `)
         .eq('circle_id', circleId)
         .order('created_at', { ascending: false });
-
       if (error) throw error;
-
-      const videoIds = data?.map(v => v.id) || [];
-
-      const [unlocksData, tipsData] = await Promise.all([
-        user ? supabase
-          .from('video_unlocks' as any)
+      // Check unlocks for current user
+      let unlockedIds: Set<string> = new Set();
+      if (user) {
+        const { data: unlocks } = await supabase
+          .from('video_unlocks')
           .select('video_id')
-          .eq('user_id', user.id)
-          .in('video_id', videoIds) : { data: [] },
-        supabase
-          .from('circle_tips')
-          .select('video_id, tipper_id')
-          .in('video_id', videoIds)
-      ]);
-
-      const userUnlockedVideos = new Set(unlocksData.data?.map((u: any) => u.video_id) || []);
-      
-      const tipsByVideo: Record<string, { count: number; userTipped: boolean }> = {};
-      tipsData.data?.forEach(tip => {
-        if (!tip.video_id) return;
-        if (!tipsByVideo[tip.video_id]) {
-          tipsByVideo[tip.video_id] = { count: 0, userTipped: false };
+          .eq('user_id', user.id);
+        if (unlocks) {
+          unlockedIds = new Set(unlocks.map(u => u.video_id));
         }
-        tipsByVideo[tip.video_id].count++;
-        if (user && tip.tipper_id === user.id) {
-          tipsByVideo[tip.video_id].userTipped = true;
-        }
-      });
-
-      return data?.map(video => ({
-        ...video,
+      }
+      return (data || []).map((v: any) => ({
+        id: v.id,
+        circle_id: v.circle_id,
+        user_id: v.user_id,
+        playlist_id: v.playlist_id,
+        video_url: v.video_url,
+        thumbnail_url: v.thumbnail_url,
+        title: v.title,
+        description: v.description,
+        is_premium: v.is_premium ?? false,
+        price: v.price,
+        duration: v.duration,
+        views_count: v.views_count ?? 0,
+        created_at: v.created_at,
+        updated_at: v.updated_at,
+        user_has_unlocked: unlockedIds.has(v.id) || v.user_id === user?.id,
         author: {
-          name: video.profiles?.name || 'Unknown',
-          username: video.profiles?.username || 'unknown',
-          avatar_url: video.profiles?.avatar_url || null,
-          initials: video.profiles?.initials || '??',
-          avatar_color: video.profiles?.avatar_color || '#4B164C',
+          name: v.profiles?.name || 'Unknown',
+          username: v.profiles?.username || '',
+          avatar_url: v.profiles?.avatar_url,
+          avatar_color: v.profiles?.avatar_color || '#888',
+          initials: v.profiles?.initials || '??',
         },
-        user_has_unlocked: userUnlockedVideos.has(video.id),
-        tip_count: tipsByVideo[video.id]?.count || 0,
-        user_has_tipped: tipsByVideo[video.id]?.userTipped || false,
-      })) as CircleVideo[];
+      }));
     },
     enabled: !!circleId,
   });
-
   const uploadVideo = useMutation({
-    mutationFn: async (data: {
+    mutationFn: async (params: {
       videoFile: File;
       thumbnailFile?: File;
       title: string;
       description?: string;
-      isPremium: boolean;
-      price: number;
+      isPremium?: boolean;
+      price?: number;
       playlistId?: string;
-      duration?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !circleId) throw new Error('Not authenticated');
-
-      // Upload video
-      const videoExt = data.videoFile.name.split('.').pop();
-      const videoPath = `${user.id}/${Date.now()}.${videoExt}`;
-      const { error: videoError } = await supabase.storage
+      if (!user) throw new Error('Not authenticated');
+      const ts = Date.now();
+      // Upload video to circle-videos bucket using circleId as folder
+      const videoPath = `${circleId}/${ts}.mp4`;
+      const { error: videoUploadError } = await supabase.storage
         .from('circle-videos')
-        .upload(videoPath, data.videoFile);
-
-      if (videoError) throw videoError;
-
+        .upload(videoPath, params.videoFile, { cacheControl: '3600', upsert: false });
+      if (videoUploadError) {
+        console.error('Upload error:', videoUploadError);
+        throw videoUploadError;
+      }
       const { data: { publicUrl: videoUrl } } = supabase.storage
         .from('circle-videos')
         .getPublicUrl(videoPath);
-
-      // Upload thumbnail
-      let thumbnailUrl = null;
-      if (data.thumbnailFile) {
-        const thumbExt = data.thumbnailFile.name.split('.').pop();
-        const thumbPath = `${user.id}/${Date.now()}_thumb.${thumbExt}`;
+      // Upload thumbnail if provided
+      let thumbnailUrl: string | null = null;
+      if (params.thumbnailFile) {
+        const thumbPath = `${circleId}/${ts}_thumb.jpg`;
         const { error: thumbError } = await supabase.storage
-          .from('circle-thumbnails')
-          .upload(thumbPath, data.thumbnailFile);
+          .from('circle-videos')
+          .upload(thumbPath, params.thumbnailFile, { cacheControl: '3600', upsert: false });
+        if (!thumbError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('circle-videos')
+            .getPublicUrl(thumbPath);
+          thumbnailUrl = publicUrl;
+        }
+      }
+      // Insert database record
+      const { data, error } = await supabase
+        .from('circle_videos')
+        .insert({
+          circle_id: circleId,
+          user_id: user.id,
+          video_url: videoUrl,
+          thumbnail_url: thumbnailUrl,
+          title: params.title,
+          description: params.description || null,
+          is_premium: params.isPremium ?? false,
+          price: params.isPremium ? (params.price ?? 50) : null,
+          playlist_id: params.playlistId || null,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Video uploaded successfully!');
+      queryClient.invalidateQueries({ queryKey: ['circle-videos', circleId] });
+    },
+    onError: (error: any) => {
+      console.error('Upload failed:', error);
+      toast.error(error.message || 'Failed to upload video');
+    },
+  });
+  const unlockVideo = useMutation({
+    mutationFn: async (videoId: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      // Get video price
+      const { data: video } = await supabase
+        .from('circle_videos')
+        .select('price, user_id')
+        .eq('id', videoId)
+        .single();
+      if (!video || !video.price) throw new Error('Video not found or not premium');
+      // Use coin transfer
+      const { data: success, error } = await supabase.rpc('transfer_coins', {
+        _sender_id: user.id,
+        _receiver_id: video.user_id,
+        _amount: video.price,
+        _type_sent: 'tip' as any,
+        _type_received: 'tip' as any,
+        _reference_id: videoId,
+        _description: 'Video unlock',
+      });
+      if (error) throw error;
+      if (!success) throw new Error('Insufficient coins');
+      // Record unlock
+      const { error: unlockError } = await supabase
+        .from('video_unlocks')
+        .insert({ video_id: videoId, user_id: user.id, amount_paid: video.price });
+      if (unlockError) throw unlockError;
+    },
+    onSuccess: () => {
+      toast.success('Video unlocked!');
+      queryClient.invalidateQueries({ queryKey: ['circle-videos', circleId] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to unlock video');
+    },
+  });
+
+  const updateVideo = useMutation({
+    mutationFn: async (params: {
+      id: string;
+      title: string;
+      description?: string;
+      isPremium?: boolean;
+      price?: number;
+      playlistId?: string | null;
+      thumbnailFile?: File;
+    }) => {
+      let thumbnailUrl = undefined;
+      
+      if (params.thumbnailFile) {
+        const thumbPath = `${circleId}/${Date.now()}_thumb.jpg`;
+        const { error: thumbError } = await supabase.storage
+          .from('circle-videos')
+          .upload(thumbPath, params.thumbnailFile, { cacheControl: '3600', upsert: false });
         
         if (!thumbError) {
           const { data: { publicUrl } } = supabase.storage
-            .from('circle-thumbnails')
+            .from('circle-videos')
             .getPublicUrl(thumbPath);
           thumbnailUrl = publicUrl;
         }
       }
 
-      const { data: video, error } = await supabase
-        .from('circle_videos' as any)
-        .insert({
-          circle_id: circleId,
-          user_id: user.id,
-          playlist_id: data.playlistId || null,
-          video_url: videoUrl,
-          thumbnail_url: thumbnailUrl,
-          title: data.title,
-          description: data.description || null,
-          is_premium: data.isPremium,
-          price: data.price,
-          duration: data.duration || null,
+      const { data, error } = await supabase
+        .from('circle_videos')
+        .update({
+          title: params.title,
+          description: params.description || null,
+          is_premium: params.isPremium ?? false,
+          price: params.isPremium ? (params.price ?? 50) : null,
+          playlist_id: params.playlistId || null,
+          ...(thumbnailUrl && { thumbnail_url: thumbnailUrl }),
+          updated_at: new Date().toISOString(),
         })
+        .eq('id', params.id)
         .select()
         .single();
 
       if (error) throw error;
-      return video;
+      return data;
     },
     onSuccess: () => {
+      toast.success('Video updated!');
       queryClient.invalidateQueries({ queryKey: ['circle-videos', circleId] });
-      toast.success('Video uploaded successfully!');
     },
-    onError: (error) => {
-      console.error('Upload error:', error);
-      toast.error('Failed to upload video');
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update video');
     }
   });
 
-  const unlockVideo = useMutation({
+  const deleteVideo = useMutation({
     mutationFn: async (videoId: string) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { data: video } = await supabase
-        .from('circle_videos' as any)
-        .select('price')
-        .eq('id', videoId)
-        .single();
-
-      if (!video) throw new Error('Video not found');
-
       const { error } = await supabase
-        .from('video_unlocks' as any)
-        .insert({
-          video_id: videoId,
-          user_id: user.id,
-          amount_paid: video.price
-        });
-
+        .from('circle_videos')
+        .delete()
+        .eq('id', videoId);
       if (error) throw error;
     },
     onSuccess: () => {
+      toast.success('Video deleted');
       queryClient.invalidateQueries({ queryKey: ['circle-videos', circleId] });
-      toast.success('Video unlocked!');
     },
-    onError: (error) => {
-      console.error('Unlock error:', error);
-      toast.error('Failed to unlock video');
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to delete video');
     }
   });
 
   return {
     ...query,
     uploadVideo,
-    unlockVideo
+    unlockVideo,
+    updateVideo,
+    deleteVideo,
   };
 };

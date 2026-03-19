@@ -184,6 +184,15 @@ All colors MUST be HSL.
     --chart-2: 210 90% 60%;
     --chart-3: 162 70% 42%;
     --chart-4: 280 50% 60%;
+
+    /* Premium Player System */
+    --player-bg: #070709;
+    --player-surface: #121214;
+    --player-card: #1a1a1d;
+    --player-accent: #9b8fff;
+    --player-gold: #f5c842;
+    --player-gold-dim: rgba(245,200,66,0.12);
+    --player-border: rgba(255,255,255,0.08);
   }
 }
 

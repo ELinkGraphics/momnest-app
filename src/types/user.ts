@@ -1,4 +1,5 @@
 // User data types for the application
+import { Session } from '@supabase/supabase-js';
 
 export interface UserStats {
   followers: number;
@@ -49,6 +50,7 @@ export interface UserPreferences {
 
 export interface UserContextType {
   user: UserProfile | null;
+  session: Session | null;
   preferences: UserPreferences;
   isLoading: boolean;
   error: string | null;

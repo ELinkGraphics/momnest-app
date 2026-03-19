@@ -116,11 +116,15 @@ export const sampleFrames = (
           }
         }, 'image/jpeg', 0.75);
       } catch (err) {
+        URL.revokeObjectURL(srcUrl);
         reject(err);
       }
     };
 
-    video.onerror = () => reject(new Error('Error loading video'));
+    video.onerror = () => {
+      URL.revokeObjectURL(srcUrl);
+      reject(new Error('Error loading video'));
+    };
   });
 };
 

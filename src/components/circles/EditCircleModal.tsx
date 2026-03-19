@@ -43,14 +43,16 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
   const coverFile = coverManager.files[0]?.file as File | undefined;
   const coverPreview = coverManager.files[0]?.url;
 
-  // Update state when circle data changes
+  // Update state when circle data changes or modal opens
   useEffect(() => {
+    if (!open) return;
+    
     setName(circle.name);
     setDescription(circle.description);
     setAboutSection(circle.about_text || '');
     setGuidelines(circle.guidelines && circle.guidelines.length > 0 ? circle.guidelines : ['']);
     
-    // Initialize managers with existing URLs
+    // Initialize managers with existing URLs only if they are empty
     if (circle.avatar_url && avatarManager.files.length === 0) {
       avatarManager.setFiles([{
         id: 'existing-avatar',
@@ -75,7 +77,9 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
         mimeType: 'image/jpeg'
       }]);
     }
-  }, [circle, avatarManager, coverManager]); // Added avatarManager, coverManager to dependencies
+    // We only want this to run when the modal is opened or the data fundamentally changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [circle.id, open]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cropperImage, setCropperImage] = useState<string | null>(null);
