@@ -150,6 +150,23 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col premium-player-container overflow-hidden h-screen w-screen">
 
+      {/* Header Controls (Above Video) */}
+      <div className="w-full p-4 flex items-center justify-between bg-background border-b border-muted/20 z-20">
+        <Button variant="ghost" size="icon" onClick={onClose} className="text-primary hover:bg-transparent">
+          <ChevronLeft className="size-8" />
+        </Button>
+        
+        <div className="flex items-center gap-3">
+          <div className="px-2 py-1 bg-primary rounded-md flex items-center gap-1.5">
+             <div className="size-1.5 rounded-full bg-white animate-blink" />
+             <span className="text-[10px] font-bold text-white uppercase tracking-tighter">LIVE</span>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} className="text-primary hover:bg-transparent">
+            <X className="size-8" />
+          </Button>
+        </div>
+      </div>
+
       {/* Video Player Section */}
       <div className="relative w-full aspect-video bg-black overflow-hidden shadow-2xl">
         {isLocked ? (
@@ -180,26 +197,6 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
               onClick={togglePlay}
               playsInline
             />
-
-            {/* Header Controls */}
-            <div className={cn(
-              "absolute top-0 left-0 right-0 p-4 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 z-10",
-              showControls ? "opacity-100" : "opacity-0 invisible"
-            )}>
-              <Button variant="ghost" size="icon" onClick={onClose} className="text-primary hover:bg-transparent">
-                <ChevronLeft className="size-8" />
-              </Button>
-              
-              <div className="flex items-center gap-3">
-                <div className="px-2 py-1 bg-primary rounded-md flex items-center gap-1.5">
-                   <div className="size-1.5 rounded-full bg-white animate-blink" />
-                   <span className="text-[10px] font-bold text-white uppercase tracking-tighter">LIVE</span>
-                </div>
-                <Button variant="ghost" size="icon" onClick={onClose} className="text-primary hover:bg-transparent">
-                  <X className="size-8" />
-                </Button>
-              </div>
-            </div>
 
             {/* Center Controls */}
             <div className={cn(

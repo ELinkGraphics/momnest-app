@@ -18,7 +18,8 @@ The `CircleVideoPlayer` has been fully integrated with real-time data, removing 
 
 ### 3. UI Refinements & User Experience
 - **Header Overhaul**: 
-  - Moved the **Back Button** to the left and **Close Button** to the right.
+  - Moved the **Back Button** and **Close Button** into a dedicated header section **above** the video player (no longer an overlay).
+  - This ensures navigation is always accessible and provides a cleaner video viewing area.
   - Styled both icons with the `primary` color for high visibility.
 - **Collapsible Elements**:
   - **Description**: Truncates long text with a "Read More" button to keep the focus on the video.
