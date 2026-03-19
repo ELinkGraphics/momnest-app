@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCircleVideos, CircleVideo } from '@/hooks/useCircleVideos';
+import { useUpload } from '@/contexts/UploadContext';
 import { useVideoPlaylists } from '@/hooks/useVideoPlaylists';
 import { Upload, X, Film, Image as ImageIcon, Loader2, Coins, Crown, Plus, Check } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
@@ -25,6 +26,10 @@ const CircleVideoComposer: React.FC<CircleVideoComposerProps> = ({
 }) => {
   const { uploadVideo, updateVideo } = useCircleVideos(circleId);
   const { data: playlists, createPlaylist } = useVideoPlaylists(circleId);
+  const { uploads } = useUpload();
+  
+  // Find if there's an active upload for this circle/video
+  const activeUpload = Object.values(uploads).find(u => u.circleId === circleId && u.status === 'uploading');
 
   const isEditing = !!videoToEdit;
 
@@ -320,23 +325,46 @@ const CircleVideoComposer: React.FC<CircleVideoComposerProps> = ({
           </div>
         </div>
         <DialogFooter className="flex-row gap-3 pt-2">
-          <Button variant="outline" className="flex-1 h-12 rounded-xl" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            className="flex-[2] h-12 rounded-xl font-bold bg-primary hover:bg-primary/90"
-            disabled={(!isEditing && !videoFile) || !title || uploadVideo.isPending || updateVideo.isPending}
-            onClick={handleSubmit}
-          >
-            {uploadVideo.isPending || updateVideo.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isEditing ? 'Updating...' : 'Publishing...'}
-              </>
-            ) : (
-              isEditing ? 'Save Changes' : 'Publish Video'
-            )}
-          </Button>
+          {activeUpload ? (
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-primary">
+                <span>Uploading to background...</span>
+                <span>{Math.round(activeUpload.progress)}%</span>
+              </div>
+              <Progress value={activeUpload.progress} className="h-2" />
+              <Button 
+                variant="ghost" 
+                className="w-full text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => onOpenChange(false)}
+              >
+                Close this window while it uploads
+              </Button>
+            </div>
+          ) : (
+            <>
+              <Button variant="outline" className="flex-1 h-12 rounded-xl" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="flex-[2] h-12 rounded-xl font-bold bg-primary hover:bg-primary/90"
+                disabled={(!isEditing && !videoFile) || !title || uploadVideo.isPending || updateVideo.isPending}
+                onClick={() => {
+                  handleSubmit();
+                  // We don't close immediately here because we want to see the "Publishing..." state for a second
+                  // but the global overlay will handle the rest.
+                }}
+              >
+                {uploadVideo.isPending || updateVideo.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isEditing ? 'Updating...' : 'Publishing...'}
+                  </>
+                ) : (
+                  isEditing ? 'Save Changes' : 'Publish Video'
+                )}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

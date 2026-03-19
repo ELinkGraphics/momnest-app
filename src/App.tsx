@@ -8,8 +8,10 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { UserProvider, useUser } from "@/contexts/UserContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { UploadProvider } from "@/contexts/UploadContext";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { AppLoader } from "@/components/AppLoader";
+import UploadProgressOverlay from "@/components/UploadProgressOverlay";
 import { NotificationPermissionPrompt } from "@/components/NotificationPermissionPrompt";
 import { IncomingHelperRequestAlert } from "@/components/safe/IncomingHelperRequestAlert";
 import { cacheManager, isFilePickerActive } from "@/utils/cacheManager";
@@ -233,20 +235,23 @@ const App = () => {
         }}
       >
         <UserProvider>
-          <CartProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <UpdateNotifier />
-              <GlobalRealtimeListener />
-              <InstallPrompt />
-              <NotificationPermissionPrompt />
-              <IncomingHelperRequestAlert />
-              <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                <AppRoutes />
-              </BrowserRouter>
-            </TooltipProvider>
-          </CartProvider>
+          <UploadProvider>
+            <CartProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <UpdateNotifier />
+                <GlobalRealtimeListener />
+                <InstallPrompt />
+                <UploadProgressOverlay />
+                <NotificationPermissionPrompt />
+                <IncomingHelperRequestAlert />
+                <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                  <AppRoutes />
+                </BrowserRouter>
+              </TooltipProvider>
+            </CartProvider>
+          </UploadProvider>
         </UserProvider>
       </PersistQueryClientProvider>
     </ThemeProvider>

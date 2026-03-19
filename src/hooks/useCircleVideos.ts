@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useUpload } from '@/contexts/UploadContext';
 export interface CircleVideo {
   id: string;
   circle_id: string;
@@ -27,6 +27,7 @@ export interface CircleVideo {
 }
 export const useCircleVideos = (circleId: string) => {
   const queryClient = useQueryClient();
+  const { addUpload, updateProgress, completeUpload } = useUpload();
   const query = useQuery({
     queryKey: ['circle-videos', circleId],
     queryFn: async (): Promise<CircleVideo[]> => {
@@ -90,51 +91,83 @@ export const useCircleVideos = (circleId: string) => {
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+      
       const ts = Date.now();
-      // Upload video to circle-videos bucket using circleId as folder
-      const videoPath = `${circleId}/${ts}.mp4`;
-      const { error: videoUploadError } = await supabase.storage
-        .from('circle-videos')
-        .upload(videoPath, params.videoFile, { cacheControl: '3600', upsert: false });
-      if (videoUploadError) {
-        console.error('Upload error:', videoUploadError);
-        throw videoUploadError;
-      }
-      const { data: { publicUrl: videoUrl } } = supabase.storage
-        .from('circle-videos')
-        .getPublicUrl(videoPath);
-      // Upload thumbnail if provided
-      let thumbnailUrl: string | null = null;
-      if (params.thumbnailFile) {
-        const thumbPath = `${circleId}/${ts}_thumb.jpg`;
-        const { error: thumbError } = await supabase.storage
+      const uploadId = `video-${circleId}-${ts}`;
+      
+      // Register upload in global context
+      addUpload({
+        id: uploadId,
+        title: params.title,
+        circleId
+      });
+
+      try {
+        // Upload video to circle-videos bucket using circleId as folder
+        const videoPath = `${circleId}/${ts}.mp4`;
+        const { error: videoUploadError } = await supabase.storage
           .from('circle-videos')
-          .upload(thumbPath, params.thumbnailFile, { cacheControl: '3600', upsert: false });
-        if (!thumbError) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('circle-videos')
-            .getPublicUrl(thumbPath);
-          thumbnailUrl = publicUrl;
+          .upload(videoPath, params.videoFile, { 
+            cacheControl: '3600', 
+            upsert: false,
+            onUploadProgress: (progress) => {
+              const percent = (progress.loaded / progress.total) * 100;
+              updateProgress(uploadId, percent);
+            }
+          });
+
+        if (videoUploadError) {
+          console.error('Upload error:', videoUploadError);
+          throw videoUploadError;
         }
+
+        const { data: { publicUrl: videoUrl } } = supabase.storage
+          .from('circle-videos')
+          .getPublicUrl(videoPath);
+
+        // Upload thumbnail if provided (no progress needed for small thumbs)
+        let thumbnailUrl: string | null = null;
+        if (params.thumbnailFile) {
+          const thumbPath = `${circleId}/${ts}_thumb.jpg`;
+          const { error: thumbError } = await supabase.storage
+            .from('circle-videos')
+            .upload(thumbPath, params.thumbnailFile, { cacheControl: '3600', upsert: false });
+          
+          if (!thumbError) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('circle-videos')
+              .getPublicUrl(thumbPath);
+            thumbnailUrl = publicUrl;
+          }
+        }
+
+        // Insert database record
+        const { data, error } = await supabase
+          .from('circle_videos')
+          .insert({
+            circle_id: circleId,
+            user_id: user.id,
+            video_url: videoUrl,
+            thumbnail_url: thumbnailUrl,
+            title: params.title,
+            description: params.description || null,
+            is_premium: params.isPremium ?? false,
+            price: params.isPremium ? (params.price ?? 50) : null,
+            playlist_id: params.playlistId || null,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        
+        // Finalize success
+        completeUpload(uploadId, true);
+        return data;
+      } catch (error: any) {
+        // Finalize error
+        completeUpload(uploadId, false, error.message);
+        throw error;
       }
-      // Insert database record
-      const { data, error } = await supabase
-        .from('circle_videos')
-        .insert({
-          circle_id: circleId,
-          user_id: user.id,
-          video_url: videoUrl,
-          thumbnail_url: thumbnailUrl,
-          title: params.title,
-          description: params.description || null,
-          is_premium: params.isPremium ?? false,
-          price: params.isPremium ? (params.price ?? 50) : null,
-          playlist_id: params.playlistId || null,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
     },
     onSuccess: () => {
       toast.success('Video uploaded successfully!');
