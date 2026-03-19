@@ -195,8 +195,8 @@ export const useCircleVideos = (circleId: string) => {
         _sender_id: user.id,
         _receiver_id: video.user_id,
         _amount: video.price,
-        _type_sent: 'tip' as any,
-        _type_received: 'tip' as any,
+        _type_sent: 'premium_unlock' as any,
+        _type_received: 'premium_earning' as any,
         _reference_id: videoId,
         _description: 'Video unlock',
       });
