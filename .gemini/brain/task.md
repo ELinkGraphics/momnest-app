@@ -12,3 +12,12 @@
 - [x] Verification & Walkthrough
     - [x] Manual verification of real-time updates
     - [x] Create walkthrough artifact
+- [x] Background Upload Progress
+    - [x] Create `UploadContext` for global state management
+    - [x] Update `useCircleVideos` to support progress events
+    - [x] Implement `UploadProgressOverlay` UI component
+    - [x] Integrate background progress in `CircleVideoComposer`
+    - [x] Final verification of persistent background upload
+- [x] Bug Fixes
+    - [x] Fix `Cannot find name 'Progress'` in `CircleVideoComposer.tsx` (missing import)
+    - [x] Fix `useQueryClient is not defined` in `useCircleVideos.ts` (missing imports)

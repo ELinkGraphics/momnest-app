@@ -1,0 +1,26 @@
+# App-Standard Video Player Alignment
+
+Align the interactive video player with the MomsNest design system (Brown/Gold/Cream) and refine the layout for a cleaner experience within the app context.
+
+## Proposed Changes
+
+### [Component] [Player Redesign](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx)
+- [DELETE] Remove the mock bottom navigation footer.
+- [MODIFY] Re-theme the player UI (Gifts, Activity Chips, Buttons) to use core app variables:
+    - Replace `--player-accent` (#9b8fff) with `--secondary` or `--primary`.
+    - Use `--bg` and `--card` for surfaces instead of hardcoded darks.
+- [MODIFY] Ensure high contrast for accessibility (WCAG compliant).
+
+### [Style] [Player CSS](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.css)
+- [MODIFY] Update variable mapping to point to the main design system tokens.
+- [MODIFY] Refrow the radial glow to use brand-compliant colors.
+
+## Verification Plan
+
+### Automated Tests
+- Build verification to ensure no TS errors.
+
+### Manual Verification
+- Verify the footer is gone.
+- Check legibility of text on various interactive elements.
+- Ensure the "Gift" button still feels like a HERO feature while using the brand color palette.

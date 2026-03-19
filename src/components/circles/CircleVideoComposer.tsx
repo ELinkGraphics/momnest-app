@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCircleVideos, CircleVideo } from '@/hooks/useCircleVideos';
 import { useUpload } from '@/contexts/UploadContext';
+import { Progress } from '@/components/ui/progress';
 import { useVideoPlaylists } from '@/hooks/useVideoPlaylists';
 import { Upload, X, Film, Image as ImageIcon, Loader2, Coins, Crown, Plus, Check } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';

@@ -1,0 +1,14 @@
+- [x] Initial Research & Font Cleanup
+    - [x] Identify primary font ('Inter')
+    - [x] Remove 'Syne' and 'DM Sans' from CSS/JSX
+    - [x] Clean up CircleVideoPlayer UI (remove iPhone header)
+- [/] Real-time Data Integration
+    - [ ] Create database migration for circle video interactions (likes, comments, stats)
+    - [ ] Develop `useCircleVideoInteractions` hook for Supabase integration
+    - [ ] Update [CircleVideoPlayer.tsx](file:///c:/Users/elink/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx) to display real-time circle info
+    - [ ] Connect like/share/comment icons to real-time data
+    - [ ] Implement collapsible description and "View all" comments
+    - [ ] Final UI Polish (icon colors, modal fit)
+- [ ] Verification & Walkthrough
+    - [ ] Manual verification of real-time updates
+    - [ ] Create walkthrough artifact

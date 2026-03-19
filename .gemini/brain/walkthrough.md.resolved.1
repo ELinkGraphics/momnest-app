@@ -1,0 +1,33 @@
+# Walkthrough: Circle Video Management & View Options
+
+I have implemented the management tools for Circle Owners and enhanced the viewing experience for members.
+
+## Core Features Implemented
+
+### 1. Video Management (Edit & Delete)
+- **Edit Video**: Owners can now click the "More" (vertical dots) icon on any video card to open the Edit modal. This allows changing the title, description, premium status, price, and playlist. Owners can also update the thumbnail.
+- **Delete Video**: A "Delete" option in the card menu triggers a confirmation dialog to prevent accidental deletion.
+- **Hook Integration**: Added `updateVideo` and `deleteVideo` mutations to [useCircleVideos](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts#28-264) with automatic cache invalidation.
+
+### 2. View Options (By Video vs. By Playlist)
+- **Toggle Control**: A new segmented control (Videos/Playlists) at the top of the video section allows users to switch between viewing all videos or exploring playlists.
+- **Playlist Grid**: The "Playlists" view shows a beautiful grid of playlist cards. Each card displays the playlist name, a thumbnail, and the number of videos it contains.
+- **Seamless Navigation**: Clicking a playlist card switches the view back to "Videos" but automatically filters the results to show only that playlist's content.
+
+### 3. Permanent Playlist Creation Fix
+- Improved the playlist creation flow in the [CircleVideoComposer](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx#20-345). 
+- Playlists are now correctly persisted to the `video_playlists` table and are immediately selectable for subsequent video uploads.
+- Fixed the dropdown logic to ensure the newly created playlist is automatically selected.
+
+## Technical Details
+
+- **Database**: Verified RLS policies for `video_playlists` and `circle_videos` to ensure owners have full management rights while members have read access.
+- **Components**: 
+  - [CircleVideoCard](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx#25-143): Now supports `isOwner` actions.
+  - [CircleVideoComposer](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx#20-345): Dual-purpose for both Upload and Edit modes.
+  - [CircleVideos](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideos.tsx#27-324): Orchestrates view modes and management state.
+
+## Visual Changes
+- **Videos Tab Header**: Added a clean search bar and a modern view toggle.
+- **Cards**: Added "More" menu and improved badge layouts.
+- **Grid Layout**: Responsive grid for both videos and playlists.

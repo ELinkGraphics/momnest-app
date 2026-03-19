@@ -1,0 +1,25 @@
+# Video Player Refinement & Interaction
+
+Refine the player's layout and interaction patterns to improve usability and brand alignment.
+
+## Proposed Changes
+
+### [Component] [Layout Fixes](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx)
+- [MODIFY] **Header**: Reposition the Back button to the far left and the Close (X) button to the far right.
+- [MODIFY] **Overlay Controls**: Change Rewind/Forward icon colors from white to `var(--primary)`.
+- [NEW] **Collapsible Description**: Implement state to toggle between a truncated summary and the full text.
+- [NEW] **Paginated Comments**: 
+    - Display initial set of comments.
+    - Add "View all comments" button.
+    - Implement mock "load more" on scroll.
+
+## Verification Plan
+
+### Automated Tests
+- Build verification.
+
+### Manual Verification
+- Verify Back/Close buttons placement.
+- Check icon contrast on the rewind/forward buttons.
+- Test description toggle (Expand/Collapse).
+- Test "View all comments" and scroll-to-load behavior.

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Clock, BarChart2, Lock, MoreVertical, Edit2, Trash2, Eye } from 'lucide-react';
+import { Play, Clock, BarChart2, Lock, MoreVertical, Edit2, Trash2, Eye, Crown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { CircleVideo } from '@/hooks/useCircleVideos';

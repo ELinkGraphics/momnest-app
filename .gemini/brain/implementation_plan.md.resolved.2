@@ -1,0 +1,43 @@
+# Circle Video Management and View Options
+
+This plan addresses video management for owners and enhanced viewing options for all users.
+
+## Proposed Changes
+
+### [Hook] useCircleVideos
+#### [MODIFY] [useCircleVideos.ts](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts)
+- Add `deleteVideo` mutation:
+  - Deletes the video record from `circle_videos`.
+  - Invalides `['circle-videos', circleId]`.
+- Add `updateVideo` mutation:
+  - Updates title, description, is_premium, price, and playlist_id.
+  - Optionally updates the thumbnail image.
+
+### [Component] CircleVideoCard
+#### [MODIFY] [CircleVideoCard.tsx](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx)
+- Add `isOwner`, `onEdit`, and `onDelete` props.
+- Show a `DropdownMenu` (triggering on a "MoreVertical" icon) with "Edit" and "Delete" actions if `isOwner` is true.
+
+### [Component] CircleVideos
+#### [MODIFY] [CircleVideos.tsx](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideos.tsx)
+- **View Toggle**: Add a `viewMode` state ('videos' | 'playlists').
+- Add a segmented control (using `Tabs` or `Button` group) to switch between "Videos" and "Playlists".
+- If `viewMode === 'playlists'`:
+  - Show a grid of Playlist Cards (new sub-component or inline).
+  - Clicking a playlist sets `activePlaylistId` and switches `viewMode` to 'videos'.
+- **Management Logic**:
+  - Add `editingVideo` state.
+  - Implement `handleDelete` with `AlertDialog` confirmation.
+  - Pass props to [CircleVideoCard](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx#13-99).
+
+### [Component] CircleVideoComposer
+#### [MODIFY] [CircleVideoComposer.tsx](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx)
+- **Edit Mode**: Add `videoToEdit` prop and populate state accordingly.
+- **Playlist Persistence Fix**: Ensure [useVideoPlaylists](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useVideoPlaylists.ts#16-110) is called correctly and that the "Create New" flow sets the newly created playlist as selected AND ensures it's persisted in the DB (already matches current logic, but I'll double-check for any RLS or state sync issues).
+
+## Verification Plan
+
+### Manual Verification
+1.  **Playlist Persistence**: Create a playlist during upload, finish upload, then open "Add Video" again and verify the playlist is still in the dropdown.
+2.  **View Toggle**: Click "By Playlist", see a grid of playlists. Click a playlist, see only videos from that playlist. Click "By Video", see all videos.
+3.  **Edit/Delete**: As owner, edit a video's title and delete a video via the card menu. Verify updates/removal.

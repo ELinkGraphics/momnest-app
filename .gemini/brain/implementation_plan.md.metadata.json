@@ -1,0 +1,6 @@
+{
+  "artifactType": "ARTIFACT_TYPE_IMPLEMENTATION_PLAN",
+  "summary": "Plan to implement global upload progress tracking for circle videos, ensuring background persistence and real-time percentage feedback.",
+  "updatedAt": "2026-03-19T14:10:20.619993200Z",
+  "version": "7"
+}

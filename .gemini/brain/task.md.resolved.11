@@ -1,0 +1,13 @@
+# Task: Interaction & Layout Refinements
+
+- [/] Planning & Infrastructure
+    - [x] Create refinement plan
+- [ ] UI Fixes: Layout & Colors
+    - [ ] Update Header: Back (Left), Close (Right)
+    - [ ] Update Controls: Change Skip icons to primary color
+- [ ] Feature: Interactive Sections
+    - [ ] Implement Collapsible Description toggle
+    - [ ] Implement "View all comments" and Load-on-scroll logic
+- [ ] Verification
+    - [ ] Build verification
+    - [ ] Verify interaction smoothnes

@@ -1,0 +1,26 @@
+# Premium Circle Video Player Redesign
+
+Transform the existing [CircleVideoPlayer](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx#16-234) into a production-grade, highly interactive mobile experience following premium design tokens.
+
+## Proposed Changes
+
+### [Component] [Player Infrastructure](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx)
+- [NEW] Comprehensive redesign of the layout to support a scrollable body below the video.
+- [NEW] Integration of `vaul` for the Gifting Bottom Sheet.
+- [NEW] CSS-based animated waveform and premium progress bar.
+
+### [Component] [UI Enhancements](file:///c:/Users/elink/./heart-lens-studio-main/index.html)
+- [MODIFY] Add `Syne` and `DM Sans` Google Fonts.
+- [MODIFY] Add global CSS variables for the new color system in `index.css`.
+
+## Verification Plan
+
+### Automated Tests
+- Build verification to ensure no TS errors in the complex UI logic.
+- Verify video control state cycles (Play/Pause/Seek).
+
+### Manual Verification
+- Test "Gift" button pulsing animation.
+- Test Bottom Sheet slide-up and selection logic.
+- Verify "Live" badge blinking.
+- Check scroll behavior on small vs large mobile viewports.

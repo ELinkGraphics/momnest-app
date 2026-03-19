@@ -1,6 +1,6 @@
 # Premium Circle Video Player - Real-time Data Integration
 
-The `CircleVideoPlayer` has been fully integrated with real-time data, removing all mock content and aligning with the MomsNest production standards.
+The [CircleVideoPlayer](file:///c:/Users/elink/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx#31-480) has been fully integrated with real-time data, removing all mock content and aligning with the MomsNest production standards.
 
 ## Key Accomplishments
 
@@ -9,7 +9,7 @@ The `CircleVideoPlayer` has been fully integrated with real-time data, removing 
   - `circle_video_likes`: Tracks unique user likes with real-time counting.
   - `circle_video_comments`: Full nested comment system with user profiles.
   - `circle_video_stats`: Atomic tracking for shares and total engagement.
-- **Supabase Real-time**: Implemented a dedicated hook `useCircleVideoInteractions` that uses Supabase's real-time subscriptions to update likes, comments, and shares instantly across all clients.
+- **Supabase Real-time**: Implemented a dedicated hook [useCircleVideoInteractions](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideoInteractions.ts#21-209) that uses Supabase's real-time subscriptions to update likes, comments, and shares instantly across all clients.
 
 ### 2. Dynamic Circle Context
 - **Circle Branding**: The player now displays the live Circle Name and verified badge.
@@ -35,9 +35,9 @@ The `CircleVideoPlayer` has been fully integrated with real-time data, removing 
 - **Full-Screen Fit**: The player modal is now explicitly styled to fit `100vw` and `100vh`, ensuring a seamless experience on all screen sizes.
 
 ### 5. Background Upload System
-- **Global Upload Tracking**: Created a centralized `UploadContext` to manage multiple concurrent video uploads across the entire application.
-- **Real-time Percentage Feedback**: Integrated Supabase Storage `onUploadProgress` to provide accurate, second-by-second upload percentages.
-- **Persistent Overlay**: Implemented a floating `UploadProgressOverlay` that remains visible even after the upload dialog is closed, fulfilling the "background" requirement.
+- **Global Upload Tracking**: Created a centralized [UploadContext](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/contexts/UploadContext.tsx#14-21) to manage multiple concurrent video uploads across the entire application.
+- **Real-time Percentage Feedback**: Integrated Supabase Storage [onUploadProgress](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts#113-117) to provide accurate, second-by-second upload percentages.
+- **Persistent Overlay**: Implemented a floating [UploadProgressOverlay](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/UploadProgressOverlay.tsx#6-67) that remains visible even after the upload dialog is closed, fulfilling the "background" requirement.
 - **Auto-Continuation**: Users can now start an upload and immediately close the window to continue browsing other features while the progress tracks in the bottom-right corner.
 - **Success/Error States**: Elegant visual feedback for completed uploads and descriptive error messages for failures.
 
@@ -56,11 +56,6 @@ The `CircleVideoPlayer` has been fully integrated with real-time data, removing 
 
 ## Verification
 - [x] Verified build completion with `npm run build`.
-- [x] Confirmed real-time subscription logic in `CircleVideoPlayer`.
+- [x] Confirmed real-time subscription logic in [CircleVideoPlayer](file:///c:/Users/elink/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx#31-480).
 - [x] Validated that all "mock" data strings have been removed.
 - [x] Checked UI alignment and back/close button positioning.
-
-## Bug Fixes (March 19, 2026)
-- **CircleVideoComposer.tsx**: Fixed missing `Progress` component import.
-- **useCircleVideos.ts**: Fixed missing `@tanstack/react-query` imports (`useQuery`, `useMutation`, `useQueryClient`).
-- **CircleVideoCard.tsx**: Fixed missing `Crown` icon import (discovered during cleanup).

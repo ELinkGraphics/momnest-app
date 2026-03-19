@@ -1,0 +1,16 @@
+# Task: Interaction & Layout Refinements
+
+- [x] Planning & Infrastructure
+    - [x] Create refinement plan
+- [x] UI Fixes: Layout & Colors
+    - [x] Update Header: Back (Left), Close (Right)
+    - [x] Update Controls: Change Skip icons to primary color
+- [x] Feature: Interactive Sections
+    - [x] Implement Collapsible Description toggle
+    - [x] Implement "View all comments" and Load-on-scroll logic
+- [x] Typography Standard
+    - [x] Standardize fonts to Inter (App Primary Font)
+    - [x] Clean up index.html and CSS
+- [x] Verification
+    - [x] Build verification
+    - [x] Verify interaction smoothness

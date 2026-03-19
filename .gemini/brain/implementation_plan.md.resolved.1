@@ -1,0 +1,46 @@
+# Video Management: Edit and Delete for Circle Owners
+
+This plan describes how to allow Circle Owners to edit and delete uploaded videos.
+
+## Proposed Changes
+
+### [Hook] useCircleVideos
+#### [MODIFY] [useCircleVideos.ts](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts)
+- Add `deleteVideo` mutation:
+  - Deletes the record from `circle_videos`.
+  - Invalides `['circle-videos', circleId]`.
+- Add `updateVideo` mutation:
+  - Updates title, description, is_premium, price, and playlist_id.
+  - Optionally updates the thumbnail if a new file is provided.
+
+### [Component] CircleVideoCard
+#### [MODIFY] [CircleVideoCard.tsx](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx)
+- Add `isOwner`, `onEdit`, and `onDelete` props.
+- Use `DropdownMenu` to provide "Edit" and "Delete" actions in the top-right corner (visible only if `isOwner`).
+
+### [Component] CircleVideoComposer
+#### [MODIFY] [CircleVideoComposer.tsx](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx)
+- Add `videoToEdit?: CircleVideo` prop.
+- Populate initial state from `videoToEdit` using `useEffect`.
+- Update [handleUpload](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx#53-75) to call `updateVideo` mutation if editing.
+
+### [Component] CircleVideos
+#### [MODIFY] [CircleVideos.tsx](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideos.tsx)
+- Add `editingVideo` state.
+- Pass `isOwner`, `onEdit`, and `onDelete` to [CircleVideoCard](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx#13-99).
+- Implement `handleDelete` with an `AlertDialog` confirmation.
+- Open [CircleVideoComposer](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx#19-294) in edit mode when `onEdit` is triggered.
+
+## Verification Plan
+
+### Manual Verification
+1.  **Delete Video**:
+    - Tap the "More" menu on a video card.
+    - Select "Delete".
+    - Confirm in the dialog.
+    - Verify the video disappears from the list and a success toast appears.
+2.  **Edit Video**:
+    - Tap "Edit" in the "More" menu.
+    - Verify the composer opens with existing video details (title, description, etc.).
+    - Change the title and save.
+    - Verify the card updates with the new title.

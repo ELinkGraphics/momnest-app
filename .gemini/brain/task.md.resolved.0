@@ -1,0 +1,7 @@
+# Task: Implement "Create Playlist" in Video Upload Flow
+
+- [/] Research current video upload and playlist logic in `CircleVideoComposer.tsx` and related hooks
+- [ ] Design the UI for the playlist dropdown with "Create New" option
+- [ ] Implement the playlist selection dropdown in `CircleVideoComposer.tsx`
+- [ ] Implement the "Create New Playlist" logic
+- [ ] Verify the implementation

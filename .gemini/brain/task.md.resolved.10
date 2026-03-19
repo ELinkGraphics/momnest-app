@@ -1,0 +1,14 @@
+# Task: App Standard Alignment
+
+- [x] Planning & Infrastructure
+    - [x] Create alignment plan
+- [x] UI Refinement: Color & Contrast
+    - [x] Update [CircleVideoPlayer.css](file:///c:/Users/elink/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.css) with app brand variables
+    - [x] Update [CircleVideoPlayer.tsx](file:///c:/Users/elink/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx) header and chip styles for contrast
+    - [x] Re-theme Gifting system (Drawer & Button) to Brown/Gold
+- [x] UI Refinement: Layout
+    - [x] Remove mock bottom navigation from [CircleVideoPlayer.tsx](file:///c:/Users/elink/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx)
+    - [x] Adjust scroll safe area now that footer is removed
+- [x] Verification
+    - [x] Build verification
+    - [x] Contrast check (Legibility)
