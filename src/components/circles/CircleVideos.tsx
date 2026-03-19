@@ -268,7 +268,7 @@ const CircleVideos: React.FC<CircleVideosProps> = ({ circle, isOwner }) => {
       {/* Video Player Overlay */}
       {selectedVideo && (
         <CircleVideoPlayer 
-          video={selectedVideo} 
+          video={videos?.find(v => v.id === selectedVideo.id) || selectedVideo} 
           circle={circle}
           onClose={() => setSelectedVideo(null)}
           onUnlock={handleUnlock}

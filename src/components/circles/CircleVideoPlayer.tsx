@@ -67,6 +67,15 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
   const [showAllComments, setShowAllComments] = useState(false);
 
   const isLocked = video.is_premium && !video.user_has_unlocked;
+  const prevWasLocked = useRef(isLocked);
+
+  useEffect(() => {
+    if (prevWasLocked.current && !isLocked && videoRef.current) {
+      videoRef.current.play();
+      setIsPlaying(true);
+    }
+    prevWasLocked.current = isLocked;
+  }, [isLocked]);
 
   const togglePlay = () => {
     if (isLocked) return;
