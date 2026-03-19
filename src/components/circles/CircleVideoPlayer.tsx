@@ -46,7 +46,6 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
-  const [showControls, setShowControls] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isGiftingOpen, setIsGiftingOpen] = useState(false);
   const [selectedGift, setSelectedGift] = useState<string>('Flower');
@@ -68,14 +67,6 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
   const [showAllComments, setShowAllComments] = useState(false);
 
   const isLocked = video.is_premium && !video.user_has_unlocked;
-
-  useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (isPlaying && showControls) {
-      timeout = setTimeout(() => setShowControls(false), 3000);
-    }
-    return () => clearTimeout(timeout);
-  }, [isPlaying, showControls]);
 
   const togglePlay = () => {
     if (isLocked) return;
@@ -201,7 +192,7 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
             {/* Center Controls */}
             <div className={cn(
               "absolute inset-0 flex items-center justify-center gap-10 transition-opacity duration-300 z-10",
-              showControls || !isPlaying ? "opacity-100" : "opacity-0 invisible"
+              !isPlaying ? "opacity-100" : "opacity-0 invisible"
             )}>
                <Button variant="ghost" size="icon" onClick={onPrevious} className="text-primary rounded-full scale-125 hover:bg-white/10">
                  <SkipBack className="size-7 fill-current" />
@@ -220,7 +211,7 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
             {/* Bottom Controls */}
             <div className={cn(
               "absolute bottom-4 left-4 right-4 p-4 rounded-2xl glass-overlay transition-opacity duration-300 z-10",
-              showControls ? "opacity-100" : "opacity-0 invisible"
+              !isPlaying ? "opacity-100" : "opacity-0 invisible"
             )}>
               <div className="flex items-center justify-between mb-2 text-[10px] font-bold text-white/80">
                 <span>{formatTime(currentTime)}</span>

@@ -22,7 +22,8 @@ The `CircleVideoPlayer` has been fully integrated with real-time data, removing 
   - This ensures navigation is always accessible and provides a cleaner video viewing area.
   - Styled both icons with the `primary` color for high visibility.
 - **Premium Overlay Aesthetics**:
-  - Implemented **Glassmorphism** for the control overlays, using `backdrop-blur` and semi-transparent backgrounds for a high-end look.
+  - Implemented **High-Transparency Glassmorphism** for the control overlays, optimizing for a clearer view while maintaining the frosted glass effect.
+  - **Dynamic Visibility Sync**: Overlays (Center and Bottom) are now perfectly synced with the video state—they appear instantly when **Paused** and hide completely when **Playing** for a distraction-free experience.
   - Refined the **video timeline** to be significantly thinner (3px track), creating a more professional and less intrusive interface.
 - **Collapsible Elements**:
   - **Description**: Truncates long text with a "Read More" button to keep the focus on the video.
