@@ -203,26 +203,26 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
               "absolute inset-0 flex items-center justify-center gap-10 transition-opacity duration-300 z-10",
               showControls || !isPlaying ? "opacity-100" : "opacity-0 invisible"
             )}>
-               <Button variant="ghost" size="icon" onClick={onPrevious} className="text-primary rounded-full scale-125">
+               <Button variant="ghost" size="icon" onClick={onPrevious} className="text-primary rounded-full scale-125 hover:bg-white/10">
                  <SkipBack className="size-7 fill-current" />
                </Button>
                <button 
                  onClick={togglePlay}
-                 className="size-16 rounded-full bg-secondary text-white flex items-center justify-center shadow-2xl transition-transform active:scale-90"
+                 className="size-16 rounded-full bg-secondary text-white flex items-center justify-center shadow-2xl transition-transform active:scale-90 glass-overlay"
                >
                  {isPlaying ? <Pause className="size-8 fill-current" /> : <Play className="size-8 fill-current ml-1" />}
                </button>
-               <Button variant="ghost" size="icon" onClick={onNext} className="text-primary rounded-full scale-125">
+               <Button variant="ghost" size="icon" onClick={onNext} className="text-primary rounded-full scale-125 hover:bg-white/10">
                  <SkipForward className="size-7 fill-current" />
                </Button>
             </div>
 
             {/* Bottom Controls */}
             <div className={cn(
-              "absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent transition-opacity duration-300 z-10",
+              "absolute bottom-4 left-4 right-4 p-4 rounded-2xl glass-overlay transition-opacity duration-300 z-10",
               showControls ? "opacity-100" : "opacity-0 invisible"
             )}>
-              <div className="flex items-center justify-between mb-3 text-[10px] font-bold text-white/60">
+              <div className="flex items-center justify-between mb-2 text-[10px] font-bold text-white/80">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
@@ -232,7 +232,7 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
                 max={duration || 100}
                 step={0.1}
                 onValueChange={handleSliderChange}
-                className="cursor-pointer mb-4"
+                className="cursor-pointer mb-4 thin-slider"
               />
 
               <div className="flex items-center justify-between">
