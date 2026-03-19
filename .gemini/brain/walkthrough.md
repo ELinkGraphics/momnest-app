@@ -1,31 +1,46 @@
-# Walkthrough: Story Upload Fix & Post UI Restoration
+# Premium Circle Video Player - Real-time Data Integration
 
-I have resolved the two main issues reported: the React hook error during story uploads and the UI regression in the post creation section.
+The `CircleVideoPlayer` has been fully integrated with real-time data, removing all mock content and aligning with the MomsNest production standards.
 
-## Changes Made
+## Key Accomplishments
 
-### 1. Fix React Error #310 in Story Upload
-- **[CreateStoryModal.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/CreateStoryModal.tsx)**: Fixed a hook violation where a conditional early return (`if (!isOpen) return null;`) was placed before several hook calls. This caused React to complain about the number of hooks changing between renders.
-- **[CustomFilePicker.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/CustomFilePicker.tsx)**: Refined the Capacitor back button listener to ensure reliable cleanup and proper typing, improving stability on Android.
+### 1. Real-time Interactions System
+- **Database Schema**: Created a robust interaction layer with the following tables:
+  - `circle_video_likes`: Tracks unique user likes with real-time counting.
+  - `circle_video_comments`: Full nested comment system with user profiles.
+  - `circle_video_stats`: Atomic tracking for shares and total engagement.
+- **Supabase Real-time**: Implemented a dedicated hook `useCircleVideoInteractions` that uses Supabase's real-time subscriptions to update likes, comments, and shares instantly across all clients.
 
-### 2. Restore Post Creation UI
-- **[CreatePost.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/pages/CreatePost.tsx)**: 
-    - Restored the "Photo" and "Video" buttons in the "Additional Options" section with a premium, modern design.
-    - Integrated `CustomFilePicker` such that these buttons trigger the selection UI while maintaining their original labels.
-    - Implemented a custom media preview grid that includes an **Edit** button for photos and a **Remove** button for all media.
-    - Integrated **[ImageCropper.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/ImageCropper.tsx)** to allow users to crop or rotate photos before posting.
+### 2. Dynamic Circle Context
+- **Circle Branding**: The player now displays the live Circle Name and verified badge.
+- **Member Awareness**: Shows the real-time member count from the `circle_stats` table.
+- **Avatar Integration**: Uses the official Circle avatar with a premium fallback mechanism.
 
-## Verification Results
+### 3. UI Refinements & User Experience
+- **Header Overhaul**: 
+  - Moved the **Back Button** to the left and **Close Button** to the right.
+  - Styled both icons with the `primary` color for high visibility.
+- **Collapsible Elements**:
+  - **Description**: Truncates long text with a "Read More" button to keep the focus on the video.
+  - **Comments**: Shows initial top comments with a "View all" expansion feature.
+- **Overlay Polish**:
+  - Rewind/Forward icons are now styled with the `primary` color on a clean white background.
+  - Removed simulated iPhone headers and corner circular backgrounds for a native app feel.
+- **Full-Screen Fit**: The player modal is now explicitly styled to fit `100vw` and `100vh`, ensuring a seamless experience on all screen sizes.
 
-### Build Verification
-- Ran `npm run build` and it completed successfully, ensuring no lint or type errors were introduced.
+### 4. Interactive Gifting Prototyping
+- Integrated a premium **Gift Bottom Sheet** (Drawer) for supporting creators.
+- Added support for multiple gift types with dynamic price points and success states.
 
-### UI Review
-- The post creation page now features prominent "Photo" and "Video" buttons.
-- Selecting an image displays a preview with an "Edit" Pencil icon.
-- Tapping the Pencil icon opens the full Image Cropper modal.
-- Voice notes and location features remain fully functional with updated styling.
+## Files Modified/Created
 
-## Next Steps
-- Users should test the story upload flow to confirm the React error is resolved.
-- Verify the cropping functionality in the post creation flow.
+- [20260319110000_circle_video_interactions.sql](file:///c:/Users/elink/./heart-lens-studio-main/supabase/migrations/20260319110000_circle_video_interactions.sql): [NEW] Database schema.
+- [useCircleVideoInteractions.ts](file:///c:/Users/elink/./heart-lens-studio-main/src/hooks/useCircleVideoInteractions.ts): [NEW] Real-time data hook.
+- [CircleVideoPlayer.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx): Integrated live data and updated UI layouts.
+- [CircleVideos.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideos.tsx): Updated to pass circle context to the player.
+
+## Verification
+- [x] Verified build completion with `npm run build`.
+- [x] Confirmed real-time subscription logic in `CircleVideoPlayer`.
+- [x] Validated that all "mock" data strings have been removed.
+- [x] Checked UI alignment and back/close button positioning.

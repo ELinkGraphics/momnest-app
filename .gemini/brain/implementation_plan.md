@@ -1,26 +1,42 @@
-# Bug Fix: Story Upload Error & Post UI Restoration
+# Real-time Circle Video Player Integration
 
-## Problem Description
-1. **Story Upload Error**: A minified React error #310 ("Rendered more hooks than during the previous render") occurs when attempting to upload a story. This likely stems from a conditional hook or an early return in `CustomFilePicker.tsx` or its usage in `StoryEditor.tsx`.
-2. **Post UI Regression**: The post creation UI has been replaced by a generic "Add File" button. The user wants to restore the original UI (with edit functionality) and only use `CustomFilePicker` when clicking the photo or video buttons.
+Transition the Circle Video Player from mock data to real-time data from Supabase, ensuring all interactions (likes, comments, shares) are live and correctly attributed to the circle.
+
+## User Review Required
+
+> [!IMPORTANT]
+> This update involves creating new database tables for `circle_video_likes` and `circle_video_comments` as the generic `video_likes` table is linked specifically to the main `videos` feed.
 
 ## Proposed Changes
 
-### 1. Fix React Error #310
-- **[MODIFY] [CreateStoryModal.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/CreateStoryModal.tsx)**
-  - Move `if (!isOpen) return null;` to after all hook calls (useState, useEffect, useFileManager) to satisfy the Rules of Hooks.
-- **[MODIFY] [CustomFilePicker.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/CustomFilePicker.tsx)**
-  - Fix the broken Capacitor back button listener logic (ensure `listenerHandle` is correctly typed and cleaned up).
-  - Clean up `any` types that remain.
+### [Database] [Interactions Schema](file:///c:/Users/elink/./heart-lens-studio-main/supabase/migrations/20260319110000_circle_video_interactions.sql) [NEW]
+- **Tables**: Create `circle_video_likes`, `circle_video_comments`, and `circle_video_stats`.
+- **Policies**: Set up Row Level Security (RLS) for public read and authenticated write.
+- **Atomic Increments**: Add SQL functions for count updates.
 
-### 2. Restore Post Creation UI
-- **[MODIFY] [CreatePost.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/pages/CreatePost.tsx)**
-  - Restore "Photo" and "Video" buttons in the "Additional Options" section.
-  - Wrap these buttons with `CustomFilePicker` to trigger the selection UI.
-  - Re-implement a custom preview list that includes an "Edit" button (using `ImageCropper`) if the user wants to crop a photo before posting.
-  - Ensure `selectedMedia` and `fileManager` are harmonized.
+### [Hooks] [useCircleVideoInteractions](file:///c:/Users/elink/./heart-lens-studio-main/src/hooks/useCircleVideoInteractions.ts) [NEW]
+- **Functional Hooks**: `useVideoLikes`, `useVideoComments`, and `useVideoStats`.
+- **Mutations**: `toggleLike`, `addComment`, and `incrementShare`.
+- **Real-time**: Integration with `supabase.channel` for live listener updates.
+
+### [Component] [CircleVideoPlayer](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx) [MODIFY]
+- **Dynamic Header**: Display `circle.name` and member count.
+- **Styled Icons**: Update Back and Close button colors to `var(--primary)` and strip background overlays.
+- **Interactions Layer**:
+    - Bind Like/Comment/Share buttons to the new hooks.
+    - Remove all hardcoded mock comments.
+- **Layout Adjustments**:
+    - Ensure full-screen modal fit.
+    - Implement collapsible "Read more" for video descriptions.
+    - Implement "View all" toggle for comments.
 
 ## Verification Plan
+
+### Automated Tests
+- Build verification (`npm run build`).
+- Verify Supabase real-time payloads in the Network tab.
+
 ### Manual Verification
-1. **Story Upload**: Open the story editor, add a sticker/image, and verify it uploads without the React error.
-2. **Post Creation**: Open the post creation modal. Verify it looks as it did before (multi-step or specific buttons). Click "Photo/Video" and verify the `CustomFilePicker` opens. Verify editing (if applicable) still works.
+- **Cross-session testing**: Verify that clicking "Like" in one browser instance updates the count and state in another instance instantly.
+- **Pagination**: Verify that "View all comments" loads the full list correctly.
+- **UI Consistency**: Ensure Back/Close buttons match the app's primary theme.
