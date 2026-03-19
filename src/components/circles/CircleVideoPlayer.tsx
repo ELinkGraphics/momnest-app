@@ -210,31 +210,37 @@ const CircleVideoPlayer: React.FC<CircleVideoPlayerProps> = ({
 
             {/* Bottom Controls */}
             <div className={cn(
-              "absolute bottom-4 left-4 right-4 p-4 rounded-2xl glass-overlay transition-opacity duration-300 z-10",
+              "absolute bottom-4 left-4 right-4 transition-opacity duration-300 z-10 flex flex-col",
               !isPlaying ? "opacity-100" : "opacity-0 invisible"
             )}>
-              <div className="flex items-center justify-between mb-2 text-[10px] font-bold text-white/80">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-              
-              <Slider
-                value={[currentTime]}
-                max={duration || 100}
-                step={0.1}
-                onValueChange={handleSliderChange}
-                className="cursor-pointer mb-4 thin-slider"
-              />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                   <button onClick={toggleMute} className="text-white/60 hover:text-white">
-                      {isMuted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
-                   </button>
+              {/* Floating Timeline Section */}
+              <div className="px-2">
+                <div className="flex items-center justify-between mb-1.5 text-[10px] font-bold text-white/90 drop-shadow-md">
+                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(duration)}</span>
                 </div>
-                <div className="flex items-center gap-4">
-                   <Settings className="size-5 text-white/60" />
-                   <Fullscreen className="size-5 text-white/60" />
+                
+                <Slider
+                  value={[currentTime]}
+                  max={duration || 100}
+                  step={0.1}
+                  onValueChange={handleSliderChange}
+                  className="cursor-pointer thin-slider"
+                />
+              </div>
+
+              {/* Controls Section (Glassmorphism) */}
+              <div className="p-4 rounded-2xl glass-overlay">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                     <button onClick={toggleMute} className="text-white/70 hover:text-white transition-colors">
+                        {isMuted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
+                     </button>
+                  </div>
+                  <div className="flex items-center gap-4">
+                     <Settings className="size-5 text-white/70 hover:text-white transition-colors" />
+                     <Fullscreen className="size-5 text-white/70 hover:text-white transition-colors" />
+                  </div>
                 </div>
               </div>
             </div>
