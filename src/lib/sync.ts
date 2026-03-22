@@ -56,18 +56,6 @@ export async function syncConversation(conversationId: string) {
       if (msg.seq > maxSeq) maxSeq = msg.seq;
     }
 
-    // 4. Batch write messages and high-water mark to Dexie
-    await chatDb.transaction('rw', chatDb.messages, chatDb.conversations, chatDb.read_receipts, async () => {
-      if (messagesToInsert.length > 0) {
-        await chatDb.messages.bulkPut(messagesToInsert);
-      }
-
-      // Update the high-water mark
-      await chatDb.conversations.put({
-        id: conversationId,
-        last_seen_seq: maxSeq
-      });
-
     // 5. Fetch read receipts for this conversation BEFORE opening the transaction
     const { data: receipts } = await supabase
       .from('read_receipts' as any)
