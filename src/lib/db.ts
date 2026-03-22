@@ -38,6 +38,8 @@ export class ChatDatabase extends Dexie {
   read_receipts!: Table<LocalReadReceipt, [string, string]>;
   sync_queue!: Table<SyncQueueItem, string>;
 
+  private resolveEncryptionKey!: (key: Uint8Array) => void;
+
   constructor() {
     super('MomNestChatDB');
     
@@ -55,6 +57,31 @@ export class ChatDatabase extends Dexie {
     this.version(2).stores({
       messages: 'id, conversation_id, created_at, [conversation_id+created_at], sync_status'
     });
+
+    // Defer the encryption key so Dexie blocks queries until we provide it from UserContext
+    const keyPromise = new Promise<Uint8Array>((resolve) => {
+      this.resolveEncryptionKey = resolve;
+    });
+
+    // Apply dexie-encrypted middleware BEFORE the DB officially opens
+    try {
+      // @ts-ignore - TS types for dexie-encrypted might clash with Dexie v4 Table types
+      applyEncryptionMiddleware(
+        this, 
+        keyPromise, 
+        {
+          messages: NON_INDEXED_FIELDS,
+          conversations: NON_INDEXED_FIELDS,
+          read_receipts: NON_INDEXED_FIELDS,
+        },
+        async (db) => {
+          console.warn('[Dexie] Encryption key changed or invalid, clearing local tables to prevent crash.');
+          await clearAllTables(db);
+        }
+      );
+    } catch (e) {
+      console.error('Dexie encryption middleware setup failed', e);
+    }
   }
 
   // Initialize DB with encryption key derived from session
@@ -78,25 +105,12 @@ export class ChatDatabase extends Dexie {
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const encryptionKey = new Uint8Array(hashBuffer);
 
-      // Apply dexie-encrypted middleware
-      // @ts-ignore - TS types for dexie-encrypted might clash with Dexie v4 Table types
-      applyEncryptionMiddleware(
-        this, 
-        encryptionKey, 
-        {
-          messages: NON_INDEXED_FIELDS,
-          conversations: NON_INDEXED_FIELDS,
-          read_receipts: NON_INDEXED_FIELDS,
-        },
-        async (db) => {
-          console.warn('[Dexie] Encryption key changed or invalid, clearing local tables to prevent crash.');
-          await clearAllTables(db);
-        }
-      );
+      // Release the promise, allowing Dexie to process deferred queries
+      this.resolveEncryptionKey(encryptionKey);
       
-      console.log('Chat local database encryption initialized.');
+      console.log('Chat local database encryption initialized with deferred key.');
     } catch (err) {
-      console.error('Failed to initialize local DB encryption', err);
+      console.error('Failed to initialize local DB encryption key', err);
     }
   }
 }
