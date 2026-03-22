@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { chatDb, sanitizeMessage } from '@/lib/db';
 import { syncConversation, processSyncQueue } from '@/lib/sync';
+import { useNotifications } from './useNotifications';
 
 export interface Message {
   id: string;
@@ -108,6 +109,8 @@ export const useMessages = (conversationId: string | null, userId: string | unde
     };
   }, [conversationId, queryClient]);
 
+  const { markConversationNotificationsAsRead } = useNotifications();
+  
   // Mark conversation as read when viewing (Local-First)
   useEffect(() => {
     if (!conversationId || !userId || !localMessages || localMessages.length === 0) return;
@@ -135,10 +138,23 @@ export const useMessages = (conversationId: string | null, userId: string | unde
         retry_count: 0
       });
 
-    // 3. Trigger queue processing
+      // 3. Trigger queue processing
       processSyncQueue().catch(console.error);
+
+      // 4. Mark related notifications as read on server
+      markConversationNotificationsAsRead.mutate(conversationId);
       
-      // 4. Invalidate conversations to refresh unread badges
+      // 5. Optimistic update for conversations list (immediate feedback)
+      queryClient.setQueryData(['conversations', userId], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((conv: any) => 
+          conv.conversation_id === conversationId 
+            ? { ...conv, unread_count: 0 } 
+            : conv
+        );
+      });
+      
+      // 6. Still invalidate to ensure eventual consistency
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
 

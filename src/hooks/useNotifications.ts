@@ -38,6 +38,25 @@ export const useNotifications = () => {
     },
   });
 
+  const markConversationNotificationsAsRead = useMutation({
+    mutationFn: async (conversationId: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('push_notifications')
+        .update({ read_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .is('read_at', null)
+        .filter('data->>conversation_id', 'eq', conversationId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['push-notifications'] });
+    },
+  });
+
   // Realtime is handled globally by GlobalRealtimeListener
 
   const unreadCount = notifications?.filter(n => !n.read_at).length || 0;
@@ -47,6 +66,7 @@ export const useNotifications = () => {
     isLoading,
     unreadCount,
     markAsRead,
+    markConversationNotificationsAsRead,
     error,
   };
 };
