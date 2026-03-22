@@ -1,29 +1,23 @@
-# Inline Playlist Creation in Circle Video Upload
+# Fix Coin Transaction Enum Error
 
-This plan describes how to add the ability for Circle Owners to create a new playlist directly from the video upload dropdown.
+The `unlockVideo` mutation in [useCircleVideos.ts](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts) currently uses `'tip'` as the transaction type when calling the `transfer_coins` RPC. However, `'tip'` is not a valid value for the `coin_transaction_type` enum in the database, causing an "invalid input value" error.
 
 ## Proposed Changes
 
-### [Component] CircleVideoComposer
-#### [MODIFY] [CircleVideoComposer.tsx](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx)
-- Import `Plus`, `Check`, `X` from `lucide-react`.
-- Add local state for playlist creation:
-  - `isCreatingPlaylist`: boolean
-  - `newPlaylistName`: string
-- Update the playlist selection UI:
-  - Add "Create New Playlist" as the first item in the `SelectContent`.
-  - Conditional rendering: If `isCreatingPlaylist` is true, show an `Input` with "Save" and "Cancel" buttons.
-  - If false, show the standard `Select` component.
-- Implement `handleCreatePlaylist`:
-  - Call `createPlaylist.mutateAsync` with the new name.
-  - On success, set `playlistId` to the newly created playlist ID.
-  - Reset creation states.
+### [useCircleVideos.ts](file:///c:/Users/elink/./heart-lens-studio-main/src/hooks/useCircleVideos.ts)
+
+#### [MODIFY] [useCircleVideos.ts](file:///c:/Users/elink/./heart-lens-studio-main/src/hooks/useCircleVideos.ts)
+- Update the `transfer_coins` RPC call to use correct enum values.
+- Change `_type_sent` to `'premium_unlock'`.
+- Change `_type_received` to `'premium_earning'`.
 
 ## Verification Plan
 
 ### Manual Verification
-1.  **Trigger Creation Flow**: Open the upload dialog, click the playlist dropdown, and select "+ Create New Playlist".
-2.  **Cancel Creation**: Click the "X" button next to the name input and ensure it returns to the dropdown.
-3.  **Submit Creation**: Enter a name (e.g., "Season 1"), click the "Check" button.
-4.  **Confirm Selection**: Verify the new playlist is created (toast) and automatically selected in the dropdown.
-5.  **Complete Upload**: Finish uploading a video with the new playlist and verify it's associated correctly in the database/UI.
+- **Test Video Unlock**:
+    1. Open the application.
+    2. Navigate to a premium video in a circle.
+    3. Attempt to unlock the video by paying coins.
+    4. Verify that the unlock succeeds without the "invalid input value for enum coin_transaction_type: 'tip'" error.
+- **Verify Toast Message**:
+    1. Ensure the success toast appears or the video becomes playable.

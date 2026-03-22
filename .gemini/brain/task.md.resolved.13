@@ -1,16 +1,22 @@
-# Task: Interaction & Layout Refinements
+# Fixing UI Component Errors
 
-- [x] Planning & Infrastructure
-    - [x] Create refinement plan
-- [x] UI Fixes: Layout & Colors
-    - [x] Update Header: Back (Left), Close (Right)
-    - [x] Update Controls: Change Skip icons to primary color
-- [x] Feature: Interactive Sections
-    - [x] Implement Collapsible Description toggle
-    - [x] Implement "View all comments" and Load-on-scroll logic
-- [x] Typography Standard
-    - [x] Standardize fonts to Inter (App Primary Font)
-    - [x] Clean up index.html and CSS
-- [x] Verification
-    - [x] Build verification
-    - [x] Verify interaction smoothness
+- [x] Fix `Cannot find name 'Progress'` in [CircleVideoComposer.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx)
+- [x] Fix `useQueryClient is not defined` in [useCircleVideos.ts](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts)
+- [x] Check other hooks for similar errors
+- [x] Fix coin transaction enum error (`invalid input value: 'tip'`)
+- [x] Auto-play video instantly after unlock
+- [x] Add search functionality to message view (ChatView) header
+- [x] Verify build status
+
+**Local-First Chat Architecture**
+- [x] Phase 1: Database Schema Updates
+  - [x] Add `seq` to `messages` and `current_seq` to `conversations`
+  - [x] Create database triggers for auto-incrementing `seq`
+  - [x] Create `read_receipts` table
+  - [x] Build Delta Sync RPC
+- [x] Phase 2: Client Storage Setup (Dexie)
+- [/] Phase 3: Core Sync Engine & UI Binding
+- [ ] Phase 4: Optimistic UI & Robust Sending
+- [ ] Phase 5: Storage Rules & Background Sync
+
+```

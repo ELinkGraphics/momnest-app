@@ -1,23 +1,23 @@
-- [x] Initial Research & Font Cleanup
-    - [x] Identify primary font ('Inter')
-    - [x] Remove 'Syne' and 'DM Sans' from CSS/JSX
-    - [x] Clean up CircleVideoPlayer UI (remove iPhone header)
-- [x] Real-time Data Integration
-    - [x] Create database migration for circle video interactions (likes, comments, stats)
-    - [x] Develop `useCircleVideoInteractions` hook for Supabase integration
-    - [x] Update `CircleVideoPlayer.tsx` to display real-time circle info
-    - [x] Connect like/share/comment icons to real-time data
-    - [x] Implement collapsible description and "View all" comments
-    - [x] Final UI Polish (icon colors, modal fit)
-- [x] Verification & Walkthrough
-    - [x] Manual verification of real-time updates
-    - [x] Create walkthrough artifact
-- [x] Background Upload Progress
-    - [x] Create `UploadContext` for global state management
-    - [x] Update `useCircleVideos` to support progress events
-    - [x] Implement `UploadProgressOverlay` UI component
-    - [x] Integrate background progress in `CircleVideoComposer`
-    - [x] Final verification of persistent background upload
-- [x] Bug Fixes
-    - [x] Fix `Cannot find name 'Progress'` in `CircleVideoComposer.tsx` (missing import)
-    - [x] Fix `useQueryClient is not defined` in `useCircleVideos.ts` (missing imports)
+# Fixing UI Component Errors
+
+- [x] Fix `Cannot find name 'Progress'` in `CircleVideoComposer.tsx`
+- [x] Fix `useQueryClient is not defined` in `useCircleVideos.ts`
+- [x] Check other hooks for similar errors
+- [x] Fix coin transaction enum error (`invalid input value: 'tip'`)
+- [x] Auto-play video instantly after unlock
+- [x] Add search functionality to message view (ChatView) header
+- [x] Verify build status
+
+**Local-First Chat Architecture**
+- [x] Phase 1: Database Schema Updates
+  - [x] Add `seq` to `messages` and `current_seq` to `conversations`
+  - [x] Create database triggers for auto-incrementing `seq`
+  - [x] Create `read_receipts` table
+  - [x] Build Delta Sync RPC
+- [x] Phase 2: Client Storage Setup (Dexie)
+- [x] Phase 3: Core Sync Engine & UI Binding
+- [x] Phase 4: Optimistic UI & Robust Sending
+- [x] Phase 5: Storage Rules & Background Sync
+- [x] Phase 6: UI/UX Refinement - Chat Bubble Color Adjustment
+
+```

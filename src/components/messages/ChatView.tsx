@@ -652,7 +652,7 @@ const ChatView: React.FC<ChatViewProps> = ({
                     </Avatar>
                   )}
                   <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[75%] lg:max-w-[75%] min-w-0`}>
-                    <div className={`rounded-xl shadow-sm overflow-hidden ${isOwn ? 'bg-primary/10 rounded-br-md' : 'bg-muted rounded-bl-md'
+                    <div className={`rounded-xl shadow-sm overflow-hidden ${isOwn ? 'bg-primary rounded-br-md text-white' : 'bg-muted rounded-bl-md'
                       }`}>
                       <MediaGroupMosaic
                         items={mediaItems}
@@ -746,14 +746,14 @@ const ChatView: React.FC<ChatViewProps> = ({
                   )}
 
                   <div
-                    className={`rounded-[20px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden transition-colors ${hasMedia
+                    className={`rounded-[20px] shadow-[0_4px_24px_rgba(0,0,0,0.08)] overflow-hidden transition-all duration-300 ${hasMedia
                       ? isOwn
-                        ? 'bg-gradient-to-tr from-primary/95 to-primary/85 backdrop-blur-3xl border border-white/15 text-white rounded-br-[6px]'
-                        : 'bg-card/85 dark:bg-[#1C1C1E]/85 backdrop-blur-3xl backdrop-saturate-200 border border-black/5 dark:border-white/10 text-foreground rounded-bl-[6px]'
+                        ? 'bg-primary text-white rounded-br-[6px]'
+                        : 'bg-card/95 dark:bg-[#1C1C1E]/95 backdrop-blur-3xl border border-black/5 dark:border-white/10 text-foreground rounded-bl-[6px]'
                       : isOwn
-                        ? 'bg-gradient-to-tr from-primary/95 to-primary/80 backdrop-blur-3xl border border-white/15 text-white rounded-br-[4px] px-[18px] py-[10px] tracking-[0.01em]'
-                        : 'bg-card/85 dark:bg-[#1C1C1E]/80 backdrop-blur-3xl backdrop-saturate-200 border border-black/5 dark:border-white/10 text-foreground rounded-bl-[4px] px-[18px] py-[10px] tracking-[0.01em]'
-                      } ${hasMedia ? 'p-1' : ''}`}
+                        ? 'bg-primary text-white rounded-br-[4px] px-[18px] py-[10px] tracking-[0.01em]'
+                        : 'bg-card/95 dark:bg-[#1C1C1E]/95 backdrop-blur-3xl border border-black/5 dark:border-white/10 text-foreground rounded-bl-[4px] px-[18px] py-[10px] tracking-[0.01em]'
+                      } ${hasMedia ? 'p-1' : ''} `}
                     onClick={() => {
                       if (singleMediaItem) {
                         setLightbox({ items: [singleMediaItem], index: 0 });

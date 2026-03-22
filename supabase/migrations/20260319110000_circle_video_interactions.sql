@@ -36,25 +36,32 @@ ALTER TABLE public.circle_video_comments ENABLE ROW LEVEL SECURITY;
 -- 5. Setup Policies
 
 -- circle_video_likes policies
+DROP POLICY IF EXISTS "circle_video_likes_select_policy" ON public.circle_video_likes;
 CREATE POLICY "circle_video_likes_select_policy" ON public.circle_video_likes FOR SELECT 
 USING (true);
 
+DROP POLICY IF EXISTS "circle_video_likes_insert_policy" ON public.circle_video_likes;
 CREATE POLICY "circle_video_likes_insert_policy" ON public.circle_video_likes FOR INSERT 
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "circle_video_likes_delete_policy" ON public.circle_video_likes;
 CREATE POLICY "circle_video_likes_delete_policy" ON public.circle_video_likes FOR DELETE 
 USING (auth.uid() = user_id);
 
 -- circle_video_comments policies
+DROP POLICY IF EXISTS "circle_video_comments_select_policy" ON public.circle_video_comments;
 CREATE POLICY "circle_video_comments_select_policy" ON public.circle_video_comments FOR SELECT 
 USING (true);
 
+DROP POLICY IF EXISTS "circle_video_comments_insert_policy" ON public.circle_video_comments;
 CREATE POLICY "circle_video_comments_insert_policy" ON public.circle_video_comments FOR INSERT 
 WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "circle_video_comments_update_policy" ON public.circle_video_comments;
 CREATE POLICY "circle_video_comments_update_policy" ON public.circle_video_comments FOR UPDATE 
 USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "circle_video_comments_delete_policy" ON public.circle_video_comments;
 CREATE POLICY "circle_video_comments_delete_policy" ON public.circle_video_comments FOR DELETE 
 USING (auth.uid() = user_id);
 

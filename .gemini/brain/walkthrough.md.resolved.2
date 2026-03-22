@@ -1,36 +1,25 @@
-# Premium Circle Video Player Walkthrough
+# Fix: Missing 'Progress' Component Import
 
-The [CircleVideoPlayer](file:///c:/Users/elink/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx#31-480) has been transformed into a production-grade mobile experience with high-end aesthetics and interactive features.
+The [CircleVideoComposer.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx) file was using the [Progress](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts#114-118) component but it was not imported, leading to a TypeScript error: `Cannot find name 'Progress'`.
 
-## Key Enhancements
+## Changes Made
 
-### 1. Premium Visual Identity
-- **Typography**: Integrated `Syne` for headlines and `DM Sans` for body text to create a modern, high-fashion aesthetic.
-- **Color System**: Implemented a rich dark-mode palette using `#070709` backgrounds, radial glows, and `#9b8fff` accents.
-- **Phone Shell**: Added a realistic mobile status bar and notch to frame the experience.
+### CircleVideoComposer.tsx
 
-### 2. Interactive Video Interface
-- **Animated Waveform**: Added a real-time (CSS animated) waveform at the bottom of the video for a dynamic feel.
-- **Advanced Controls**: Implemented custom play/pause buttons, skip forward/backward, and a premium progress slider.
-- **Live Overlay**: Added a pulsing "LIVE" badge and viewer count to simulate a real-time stream environment.
+- Added the missing import for the [Progress](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts#114-118) component:
+  ```tsx
+  import { Progress } from '@/components/ui/progress';
+  ```
 
-### 3. Hero Feature: Gifting System
-- **Pulsing Action**: The "GIFT" button features a constant glow and shimmer effect to draw user attention.
-- **Smooth Drawer**: Integrated a `vaul`-based bottom sheet for gift selection.
-- **Selection Grid**: Users can choose from various gifts (Flower, Rose, Diamond, etc.) with a clear coin price system.
-- **Success State**: Implemented a "Gift Sent" success animation following the transaction.
+### useCircleVideos.ts
 
-### 4. Rich Content Experience
-- **Activity Chips**: Videos now show trending status and view counts in premium styled chips.
-- **Action Bar**: Integrated quick actions (Like, Share, Save, Clip) with active states.
-- **Chapter Navigation**: Clickable timestamps in the description for easy seeking within the video.
-- **Premium Comments**: Styled comment cards with creator badges and gift visibility.
-
-## Files Modified
-- [index.html](file:///c:/Users/elink/./heart-lens-studio-main/index.html): Added Google Fonts.
-- [CircleVideoPlayer.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx): Full component rewrite.
-- [CircleVideoPlayer.css](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.css): [NEW] Dedicated style module.
+- Added missing imports from `@tanstack/react-query`:
+  ```ts
+  import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+  ```
+- Fixed the `unlockVideo` mutation to use correct `coin_transaction_type` enum values (`'premium_unlock'` and `'premium_earning'`) instead of the invalid `'tip'`.
 
 ## Verification Results
-- **Build**: `npm run build` completed successfully with no type errors in the new component.
-- **Responsiveness**: Layout uses safe-area padding and flexible grid systems optimized for mobile viewports.
+
+- Verified that [Progress](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts#114-118) is correctly imported in other files using it, such as [UploadProgressOverlay.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/UploadProgressOverlay.tsx).
+- Confirmed that [CircleVideoCard.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx) also has the correct imports for its components (e.g., `Crown`, `Badge`, [Card](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx#25-143)).

@@ -1,14 +1,22 @@
-# Task: App Standard Alignment
+# Fixing UI Component Errors
 
-- [/] Planning & Infrastructure
-    - [x] Create alignment plan
-- [ ] UI Refinement: Color & Contrast
-    - [ ] Update [CircleVideoPlayer.css](file:///c:/Users/elink/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.css) with app brand variables
-    - [ ] Update [CircleVideoPlayer.tsx](file:///c:/Users/elink/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx) header and chip styles for contrast
-    - [ ] Re-theme Gifting system (Drawer & Button) to Brown/Gold
-- [ ] UI Refinement: Layout
-    - [ ] Remove mock bottom navigation from [CircleVideoPlayer.tsx](file:///c:/Users/elink/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx)
-    - [ ] Adjust scroll safe area now that footer is removed
-- [ ] Verification
-    - [ ] Build verification
-    - [ ] Contrast check (Legibility)
+- [x] Fix `Cannot find name 'Progress'` in [CircleVideoComposer.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx)
+- [x] Fix `useQueryClient is not defined` in [useCircleVideos.ts](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts)
+- [x] Check other hooks for similar errors
+- [x] Fix coin transaction enum error (`invalid input value: 'tip'`)
+- [x] Auto-play video instantly after unlock
+- [x] Add search functionality to message view (ChatView) header
+- [x] Verify build status
+
+**Local-First Chat Architecture**
+- [ ] Phase 1: Database Schema Updates
+  - [ ] Add `seq` to `messages` and `current_seq` to `conversations`
+  - [ ] Create database triggers for auto-incrementing `seq`
+  - [ ] Create `read_receipts` table
+  - [ ] Build Delta Sync RPC
+- [ ] Phase 2: Client Storage Setup (Dexie)
+- [ ] Phase 3: Core Sync Engine & UI Binding
+- [ ] Phase 4: Optimistic UI & Robust Sending
+- [ ] Phase 5: Storage Rules & Background Sync
+
+```

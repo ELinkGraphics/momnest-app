@@ -1,44 +1,46 @@
-# Premium Circle Video Player Walkthrough
+# Fix: Missing 'Progress' Component Import
 
-The [CircleVideoPlayer](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx#31-517) has been transformed into a production-grade mobile experience with high-end aesthetics and interactive features.
+The [CircleVideoComposer.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx) file was using the [Progress](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts#114-118) component but it was not imported, leading to a TypeScript error: `Cannot find name 'Progress'`.
 
-## Key Enhancements (Aligned with MomsNest Brand)
+## Changes Made
 
-### 1. Brand Visual Identity
-- **Color System**: Re-themed the entire player to use core MomsNest design tokens: `hsl(var(--primary))` (Brown), `hsl(var(--secondary))` (Gold), and `hsl(var(--tertiary))` (Cream).
-- **Typography**: Optimized contrast for high legibility across all UI surfaces.
-- **Header & Chips**: Redesigned activity chips and status badges to match the app's standard pill-shaped styling.
+### CircleVideoComposer.tsx
 
-### 2. Streamlined Layout
-- **Footer Removal**: Eliminated the redundant bottom navigation bar, allowing the comments and description sections to breathe.
-- **Safe Area Optimization**: Adjusted padding to ensure content is fully visible on various phone aspect ratios.
+- Added the missing import for the [Progress](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts#114-118) component:
+  ```tsx
+  import { Progress } from '@/components/ui/progress';
+  ```
 
-### 2. Interactive Video Interface
-- **Animated Waveform**: Added a real-time (CSS animated) waveform at the bottom of the video for a dynamic feel.
-- **Advanced Controls**: Implemented custom play/pause buttons, skip forward/backward, and a premium progress slider.
-- **Live Overlay**: Added a pulsing "LIVE" badge and viewer count to simulate a real-time stream environment.
+### useCircleVideos.ts
 
-### 3. Interactive Content Sections
-- **Collapsible Description**: The video description now starts in a truncated state with a "Read More" fade. Clicking the area expands it to show the full text and chapters.
-- **Comment Pagination**: Displaying initial popular comments with a "View All" button. Once expanded, the system simulates infinite scrolling to load older comments.
+- Added missing imports from `@tanstack/react-query`:
+  ```ts
+  import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+  ```
+- Fixed the `unlockVideo` mutation to use correct `coin_transaction_type` enum values (`'premium_unlock'` and `'premium_earning'`) instead of the invalid `'tip'`.
 
-### 4. Refined Navigation & Controls
-- **Header Layout**: Back button positioned to the far left, and Close (X) button to the far right for better accessibility.
-### 5. Typography Standardization
-- **App Primary Font**: All player components now use the app's primary font, **Inter**, replacing previous custom fonts for full consistency with the MomsNest brand.
-- **Resource Optimization**: Removed unnecessary external font links from [index.html](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/index.html) to improve load performance.
+### CircleVideos.tsx
 
-### 4. Rich Content Experience
-- **Activity Chips**: Videos now show trending status and view counts in premium styled chips.
-- **Action Bar**: Integrated quick actions (Like, Share, Save, Clip) with active states.
-- **Chapter Navigation**: Clickable timestamps in the description for easy seeking within the video.
-- **Premium Comments**: Styled comment cards with creator badges and gift visibility.
+- Ensured `selectedVideo` stays in sync with refreshed video data by finding it in the `videos` array.
 
-## Files Modified
-- [index.html](file:///c:/Users/elink/./heart-lens-studio-main/index.html): Added Google Fonts.
-- [CircleVideoPlayer.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx): Full component rewrite.
-- [CircleVideoPlayer.css](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.css): [NEW] Dedicated style module.
+### CircleVideoPlayer.tsx
+
+- Added a `useEffect` with `useRef` to detect the transition from locked to unlocked state and trigger `videoRef.current.play()` automatically.
+
+### ChatView.tsx
+
+- Added a search icon to the conversation header that toggles a search input overlay.
+- Displayed matching messages count and navigation buttons (`ChevronUp`, `ChevronDown`).
+- Used the [scrollToMessage](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/messages/ChatView.tsx#306-314) function to instantly jump and temporarily highlight the target message being searched for.
+
+### [20260322130000_local_first_chat_sync.sql](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/supabase/migrations/20260322130000_local_first_chat_sync.sql)
+
+Implemented the foundation for local-first chat architecture:
+- Added `seq` to `messages` and `current_seq` to `conversations`.
+- Created the `set_message_seq()` trigger to guarantee monotonic sequence numbers.
+- Added the `read_receipts` table to synchronize multi-device read states using `seq`.
+- Developed `sync_messages` RPC to efficiently fetch deltas for local background syncing.
 
 ## Verification Results
-- **Build**: `npm run build` completed successfully with no type errors in the new component.
-- **Responsiveness**: Layout uses safe-area padding and flexible grid systems optimized for mobile viewports.
+- Verified that [Progress](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts#114-118) is correctly imported in other files using it, such as [UploadProgressOverlay.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/UploadProgressOverlay.tsx).
+- Confirmed that [CircleVideoCard.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx) also has the correct imports for its components (e.g., `Crown`, `Badge`, [Card](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx#25-143)).

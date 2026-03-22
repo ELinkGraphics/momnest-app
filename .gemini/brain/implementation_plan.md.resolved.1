@@ -1,46 +1,33 @@
-# Video Management: Edit and Delete for Circle Owners
+# Auto-play Video After Unlock
 
-This plan describes how to allow Circle Owners to edit and delete uploaded videos.
+The user wants the video to start playing immediately after it is successfully unlocked. Currently, the UI updates but the video remains paused.
+
+## User Review Required
+
+> [!NOTE]
+> We need to ensure that `selectedVideo` in [CircleVideos.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideos.tsx) is kept in sync with the refreshed data from the [useCircleVideos](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts#29-298) hook after invalidation.
 
 ## Proposed Changes
 
-### [Hook] useCircleVideos
-#### [MODIFY] [useCircleVideos.ts](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts)
-- Add `deleteVideo` mutation:
-  - Deletes the record from `circle_videos`.
-  - Invalides `['circle-videos', circleId]`.
-- Add `updateVideo` mutation:
-  - Updates title, description, is_premium, price, and playlist_id.
-  - Optionally updates the thumbnail if a new file is provided.
+### [CircleVideos.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideos.tsx)
 
-### [Component] CircleVideoCard
-#### [MODIFY] [CircleVideoCard.tsx](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx)
-- Add `isOwner`, `onEdit`, and `onDelete` props.
-- Use `DropdownMenu` to provide "Edit" and "Delete" actions in the top-right corner (visible only if `isOwner`).
+#### [MODIFY] [CircleVideos.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideos.tsx)
+- Synchronize `selectedVideo` with the latest video data from the `videos` array.
+- This ensures that when the query is invalidated and refetched, the [CircleVideoPlayer](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx#34-445) receives the updated `user_has_unlocked: true` property.
 
-### [Component] CircleVideoComposer
-#### [MODIFY] [CircleVideoComposer.tsx](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx)
-- Add `videoToEdit?: CircleVideo` prop.
-- Populate initial state from `videoToEdit` using `useEffect`.
-- Update [handleUpload](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx#53-75) to call `updateVideo` mutation if editing.
+### [CircleVideoPlayer.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx)
 
-### [Component] CircleVideos
-#### [MODIFY] [CircleVideos.tsx](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideos.tsx)
-- Add `editingVideo` state.
-- Pass `isOwner`, `onEdit`, and `onDelete` to [CircleVideoCard](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx#13-99).
-- Implement `handleDelete` with an `AlertDialog` confirmation.
-- Open [CircleVideoComposer](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx#19-294) in edit mode when `onEdit` is triggered.
+#### [MODIFY] [CircleVideoPlayer.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx)
+- Add a `useEffect` hook to watch for changes in `video.user_has_unlocked`.
+- When `user_has_unlocked` transition from `false` to `true`, trigger `videoRef.current.play()` and set `isPlaying` to `true`.
+- Ensure handle case where `videoRef.current` might not be immediately available (though it should be once `isLocked` is false).
 
 ## Verification Plan
 
 ### Manual Verification
-1.  **Delete Video**:
-    - Tap the "More" menu on a video card.
-    - Select "Delete".
-    - Confirm in the dialog.
-    - Verify the video disappears from the list and a success toast appears.
-2.  **Edit Video**:
-    - Tap "Edit" in the "More" menu.
-    - Verify the composer opens with existing video details (title, description, etc.).
-    - Change the title and save.
-    - Verify the card updates with the new title.
+1.  Open a premium video that is locked.
+2.  Click the "Unlock" button and pay the coins.
+3.  Verify that:
+    -   The lock overlay disappears.
+    -   The video starts playing automatically.
+    -   The play/pause button state updates to "Pause".
