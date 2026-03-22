@@ -34,14 +34,14 @@ export async function syncConversation(conversationId: string) {
       messagesToInsert.push({
         id: msg.id,
         conversation_id: msg.conversation_id,
-        sender_id: msg.sender_id,
-        content: msg.content,
+        sender_id: String(msg.sender_id),
+        content: msg.content || '',
         message_type: msg.message_type || 'text',
-        attachment_url: msg.attachment_url,
-        reply_to_id: msg.reply_to_id,
+        attachment_url: msg.attachment_url || null,
+        reply_to_id: msg.reply_to_id || null,
         created_at: msg.created_at,
         updated_at: msg.updated_at,
-        seq: msg.seq,
+        seq: Number(msg.seq),
         sync_status: 'synced'
       });
       if (msg.seq > maxSeq) maxSeq = msg.seq;

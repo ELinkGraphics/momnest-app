@@ -6,6 +6,9 @@ export interface LocalMessage {
   conversation_id: string;
   sender_id: string;
   content: string;
+  message_type?: string;
+  attachment_url?: string | null;
+  reply_to_id?: string | null;
   created_at: string;
   updated_at: string;
   seq?: number;
@@ -65,15 +68,16 @@ export class ChatDatabase extends Dexie {
 
     // Apply dexie-encrypted middleware BEFORE the DB officially opens
     try {
-      // @ts-ignore - TS types for dexie-encrypted might clash with Dexie v4 Table types
-      applyEncryptionMiddleware(
+      // @ts-ignore - TS types for dexie-encrypted might clash with Dexie 4.0 Table types
+      (applyEncryptionMiddleware as any)(
         this, 
         keyPromise, 
         {
-          messages: NON_INDEXED_FIELDS,
-          conversations: NON_INDEXED_FIELDS,
-          read_receipts: NON_INDEXED_FIELDS,
-        },
+          messages: {
+            type: 'encrypt',
+            fields: ['content', 'attachment_url', 'sender_id', 'message_type', 'reply_to_id'],
+          },
+        } as any,
         async (db) => {
           console.warn('[Dexie] Encryption key changed or invalid, clearing local tables to prevent crash.');
           await clearAllTables(db);
