@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { chatDb } from '@/lib/db';
-import { syncConversation } from '@/lib/sync';
+import { syncConversation, processSyncQueue } from '@/lib/sync';
 
 export interface Message {
   id: string;
@@ -212,27 +212,63 @@ export const useSendMessage = () => {
       attachmentUrl?: string;
       replyToId?: string;
     }) => {
+      const messageId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
       const insertData: any = {
+        id: messageId,
         conversation_id: conversationId,
         sender_id: senderId,
         content,
         message_type: messageType,
+        created_at: now,
+        updated_at: now,
       };
       if (attachmentUrl) insertData.attachment_url = attachmentUrl;
       if (replyToId) insertData.reply_to_id = replyToId;
 
-      const { data, error } = await supabase
-        .from('messages')
-        .insert(insertData)
-        .select()
-        .single();
+      // 1. Instantly write to local UI db
+      await chatDb.messages.put({
+        ...insertData,
+        sync_status: 'pending'
+      });
 
-      if (error) throw error;
-      return data;
+      // 2. Try pushing to server (if online)
+      if (navigator.onLine) {
+        const { error } = await supabase
+          .from('messages')
+          .insert(insertData);
+
+        if (error) {
+          console.warn('Server push failed, queuing locally:', error);
+          await chatDb.sync_queue.put({
+            id: messageId,
+            type: 'message_insert',
+            payload: insertData,
+            created_at: now,
+            retry_count: 0
+          });
+        } else {
+          // Success, upgrade to synced
+          await chatDb.messages.update(messageId, { sync_status: 'synced' });
+        }
+      } else {
+        // Offline: enqueue silently
+        await chatDb.sync_queue.put({
+          id: messageId,
+          type: 'message_insert',
+          payload: insertData,
+          created_at: now,
+          retry_count: 0
+        });
+      }
+
+      return insertData;
     },
     onSuccess: async (_, variables) => {
-      // Trigger local DB sync immediately so the UI updates
+      // Trigger local DB sync immediately so the queue processes
       await syncConversation(variables.conversationId);
+      processSyncQueue().catch(console.error);
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
     onError: (error) => {
