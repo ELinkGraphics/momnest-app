@@ -427,7 +427,7 @@ const CirclePostDetail: React.FC = () => {
                   post.user_has_liked ? "text-red-500" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Heart className={cn("size-5", (post.user_has_liked || (post.stats?.likes_count || 0) > 0) && "text-red-500 fill-red-500")} />
+                <Heart className={cn("size-5", post.user_has_liked && "text-red-500 fill-red-500")} />
                 <span className="text-sm">{post.stats?.likes_count || 0}</span>
               </button>
               

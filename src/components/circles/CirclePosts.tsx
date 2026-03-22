@@ -476,11 +476,10 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                           onClick={() => handleLike(post.id, post.user_has_liked)}
                           className={cn(
                             "flex-1 flex items-center justify-center gap-2 rounded-full backdrop-blur-sm px-4 py-2 text-sm font-medium text-white transition-smooth hover-scale",
-                            post.stats.likes_count > 0 ? "bg-red-500/20" : "bg-card/15 hover:bg-card/25",
-                            post.user_has_liked && "bg-red-500/30"
+                            post.user_has_liked ? "bg-red-500/30" : "bg-card/15 hover:bg-card/25"
                           )}
                         >
-                          <Heart className={cn("h-4 w-4", post.stats.likes_count > 0 && "text-red-500 fill-red-500")} />
+                          <Heart className={cn("h-4 w-4", post.user_has_liked && "text-red-500 fill-red-500")} />
                           <span>{post.stats.likes_count}</span>
                         </button>
                         <button 

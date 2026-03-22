@@ -389,7 +389,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <button onClick={handleLike} className="flex items-center gap-1.5 group" aria-label={liked ? 'Unlike' : 'Like'}>
             <Heart className={cn(
               "size-[22px] transition-all duration-300",
-              (liked || likesCount > 0) ? "fill-red-500 text-red-500" : "text-muted-foreground group-hover:text-foreground",
+              liked ? "fill-red-500 text-red-500" : "text-muted-foreground group-hover:text-foreground",
               liked && "scale-110"
             )} />
             <button onClick={(e) => { e.stopPropagation(); setShowLikersModal(true); }}>
