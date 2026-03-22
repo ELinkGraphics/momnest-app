@@ -112,9 +112,10 @@ const Notifications = () => {
     }
   };
 
-  const deleteNotification = async (id: string) => {
-    const { error } = await supabase.from('push_notifications').delete().eq('id', id);
-    if (error) toast.error('Failed to delete notification');
+  const deleteNotification = async (ids: string | string[]) => {
+    const idArray = Array.isArray(ids) ? ids : [ids];
+    const { error } = await supabase.from('push_notifications').delete().in('id', idArray);
+    if (error) toast.error('Failed to delete notifications');
   };
 
   const handleNotificationClick = (notification: any) => {
@@ -240,7 +241,46 @@ const Notifications = () => {
   const circleCount = dbNotifications.filter(n => isCircle(n.notification_type)).length;
   const mentionCount = dbNotifications.filter(n => isMention(n.notification_type)).length;
 
-  const filtered = (() => {
+  const groupMessageNotifications = (notifs: any[]) => {
+    const grouped: any[] = [];
+    const messageGroups = new Map<string, any[]>();
+
+    for (const n of notifs) {
+      if (n.notification_type === 'message' || n.notification_type === 'new_message') {
+        const data = n.data || {};
+        const senderId = data.userId || data.senderId || data.conversationId;
+        if (senderId) {
+          if (!messageGroups.has(senderId)) {
+            messageGroups.set(senderId, []);
+          }
+          messageGroups.get(senderId)!.push(n);
+        } else {
+          grouped.push(n);
+        }
+      } else {
+        grouped.push(n);
+      }
+    }
+
+    for (const [_, group] of messageGroups.entries()) {
+      group.sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime());
+      
+      const latestNotif = { ...group[0] };
+      const totalCount = group.length;
+      
+      latestNotif.body = totalCount > 1 
+        ? `Sent you ${totalCount} new messages` 
+        : `Sent you a new message`;
+      
+      latestNotif._groupItemIds = group.map(g => g.id);
+      grouped.push(latestNotif);
+    }
+
+    grouped.sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime());
+    return grouped;
+  };
+
+  const rawFiltered = (() => {
     switch (activeTab) {
       case 'unread': return dbNotifications.filter(n => !n.read_at);
       case 'social': return dbNotifications.filter(n => isSocial(n.notification_type));
@@ -249,6 +289,8 @@ const Notifications = () => {
       default: return dbNotifications;
     }
   })();
+
+  const filtered = groupMessageNotifications(rawFiltered);
 
   // ─── Render ─────────────────────────────────────────────
 
@@ -321,8 +363,20 @@ const Notifications = () => {
                     notification={notification}
                     profile={(notification.data as any)?.userId ? getProfile((notification.data as any).userId) : null}
                     onClickItem={handleNotificationClick}
-                    onMarkRead={(id) => markAsRead.mutate(id)}
-                    onDelete={deleteNotification}
+                    onMarkRead={(id) => {
+                      if (notification._groupItemIds) {
+                        notification._groupItemIds.forEach((gid: string) => markAsRead.mutate(gid));
+                      } else {
+                        markAsRead.mutate(id);
+                      }
+                    }}
+                    onDelete={(id) => {
+                      if (notification._groupItemIds) {
+                        deleteNotification(notification._groupItemIds);
+                      } else {
+                        deleteNotification(id);
+                      }
+                    }}
                     onNavigateProfile={(userId) => navigate(`/profile/${userId}`)}
                   />
                 ))}
