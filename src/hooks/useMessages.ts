@@ -1,7 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { chatDb } from '@/lib/db';
+import { syncConversation } from '@/lib/sync';
 
 export interface Message {
   id: string;
@@ -20,102 +23,84 @@ export interface Message {
 
 export const useMessages = (conversationId: string | null, userId: string | undefined) => {
   const queryClient = useQueryClient();
+  const [profileCache, setProfileCache] = useState<Record<string, any>>({});
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  const { data: messages, isLoading, error } = useQuery({
-    queryKey: ['messages', conversationId],
-    queryFn: async () => {
+  // 1. Local data stream via Dexie (Replaces network fetch)
+  const localMessages = useLiveQuery(
+    () => {
       if (!conversationId) return [];
-
-      // First get messages
-      const { data: messagesData, error: messagesError } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-
-      if (messagesError) throw messagesError;
-      if (!messagesData || messagesData.length === 0) return [];
-
-      // Get unique sender IDs
-      const senderIds = [...new Set(messagesData.map(m => m.sender_id))];
-
-      // Fetch sender profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, name, username, avatar_url, initials')
-        .in('id', senderIds);
-
-      if (profilesError) throw profilesError;
-
-      // Create a map for quick lookup
-      const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
-
-      // Transform the data to match our Message type
-      const transformedData = messagesData.map(msg => ({
-        ...msg,
-        sender: profilesMap.get(msg.sender_id) ? {
-          name: profilesMap.get(msg.sender_id)!.name,
-          username: profilesMap.get(msg.sender_id)!.username,
-          avatar_url: profilesMap.get(msg.sender_id)!.avatar_url,
-          initials: profilesMap.get(msg.sender_id)!.initials
-        } : undefined
-      }));
-
-      return transformedData as Message[];
+      return chatDb.messages
+        .where('conversation_id')
+        .equals(conversationId)
+        .sortBy('created_at');
     },
-    enabled: !!conversationId,
-    staleTime: 0,
-    refetchOnMount: 'always',
-  });
+    [conversationId]
+  );
 
-  // Real-time subscription for new messages and read status updates
+  // 2. Resolve missing sender profiles
+  useEffect(() => {
+    if (!localMessages || localMessages.length === 0) return;
+    
+    const missingSenderIds = [...new Set(localMessages.map(m => m.sender_id))]
+      .filter(id => !profileCache[id]);
+      
+    if (missingSenderIds.length > 0) {
+      supabase.from('profiles')
+        .select('id, name, username, avatar_url, initials')
+        .in('id', missingSenderIds)
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            setProfileCache(prev => {
+              const newCache = { ...prev };
+              data.forEach(p => { newCache[p.id] = p; });
+              return newCache;
+            });
+          }
+        });
+    }
+  }, [localMessages, profileCache]);
+
+  // 3. Background Sync & Realtime Trigger
   useEffect(() => {
     if (!conversationId) return;
 
+    let isMounted = true;
+
+    const doSync = async () => {
+      try {
+        setIsSyncing(true);
+        await syncConversation(conversationId);
+      } finally {
+        if (isMounted) setIsSyncing(false);
+      }
+    };
+
+    // Initial background sync
+    doSync();
+
+    // Listen for server changes to trigger delta syncs instead of pulling full payloads
     const channel = supabase
       .channel(`messages:${conversationId}`)
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          console.log('New message received:', payload);
-          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+        { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
+        () => {
+          doSync();
           queryClient.invalidateQueries({ queryKey: ['conversations'] });
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
+        { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: `conversation_id=eq.${conversationId}` },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'conversation_members',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        () => {
-          // Refetch when read status changes
           queryClient.invalidateQueries({ queryKey: ['conversations'] });
         }
       )
       .subscribe();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
     };
   }, [conversationId, queryClient]);
@@ -140,10 +125,21 @@ export const useMessages = (conversationId: string | null, userId: string | unde
     markAsRead();
   }, [conversationId, userId, queryClient]);
 
+  const messagesWithSenders = localMessages?.map((msg: any) => ({
+    ...msg,
+    sender: profileCache[msg.sender_id] ? {
+      name: profileCache[msg.sender_id].name,
+      username: profileCache[msg.sender_id].username,
+      avatar_url: profileCache[msg.sender_id].avatar_url,
+      initials: profileCache[msg.sender_id].initials
+    } : undefined
+  })) || [];
+
   return {
-    messages: messages || [],
-    isLoading,
-    error,
+    messages: (messagesWithSenders as Message[]) || [],
+    isLoading: localMessages === undefined,
+    isSyncing,
+    error: null,
   };
 };
 
@@ -234,8 +230,9 @@ export const useSendMessage = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['messages', variables.conversationId] });
+    onSuccess: async (_, variables) => {
+      // Trigger local DB sync immediately so the UI updates
+      await syncConversation(variables.conversationId);
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
     onError: (error) => {
