@@ -17,14 +17,20 @@ export interface LocalMessage {
 
 /** Call this before any Dexie write to guarantee no null leaks into encrypted fields */
 export function sanitizeMessage(msg: Partial<LocalMessage>): LocalMessage {
+  const ensureString = (val: any, fallback: string = ''): string => {
+    if (typeof val === 'string') return val;
+    if (val === null || val === undefined) return fallback;
+    return String(val);
+  };
+
   return {
     id:             msg.id!,
     conversation_id: msg.conversation_id!,
-    sender_id:      String(msg.sender_id ?? ''),
-    content:        typeof msg.content === 'string' ? msg.content : '',
-    message_type:   typeof msg.message_type === 'string' ? msg.message_type : 'text',
-    attachment_url: typeof msg.attachment_url === 'string' ? msg.attachment_url : '',
-    reply_to_id:    typeof msg.reply_to_id === 'string' ? msg.reply_to_id : '',
+    sender_id:      ensureString(msg.sender_id),
+    content:        ensureString(msg.content),
+    message_type:   ensureString(msg.message_type, 'text'),
+    attachment_url: ensureString(msg.attachment_url),
+    reply_to_id:    ensureString(msg.reply_to_id),
     created_at:     msg.created_at!,
     updated_at:     msg.updated_at!,
     seq:            msg.seq,

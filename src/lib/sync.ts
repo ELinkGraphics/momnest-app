@@ -65,7 +65,23 @@ export async function syncConversation(conversationId: string) {
     // 6. Batch write messages and high-water mark to Dexie
     await chatDb.transaction('rw', chatDb.messages, chatDb.conversations, chatDb.read_receipts, async () => {
       if (messagesToInsert.length > 0) {
-        await chatDb.messages.bulkPut(messagesToInsert);
+        try {
+          await chatDb.messages.bulkPut(messagesToInsert);
+        } catch (bulkErr) {
+          console.warn('[Sync] Bulk insert failed, falling back to individual inserts:', bulkErr);
+          for (const m of messagesToInsert) {
+            try {
+              await chatDb.messages.put(m);
+            } catch (singleErr) {
+              console.error(`[Sync] Failed to insert potentially corrupt message ${m.id}:`, singleErr);
+              // Diagnostic: Check if any fields are null/undefined despite sanitization
+              const badFields = Object.entries(m).filter(([_, v]) => v === null || v === undefined);
+              if (badFields.length > 0) {
+                console.error(`[Sync] Corrupt fields found: ${badFields.map(([k]) => k).join(', ')}`);
+              }
+            }
+          }
+        }
       }
 
       // Update the high-water mark

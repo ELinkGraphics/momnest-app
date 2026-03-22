@@ -182,6 +182,20 @@ export function useFileManager() {
     []
   );
 
+  const updateFile = useCallback((id: string, updates: Partial<FileItem>) => {
+    setFiles((prev) =>
+      prev.map((f) => {
+        if (f.id === id) {
+          if (updates.url && updates.url !== f.url) {
+            URL.revokeObjectURL(f.url);
+          }
+          return { ...f, ...updates };
+        }
+        return f;
+      })
+    );
+  }, []);
+
   const clearAll = useCallback(() => {
     setFiles((prev) => {
       prev.forEach((f) => URL.revokeObjectURL(f.url));
@@ -195,10 +209,11 @@ export function useFileManager() {
     addFiles, 
     removeFile, 
     updateStatus, 
+    updateFile,
     clearAll,
     clear: clearAll,
     setFiles
-  }), [files, addFiles, removeFile, updateStatus, clearAll]);
+  }), [files, addFiles, removeFile, updateStatus, updateFile, clearAll]);
 }
 
 // ─── CustomFilePicker Component ───────────────────────────────────────────────
