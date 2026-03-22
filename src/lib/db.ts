@@ -6,9 +6,9 @@ export interface LocalMessage {
   conversation_id: string;
   sender_id: string;
   content: string;
-  message_type?: string;
-  attachment_url?: string | null;
-  reply_to_id?: string | null;
+  message_type: string;
+  attachment_url: string;
+  reply_to_id: string;
   created_at: string;
   updated_at: string;
   seq?: number;
@@ -113,6 +113,16 @@ export class ChatDatabase extends Dexie {
       this.resolveEncryptionKey(encryptionKey);
       
       console.log('Chat local database encryption initialized with deferred key.');
+
+      // Self-Healing Clear: Wipe corrupted legacy data if version mismatch
+      const ENCRYPTION_VERSION = 'v2_zeronull';
+      const storedVersion = localStorage.getItem('MOMNEST_DB_ENCRYPTION_VERSION');
+      if (storedVersion !== ENCRYPTION_VERSION) {
+        console.warn(`[Dexie] Encryption version mismatch (${storedVersion} -> ${ENCRYPTION_VERSION}). Clearing tables...`);
+        await clearAllTables(this);
+        localStorage.setItem('MOMNEST_DB_ENCRYPTION_VERSION', ENCRYPTION_VERSION);
+        console.log('[Dexie] Local tables cleared for new encryption schema.');
+      }
     } catch (err) {
       console.error('Failed to initialize local DB encryption key', err);
     }

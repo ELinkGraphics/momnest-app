@@ -11,6 +11,9 @@ export interface Message {
   conversation_id: string;
   sender_id: string;
   content: string;
+  message_type: string;
+  attachment_url: string;
+  reply_to_id: string;
   created_at: string;
   updated_at: string;
   sender?: {
@@ -207,6 +210,9 @@ export const useSendMessage = () => {
       // 1. Instantly write to local UI db
       await chatDb.messages.put({
         ...insertData,
+        attachment_url: attachmentUrl || '',
+        reply_to_id: replyToId || '',
+        message_type: messageType || 'text',
         sync_status: 'pending'
       });
 
