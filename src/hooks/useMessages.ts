@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { chatDb, sanitizeMessage } from '@/lib/db';
@@ -142,15 +142,17 @@ export const useMessages = (conversationId: string | null, userId: string | unde
     markAsRead();
   }, [conversationId, userId, localMessages]);
 
-  const messagesWithSenders = localMessages?.map((msg: any) => ({
-    ...msg,
-    sender: profileCache[msg.sender_id] ? {
-      name: profileCache[msg.sender_id].name,
-      username: profileCache[msg.sender_id].username,
-      avatar_url: profileCache[msg.sender_id].avatar_url,
-      initials: profileCache[msg.sender_id].initials
-    } : undefined
-  })) || [];
+  const messagesWithSenders = useMemo(() => {
+    return localMessages?.map((msg: any) => ({
+      ...msg,
+      sender: profileCache[msg.sender_id] ? {
+        name: profileCache[msg.sender_id].name,
+        username: profileCache[msg.sender_id].username,
+        avatar_url: profileCache[msg.sender_id].avatar_url,
+        initials: profileCache[msg.sender_id].initials
+      } : undefined
+    })) || [];
+  }, [localMessages, profileCache]);
 
   return {
     messages: (messagesWithSenders as Message[]) || [],

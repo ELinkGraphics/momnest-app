@@ -15,6 +15,7 @@ import { AppLoader } from "@/components/AppLoader";
 import UploadProgressOverlay from "@/components/UploadProgressOverlay";
 import { NotificationPermissionPrompt } from "@/components/NotificationPermissionPrompt";
 import { IncomingHelperRequestAlert } from "@/components/safe/IncomingHelperRequestAlert";
+import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
 import { cacheManager, isFilePickerActive } from "@/utils/cacheManager";
 import { createIDBPersister, PERSIST_MAX_AGE, requestPersistentStorage } from "@/utils/queryPersister";
 import Index from "./pages/Index";
@@ -116,6 +117,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppRoutes = () => {
   const location = useLocation();
+  useAndroidBackButton();
   return (
     <Routes key={location.pathname}>
     <Route path="/login" element={<Login />} />

@@ -53,7 +53,12 @@ const Messages = () => {
   );
 
   const handleBack = () => {
-    window.history.back();
+    const hasHistory = window.history.state && window.history.state.idx > 0;
+    if (hasHistory) {
+      navigate(-1);
+    } else {
+      navigate('/messages', { replace: true });
+    }
   };
 
   const handleSelectConversation = (id: string) => {
@@ -69,7 +74,14 @@ const Messages = () => {
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-lg border-b border-border/50 safe-top lg:hidden">
           <div className="flex items-center justify-between px-3 py-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                const hasHistory = window.history.state && window.history.state.idx > 0;
+                if (hasHistory) {
+                  navigate(-1);
+                } else {
+                  navigate('/', { replace: true });
+                }
+              }}
               className="p-2 -ml-2 hover:bg-muted rounded-full active:scale-95 transition-all"
             >
               <ArrowLeft className="h-6 w-6" />
