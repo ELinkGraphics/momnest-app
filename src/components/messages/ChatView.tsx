@@ -111,6 +111,11 @@ const ChatView: React.FC<ChatViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [currentSearchIndex, setCurrentSearchIndex] = useState(-1);
+  
+  // Unique Scroll State
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [hasNewMessagesScrolledUp, setHasNewMessagesScrolledUp] = useState(false);
+  const prevMessagesCount = useRef(0);
 
 
   const { messages, isLoading } = useMessages(conversation.conversation_id, currentUserId);
@@ -173,6 +178,16 @@ const ChatView: React.FC<ChatViewProps> = ({
 
   const scrollToBottom = (instant = false) => {
     messagesEndRef.current?.scrollIntoView({ behavior: instant ? 'instant' : 'smooth' });
+    setHasNewMessagesScrolledUp(false);
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+    setShowScrollToBottom(!isAtBottom);
+    if (isAtBottom) {
+      setHasNewMessagesScrolledUp(false);
+    }
   };
 
   // Scroll control: only scroll to bottom if near bottom or it's our own new message
@@ -193,9 +208,13 @@ const ChatView: React.FC<ChatViewProps> = ({
           
           if (isNearBottom || isOurMessage) {
             scrollToBottom(false);
+          } else if (messages.length > prevMessagesCount.current) {
+            // New messages arrived while we were scrolled up
+            setHasNewMessagesScrolledUp(true);
           }
         }
       }
+      prevMessagesCount.current = messages.length;
     }
   }, [messages, currentUserId]);
 
@@ -229,17 +248,19 @@ const ChatView: React.FC<ChatViewProps> = ({
 
     longPressTimer.current = setTimeout(() => {
       longPressTriggered.current = true;
+      const msgData = {
+        id: msg.id,
+        content: msg.content,
+        senderId: msg.sender_id,
+        senderName: getSenderName(msg.sender_id),
+        messageType: (msg as any).message_type || 'text',
+        attachmentUrl: (msg as any).attachment_url,
+      };
+      pushModalState('chat-action-menu', () => setActionMenu({ isOpen: false, position: { x: 0, y: 0 }, message: null }));
       setActionMenu({
         isOpen: true,
         position: { x: clientX, y: clientY },
-        message: {
-          id: msg.id,
-          content: msg.content,
-          senderId: msg.sender_id,
-          senderName: getSenderName(msg.sender_id),
-          messageType: (msg as any).message_type || 'text',
-          attachmentUrl: (msg as any).attachment_url,
-        },
+        message: msgData,
       });
     }, 500);
   };
@@ -330,18 +351,21 @@ const ChatView: React.FC<ChatViewProps> = ({
 
   const handleDelete = () => {
     if (actionMenu.message) {
+      pushModalState('chat-delete-dialog', () => setDeleteDialog({ isOpen: false, message: null }));
       setDeleteDialog({ isOpen: true, message: actionMenu.message });
     }
   };
 
   const handleForward = () => {
     if (actionMenu.message) {
+      pushModalState('chat-forward-modal', () => setForwardModal({ isOpen: false, message: null }));
       setForwardModal({ isOpen: true, message: actionMenu.message });
     }
   };
 
   const handleReact = () => {
     if (actionMenu.message) {
+      pushModalState('chat-reaction-bar', () => setReactionBar({ isOpen: false, position: { x: 0, y: 0 }, messageId: '' }));
       setReactionBar({
         isOpen: true,
         position: actionMenu.position,
@@ -506,7 +530,7 @@ const ChatView: React.FC<ChatViewProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              onClick={onBack}
+              onClick={() => window.history.back()}
               className="lg:hidden -ml-2 h-10 w-10 active:scale-95 transition-transform"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -571,10 +595,7 @@ const ChatView: React.FC<ChatViewProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => {
-                  setIsSearchOpen(false);
-                  setSearchQuery('');
-                }}
+                onClick={() => window.history.back()}
                 className="-ml-2 h-10 w-10 active:scale-95 transition-transform text-muted-foreground hover:bg-muted"
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -646,8 +667,24 @@ const ChatView: React.FC<ChatViewProps> = ({
       {/* Messages */}
       <div 
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-3 py-4 pb-20 space-y-3 overscroll-contain"
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-3 py-4 pb-20 space-y-3 overscroll-contain relative"
       >
+        {/* Floating Scroll to Bottom Button */}
+        {showScrollToBottom && (
+          <div className="fixed bottom-24 right-4 z-20 animate-in fade-in zoom-in duration-200">
+            <Button
+              size="icon"
+              className="h-10 w-10 rounded-full shadow-lg relative bg-background border border-border hover:bg-muted text-foreground"
+              onClick={() => scrollToBottom(false)}
+            >
+              <ChevronDown className="h-5 w-5" />
+              {hasNewMessagesScrolledUp && (
+                <span className="absolute -top-1 -right-1 h-3 w-3 bg-primary rounded-full border-2 border-background animate-pulse" />
+              )}
+            </Button>
+          </div>
+        )}
         {isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
@@ -772,17 +809,19 @@ const ChatView: React.FC<ChatViewProps> = ({
                   e.preventDefault();
                   handleLongPressStart(e as any, message);
                   if (longPressTimer.current) clearTimeout(longPressTimer.current);
+                  const msgData = {
+                    id: message.id,
+                    content: message.content,
+                    senderId: message.sender_id,
+                    senderName: getSenderName(message.sender_id),
+                    messageType: msgType,
+                    attachmentUrl: (message as any).attachment_url,
+                  };
+                  pushModalState('chat-action-menu', () => setActionMenu({ isOpen: false, position: { x: 0, y: 0 }, message: null }));
                   setActionMenu({
                     isOpen: true,
                     position: { x: e.clientX, y: e.clientY },
-                    message: {
-                      id: message.id,
-                      content: message.content,
-                      senderId: message.sender_id,
-                      senderName: getSenderName(message.sender_id),
-                      messageType: msgType,
-                      attachmentUrl: (message as any).attachment_url,
-                    },
+                    message: msgData,
                   });
                 }}
               >
@@ -1000,7 +1039,7 @@ const ChatView: React.FC<ChatViewProps> = ({
         isOpen={actionMenu.isOpen}
         isOwn={actionMenu.message?.senderId === currentUserId}
         position={actionMenu.position}
-        onClose={() => setActionMenu(prev => ({ ...prev, isOpen: false }))}
+        onClose={() => window.history.back()}
         onReply={handleReply}
         onForward={handleForward}
         onCopy={handleCopy}
@@ -1015,14 +1054,14 @@ const ChatView: React.FC<ChatViewProps> = ({
         isOpen={reactionBar.isOpen}
         position={reactionBar.position}
         onSelect={(emoji) => toggleReaction.mutate({ messageId: reactionBar.messageId, userId: currentUserId, emoji })}
-        onClose={() => setReactionBar(prev => ({ ...prev, isOpen: false }))}
+        onClose={() => window.history.back()}
       />
 
       {/* Delete Dialog */}
       <DeleteMessageDialog
         isOpen={deleteDialog.isOpen}
         isOwn={deleteDialog.message?.senderId === currentUserId}
-        onClose={() => setDeleteDialog({ isOpen: false, message: null })}
+        onClose={() => window.history.back()}
         onDeleteForMe={() => {
           if (deleteDialog.message) {
             deleteForMe.mutate({
@@ -1031,7 +1070,7 @@ const ChatView: React.FC<ChatViewProps> = ({
               conversationId: conversation.conversation_id,
             });
           }
-          setDeleteDialog({ isOpen: false, message: null });
+          window.history.back();
         }}
         onDeleteForEveryone={() => {
           if (deleteDialog.message) {
@@ -1040,14 +1079,14 @@ const ChatView: React.FC<ChatViewProps> = ({
               conversationId: conversation.conversation_id,
             });
           }
-          setDeleteDialog({ isOpen: false, message: null });
+          window.history.back();
         }}
       />
 
       {/* Forward Modal */}
       <ForwardMessageModal
         isOpen={forwardModal.isOpen}
-        onClose={() => setForwardModal({ isOpen: false, message: null })}
+        onClose={() => window.history.back()}
         conversations={(conversations || []).filter(c => c.conversation_id !== conversation.conversation_id)}
         onForward={(convIds) => {
           if (forwardModal.message) {
@@ -1060,13 +1099,14 @@ const ChatView: React.FC<ChatViewProps> = ({
               senderId: currentUserId,
             });
           }
+          window.history.back();
         }}
       />
 
       {/* Attachment Sheet */}
       <TelegramAttachmentSheet
         open={attachmentSheetOpen}
-        onClose={() => setAttachmentSheetOpen(false)}
+        onClose={() => window.history.back()}
         conversationId={conversation.conversation_id}
         senderId={currentUserId}
         onSendAttachment={handleSendAttachment}
@@ -1091,7 +1131,7 @@ const ChatView: React.FC<ChatViewProps> = ({
         <MediaLightbox
           items={lightbox.items}
           initialIndex={lightbox.index}
-          onClose={() => setLightbox(null)}
+          onClose={() => window.history.back()}
         />
       )}
 
@@ -1099,14 +1139,14 @@ const ChatView: React.FC<ChatViewProps> = ({
       <CircleInvitationModal
         invitationId={invitationModalId}
         open={!!invitationModalId}
-        onOpenChange={(open) => { if (!open) setInvitationModalId(null); }}
+        onOpenChange={(open) => { if (!open) window.history.back(); }}
       />
 
       {/* Group Info Modal */}
       {conversation.is_group && (
         <GroupInfoModal
           isOpen={groupInfoOpen}
-          onClose={() => setGroupInfoOpen(false)}
+          onClose={() => window.history.back()}
           conversationId={conversation.conversation_id}
           groupName={conversation.group_name || 'Group'}
           groupAvatarUrl={conversation.group_avatar_url}
@@ -1117,7 +1157,7 @@ const ChatView: React.FC<ChatViewProps> = ({
       {/* Media Gallery Modal */}
       <ChatMediaGalleryModal
         isOpen={mediaGalleryOpen}
-        onClose={() => setMediaGalleryOpen(false)}
+        onClose={() => window.history.back()}
         messages={messages}
         profileName={conversation.is_group ? conversation.group_name || 'Group' : conversation.other_user_name || 'User'}
         profileAvatar={conversation.is_group ? conversation.group_avatar_url : conversation.other_user_avatar}

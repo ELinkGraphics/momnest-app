@@ -127,7 +127,7 @@ const PhotoBubble: React.FC<{ url: string; caption: string; isOwn: boolean }> = 
       {fullscreen && (
         <div
           className="fixed inset-0 z-[70] bg-black/95 flex items-center justify-center animate-fade-in"
-          onClick={() => setFullscreen(false)}
+          onClick={() => window.history.back()}
         >
           <img src={url} alt="Full" className="max-w-full max-h-full object-contain" />
         </div>

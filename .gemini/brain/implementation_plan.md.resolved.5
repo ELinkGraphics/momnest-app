@@ -1,25 +1,52 @@
-# Video Player Refinement & Interaction
+# Implementation Plan - PWA Back Navigation & Chat Scroll Fix
 
-Refine the player's layout and interaction patterns to improve usability and brand alignment.
+This plan ensures that the Android hardware/gesture back button provides a consistent and expected user experience, following the navigation hierarchy and implementation requirements provided.
+
+## User Review Required
+
+> [!IMPORTANT]
+> I will be refactoring the `/messages` route to use sub-routes (e.g., `/messages/:conversationId`). This might affect existing links to the chat view if they rely on state rather than URL.
 
 ## Proposed Changes
 
-### [Component] [Layout Fixes](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx)
-- [MODIFY] **Header**: Reposition the Back button to the far left and the Close (X) button to the far right.
-- [MODIFY] **Overlay Controls**: Change Rewind/Forward icon colors from white to `var(--primary)`.
-- [NEW] **Collapsible Description**: Implement state to toggle between a truncated summary and the full text.
-- [NEW] **Paginated Comments**: 
-    - Display initial set of comments.
-    - Add "View all comments" button.
-    - Implement mock "load more" on scroll.
+### [Core Navigation Framework](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/contexts/NavigationContext.tsx)
+
+#### [NEW] [NavigationContext.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/contexts/NavigationContext.tsx)
+- Create a context to manage "back-press consumers" (modals, sheets, overlays).
+- Implement a global `popstate` listener.
+- Provide a `pushModalState(closeFn: () => void)` helper that:
+    1. Pushes a dummy state to history: `window.history.pushState({ isModal: true }, '')`.
+    2. Registers the `closeFn`.
+- In `popstate`, if we were in a modal state, call the registered `closeFn` and prevent further navigation.
+
+### [Routing Updates](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/App.tsx)
+
+#### [MODIFY] [App.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/App.tsx)
+- Update `/messages` to support `:conversationId`.
+- Add placeholders for `/thread/:messageId` and `/media/:mediaId` if needed, or integrate them into sub-components.
+
+### [Messages & Chat Refactor](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/Messages.tsx)
+
+#### [MODIFY] [Messages.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/Messages.tsx)
+- Use `useParams()` to get `conversationId`.
+- Remove internal `selectedConversationId` state where it conflicts with URL.
+- Implement scroll position saving in `window.history.replaceState` before navigating forward.
+
+#### [MODIFY] [ChatView.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/messages/ChatView.tsx)
+- **Unique Scroll**: Added a floating "Jump to Bottom" button that appears when scrolled up (>300px).
+- **New Message Indicator**: The button shows a notification dot if new messages arrive while the user is scrolled up.
+- **Robust Back**: Updated the UI back arrow to call `window.history.back()`, leveraging the [NavigationContext](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/contexts/NavigationContext.tsx#3-8) stoppers to close modals before navigating away.
+
+### [Modal & Sheet Integration]
+
+#### [MODIFY] [Various Modals]
+- Update `CreateGroupModal`, `SOSCreationModal`, and [CustomFilePicker](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#222-715) to use the [NavigationContext](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/contexts/NavigationContext.tsx#3-8)'s `pushModalState`.
 
 ## Verification Plan
 
-### Automated Tests
-- Build verification.
-
-### Manual Verification
-- Verify Back/Close buttons placement.
-- Check icon contrast on the rewind/forward buttons.
-- Test description toggle (Expand/Collapse).
-- Test "View all comments" and scroll-to-load behavior.
+### Manual Verification (on Android/Emulator or via Desktop Back Button)
+- [ ] **Home -> Chat -> Back**: Should return to Home.
+- [ ] **Chat -> Modal -> Back**: Should close Modal, stay in Chat.
+- [ ] **Chat -> Scroll -> Open Profile -> Back**: Should return to Chat at the same scroll position.
+- [ ] **Home -> Back**: App should minimize (not show blank/exit unexpectedly).
+- [ ] **Chat -> Fullscreen Media -> Back**: Should close media, stay in Chat.

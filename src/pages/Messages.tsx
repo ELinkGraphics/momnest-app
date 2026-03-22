@@ -53,7 +53,7 @@ const Messages = () => {
   );
 
   const handleBack = () => {
-    navigate('/messages');
+    window.history.back();
   };
 
   const handleSelectConversation = (id: string) => {

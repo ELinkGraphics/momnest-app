@@ -1,22 +1,27 @@
-# Fixing UI Component Errors
+# Tasks
 
-- [x] Fix `Cannot find name 'Progress'` in [CircleVideoComposer.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx)
-- [x] Fix `useQueryClient is not defined` in [useCircleVideos.ts](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts)
-- [x] Check other hooks for similar errors
-- [x] Fix coin transaction enum error (`invalid input value: 'tip'`)
-- [x] Auto-play video instantly after unlock
-- [x] Add search functionality to message view (ChatView) header
-- [x] Verify build status
-
-**Local-First Chat Architecture**
-- [x] Phase 1: Database Schema Updates
-  - [x] Add `seq` to `messages` and `current_seq` to `conversations`
-  - [x] Create database triggers for auto-incrementing `seq`
-  - [x] Create `read_receipts` table
-  - [x] Build Delta Sync RPC
-- [x] Phase 2: Client Storage Setup (Dexie)
-- [x] Phase 3: Core Sync Engine & UI Binding
-- [x] Phase 4: Optimistic UI & Robust Sending
-- [ ] Phase 5: Storage Rules & Background Sync
-
-```
+- [x] Refactor Routing to support proper back navigation <!-- id: 8 -->
+    - [x] Update [App.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/App.tsx) routes for Chat,- [x] Implement [NavigationContext](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/contexts/NavigationContext.tsx#3-8) for global back handling
+- [x] Refactor [Messages.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/Messages.tsx) and [ChatView.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/messages/ChatView.tsx) for URL-based navigation
+- [x] Implement Unique Chat Scroll (Jump to Bottom + New Message Badge) <!-- id: 25 -->
+- [x] Unify UI Back Arrow with History API (window.history.back) <!-- id: 26 -->
+- [x] Fix Chat Scroll "Drag" Issue <!-- id: 20 -->
+- [x] Implement near-bottom check in [ChatView.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/messages/ChatView.tsx) <!-- id: 21 -->
+- [x] Ensure automatic scroll only on new outgoing messages or when already at bottom <!-- id: 22 -->
+- [x] Implement scroll restoration in [ChatView.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/messages/ChatView.tsx)
+- [x] Integrate `pushModalState` into all identified modals/overlays:
+    - [x] [Header.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/Header.tsx) (Profile, Settings, Search, Wallet, Menu)
+    - [x] [Index.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/Index.tsx) (Create, Go Live)
+    - [x] [ChatView.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/messages/ChatView.tsx) (Lightbox, Attachments, Search, Info)
+    - [x] [SOSSubCategories.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/SOSSubCategories.tsx) & [SOSEmergencyView.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/safe/SOSEmergencyView.tsx) (SOS Modal)
+    - [x] [SellerDashboard.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/SellerDashboard.tsx) (Verification Modal)
+    - [x] [CustomFilePicker.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx) (Action Sheet)
+    - [x] [EmojiPicker.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/EmojiPicker.tsx) & [GiftEmojiPicker.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/GiftEmojiPicker.tsx) (Popovers)
+    - [x] [PostDetail.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/PostDetail.tsx) (Comment Actions)
+    - [x] [MessageBubble.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/messages/MessageBubble.tsx) (Photo Fullscreen)
+    - [x] [UnifiedRelaxView.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/UnifiedRelaxView.tsx) (Video Fullscreen)
+- [x] Verify Android gesture back behavior
+- [x] Document implementation in [walkthrough.md](file:///C:/Users/elink/.gemini/antigravity/brain/03fcc610-d548-42c7-92d0-6e4e8af7a490/walkthrough.md)
+- [x] Verify Android Gesture Compatibility <!-- id: 17 -->
+    - [x] Check for horizontal swipe conflicts <!-- id: 18 -->
+- [x] Manual Verification of Scenarios <!-- id: 19 -->

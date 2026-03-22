@@ -33,10 +33,9 @@ This plan ensures that the Android hardware/gesture back button provides a consi
 - Implement scroll position saving in `window.history.replaceState` before navigating forward.
 
 #### [MODIFY] [ChatView.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/messages/ChatView.tsx)
-- Implement scroll restoration logic in `useEffect`.
-- **Fix**: Update the messages-triggered `useEffect` to only call [scrollToBottom](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/messages/ChatView.tsx#174-177) if:
-    1. The user is already near the bottom (within ~100px).
-    2. OR the last message in the list is from the current user (sent by them).
+- **Unique Scroll**: Added a floating "Jump to Bottom" button that appears when scrolled up (>300px).
+- **New Message Indicator**: The button shows a notification dot if new messages arrive while the user is scrolled up.
+- **Robust Back**: Updated the UI back arrow to call `window.history.back()`, leveraging the [NavigationContext](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/contexts/NavigationContext.tsx#3-8) stoppers to close modals before navigating away.
 
 ### [Modal & Sheet Integration]
 

@@ -2,23 +2,6 @@
 
 I have implemented a robust back-navigation system for the PWA, ensuring the Android hardware/gesture back button works across all app states.
 
-## Key Changes
-
-### 1. Global Navigation Framework (`NavigationContext.tsx`)
-Created a centralized context to manage "navigation stoppers" (modals, overlays, etc.) using the browser's History API.
-- **`pushModalState(id, closeFn)`**: Pushes a new entry to the history stack and registers a callback to close the UI element when the back button is pressed.
-- **`registerStopper` / `unregisterStopper`**: Direct management of components that should intercept back-presses without pushing history.
-- **Global `popstate` Listener**: Intercepts history changes and triggers the appropriate closing logic.
-
-### 2. Deep Linking and Routing Refactoring
-- **`App.tsx`**: Updated `/messages` to support an optional `:conversationId` parameter.
-- **`Messages.tsx`**: Refactored to use URL parameters for conversation selection. The back button now naturally navigates from Chat View back to the Conversation List via standard browser history.
-
-### 3. Scroll Management and Restoration
-- **Restoration**: Implemented automatic scroll position saving and restoration using `window.history.replaceState` in `ChatView.tsx`.
-- **Drag Fix**: Updated the scroll logic to prevent jumping to the bottom when background syncs occur. Now, the view only auto-scrolls if the user is already near the bottom or has just sent a message, preserving their position when reading older history.
-
-### 4. Comprehensive Modal Management
 Integrated navigation-aware closing logic into every major UI overlay:
 - **Header & Navigation**: Search overlay, User Menu, Profile/Settings modals, and Wallet modal.
 - **Chat Features**: Lightbox (media viewer), Attachment sheet, Search, and Group Info.

@@ -3,9 +3,11 @@
 - [x] Refactor Routing to support proper back navigation <!-- id: 8 -->
     - [x] Update `App.tsx` routes for Chat,- [x] Implement `NavigationContext` for global back handling
 - [x] Refactor `Messages.tsx` and `ChatView.tsx` for URL-based navigation
+- [x] Implement Unique Chat Scroll (Jump to Bottom + New Message Badge) <!-- id: 25 -->
+- [x] Unify UI Back Arrow with History API (window.history.back) <!-- id: 26 -->
 - [x] Fix Chat Scroll "Drag" Issue <!-- id: 20 -->
-    - [x] Implement near-bottom check in `ChatView.tsx` <!-- id: 21 -->
-    - [x] Ensure automatic scroll only on new outgoing messages or when already at bottom <!-- id: 22 -->
+- [x] Implement near-bottom check in `ChatView.tsx` <!-- id: 21 -->
+- [x] Ensure automatic scroll only on new outgoing messages or when already at bottom <!-- id: 22 -->
 - [x] Implement scroll restoration in `ChatView.tsx`
 - [x] Integrate `pushModalState` into all identified modals/overlays:
     - [x] `Header.tsx` (Profile, Settings, Search, Wallet, Menu)
