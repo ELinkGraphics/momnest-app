@@ -836,7 +836,7 @@ const ChatView: React.FC<ChatViewProps> = ({
                         ? <Clock className="h-3.5 w-3.5 text-muted-foreground/50" />
                         : message.sync_status === 'failed'
                           ? <X className="h-3.5 w-3.5 text-destructive" />
-                          : otherUserLastRead && new Date(otherUserLastRead) >= new Date(message.created_at)
+                          : otherUserLastRead && message.seq && otherUserLastRead >= message.seq
                             ? <CheckCheck className="h-3.5 w-3.5 text-green-500" />
                             : <Check className="h-3.5 w-3.5 text-muted-foreground/60" />
                     )}

@@ -105,25 +105,39 @@ export const useMessages = (conversationId: string | null, userId: string | unde
     };
   }, [conversationId, queryClient]);
 
-  // Mark conversation as read when viewing
+  // Mark conversation as read when viewing (Local-First)
   useEffect(() => {
-    if (!conversationId || !userId) return;
+    if (!conversationId || !userId || !localMessages || localMessages.length === 0) return;
 
     const markAsRead = async () => {
-      const { error } = await supabase.rpc('mark_conversation_read', {
-        _conversation_id: conversationId,
-        _user_id: userId,
+      const lastMsg = localMessages[localMessages.length - 1];
+      if (!lastMsg.seq) return;
+
+      const receipt = {
+        user_id: userId,
+        conversation_id: conversationId,
+        last_read_seq: lastMsg.seq,
+        updated_at: new Date().toISOString()
+      };
+
+      // 1. Update local DB
+      await chatDb.read_receipts.put(receipt);
+
+      // 2. Queue for server sync
+      await chatDb.sync_queue.put({
+        id: `read_${conversationId}_${userId}`,
+        type: 'read_receipt',
+        payload: receipt,
+        created_at: new Date().toISOString(),
+        retry_count: 0
       });
 
-      if (error) {
-        console.error('Error marking conversation as read:', error);
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      }
+      // 3. Trigger queue processing
+      processSyncQueue().catch(console.error);
     };
 
     markAsRead();
-  }, [conversationId, userId, queryClient]);
+  }, [conversationId, userId, localMessages]);
 
   const messagesWithSenders = localMessages?.map((msg: any) => ({
     ...msg,
@@ -144,53 +158,16 @@ export const useMessages = (conversationId: string | null, userId: string | unde
 };
 
 export const useOtherUserLastRead = (conversationId: string | null, currentUserId: string | undefined) => {
-  const queryClient = useQueryClient();
+  const otherReceipt = useLiveQuery(() => {
+    if (!conversationId || !currentUserId) return null;
+    return chatDb.read_receipts
+      .where('conversation_id')
+      .equals(conversationId)
+      .and(r => r.user_id !== currentUserId)
+      .first();
+  }, [conversationId, currentUserId]);
 
-  const { data: lastReadAt } = useQuery({
-    queryKey: ['other-user-last-read', conversationId, currentUserId],
-    queryFn: async () => {
-      if (!conversationId || !currentUserId) return null;
-
-      const { data, error } = await supabase
-        .from('conversation_members')
-        .select('last_read_at')
-        .eq('conversation_id', conversationId)
-        .neq('user_id', currentUserId)
-        .single();
-
-      if (error) return null;
-      return data?.last_read_at || null;
-    },
-    enabled: !!conversationId && !!currentUserId,
-    refetchInterval: 10000,
-  });
-
-  // Listen for real-time updates to conversation_members
-  useEffect(() => {
-    if (!conversationId) return;
-
-    const channel = supabase
-      .channel(`read-status:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'conversation_members',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['other-user-last-read', conversationId, currentUserId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [conversationId, currentUserId, queryClient]);
-
-  return lastReadAt;
+  return otherReceipt?.last_read_seq || 0;
 };
 
 export const useSendMessage = () => {

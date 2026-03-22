@@ -47,8 +47,8 @@ export async function syncConversation(conversationId: string) {
       if (msg.seq > maxSeq) maxSeq = msg.seq;
     }
 
-    // 4. Batch write to Dexie
-    await chatDb.transaction('rw', chatDb.messages, chatDb.conversations, async () => {
+    // 4. Batch write messages and high-water mark to Dexie
+    await chatDb.transaction('rw', chatDb.messages, chatDb.conversations, chatDb.read_receipts, async () => {
       if (messagesToInsert.length > 0) {
         await chatDb.messages.bulkPut(messagesToInsert);
       }
@@ -58,6 +58,21 @@ export async function syncConversation(conversationId: string) {
         id: conversationId,
         last_seen_seq: maxSeq
       });
+
+      // 5. Fetch and update read receipts for this conversation
+      const { data: receipts } = await supabase
+        .from('read_receipts')
+        .select('*')
+        .eq('conversation_id', conversationId);
+
+      if (receipts && receipts.length > 0) {
+        await chatDb.read_receipts.bulkPut(receipts.map(r => ({
+          user_id: r.user_id,
+          conversation_id: r.conversation_id,
+          last_read_seq: r.last_read_seq,
+          updated_at: r.updated_at
+        })));
+      }
     });
 
     console.log(`[Sync] Conversation ${conversationId} synced ${messagesToInsert.length} messages. Cursor at ${maxSeq}`);
@@ -88,6 +103,15 @@ export async function processSyncQueue() {
           await chatDb.messages.update(item.payload.id, { sync_status: 'synced' });
           await chatDb.sync_queue.delete(item.id);
         });
+      } else if (item.type === 'read_receipt') {
+        const { error } = await supabase
+          .from('read_receipts')
+          .upsert(item.payload);
+        
+        if (error) throw error;
+
+        // On success, remove from queue
+        await chatDb.sync_queue.delete(item.id);
       }
       // Future: handle message_update, message_delete, read_receipt
     } catch (err: any) {
