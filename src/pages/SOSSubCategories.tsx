@@ -6,11 +6,13 @@ import { ArrowLeft, Heart, Shield, Search, Siren, Baby, Bandage, Stethoscope, Ho
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { SOSCreationModal } from '@/components/safe/SOSCreationModal';
 import FooterNav from '@/components/FooterNav';
+import { useNavigation } from '@/contexts/NavigationContext';
 import { type TabKey } from '@/hooks/useAppNav';
 
 export const SOSSubCategories: React.FC = () => {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
+  const { pushModalState } = useNavigation();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
   const { triggerHaptic } = useHapticFeedback();
@@ -206,6 +208,7 @@ export const SOSSubCategories: React.FC = () => {
   const handleSubCategoryPress = (subCategoryId: string) => {
     triggerHaptic('heavy');
     setSelectedSubCategory(subCategoryId);
+    pushModalState('sos-creation', () => setShowCreateModal(false));
     setShowCreateModal(true);
   };
 

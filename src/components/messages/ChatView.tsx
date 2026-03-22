@@ -26,6 +26,7 @@ import MediaLightbox from './MediaLightbox';
 import CircleInvitationModal from '@/components/circles/CircleInvitationModal';
 import GroupInfoModal from './GroupInfoModal';
 import PollMessageBubble from './PollMessageBubble';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 interface ChatViewProps {
   conversation: Conversation;
@@ -54,6 +55,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   onBack
 }) => {
   const navigate = useNavigate();
+  const { pushModalState } = useNavigation();
   const [messageText, setMessageText] = useState('');
   const [attachmentSheetOpen, setAttachmentSheetOpen] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ files: File[]; type: 'photo' | 'video' } | null>(null);
@@ -63,6 +65,46 @@ const ChatView: React.FC<ChatViewProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Wrapper for state setters that should push history state
+  const handleOpenSearch = () => {
+    pushModalState('chat-search', () => setIsSearchOpen(false));
+    setIsSearchOpen(true);
+  };
+
+  const handleOpenAttachments = () => {
+    pushModalState('chat-attachments', () => setAttachmentSheetOpen(false));
+    setAttachmentSheetOpen(true);
+  };
+
+  const handleOpenGroupInfo = () => {
+    pushModalState('chat-group-info', () => setGroupInfoOpen(false));
+    setGroupInfoOpen(true);
+  };
+
+  const handleOpenGallery = () => {
+    pushModalState('chat-media-gallery', () => setMediaGalleryOpen(false));
+    setMediaGalleryOpen(true);
+  };
+
+  // Restore scroll position
+  useEffect(() => {
+    const savedState = window.history.state;
+    if (savedState?.scrollPos && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = savedState.scrollPos;
+    }
+  }, [conversation.conversation_id]);
+
+  // Save scroll position before navigating away
+  const saveScrollPosition = useCallback(() => {
+    if (scrollContainerRef.current) {
+      window.history.replaceState({
+        ...window.history.state,
+        scrollPos: scrollContainerRef.current.scrollTop
+      }, '');
+    }
+  }, []);
 
   // Search state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -104,20 +146,26 @@ const ChatView: React.FC<ChatViewProps> = ({
   const { pinnedMessage, pinMessage, unpinMessage } = usePinnedMessage(conversation.conversation_id, messages);
   const [lightbox, setLightbox] = useState<{ items: MediaItem[]; index: number } | null>(null);
 
+  const handleOpenLightbox = (items: MediaItem[], index: number) => {
+    pushModalState('chat-lightbox', () => setLightbox(null));
+    setLightbox({ items, index });
+  };
+
   // Long press handling
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggered = useRef(false);
 
   const handleProfileClick = () => {
     if (conversation.is_group) {
-      setGroupInfoOpen(true);
+      handleOpenGroupInfo();
     } else {
-      setMediaGalleryOpen(true);
+      handleOpenGallery();
     }
   };
 
   const handleNavigateToProfile = () => {
     if (conversation.other_user_id) {
+      saveScrollPosition();
       navigate(`/profile/${conversation.other_user_id}`);
     }
   };
@@ -502,7 +550,7 @@ const ChatView: React.FC<ChatViewProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setIsSearchOpen(true)}
+              onClick={handleOpenSearch}
               className="h-10 w-10 active:scale-95 transition-transform ml-auto text-muted-foreground hover:bg-muted"
             >
               <Search className="h-5 w-5" />
@@ -587,7 +635,10 @@ const ChatView: React.FC<ChatViewProps> = ({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 pb-20 space-y-3 overscroll-contain">
+      <div 
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto px-3 py-4 pb-20 space-y-3 overscroll-contain"
+      >
         {isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
@@ -658,7 +709,7 @@ const ChatView: React.FC<ChatViewProps> = ({
                         items={mediaItems}
                         isOwn={isOwn}
                         timestamp={timestamp}
-                        onOpenLightbox={(index) => setLightbox({ items: mediaItems, index })}
+                        onOpenLightbox={(index) => handleOpenLightbox(mediaItems, index)}
                       />
                       {(() => {
                         const groupCaption = mediaItems.find(
@@ -756,7 +807,7 @@ const ChatView: React.FC<ChatViewProps> = ({
                       } ${hasMedia ? 'p-1' : ''} `}
                     onClick={() => {
                       if (singleMediaItem) {
-                        setLightbox({ items: [singleMediaItem], index: 0 });
+                        handleOpenLightbox([singleMediaItem], 0);
                       }
                     }}
                   >
@@ -894,7 +945,7 @@ const ChatView: React.FC<ChatViewProps> = ({
 
         <div className="flex items-end gap-2 p-2 max-w-screen-xl mx-auto">
           <button
-            onClick={() => setAttachmentSheetOpen(true)}
+            onClick={handleOpenAttachments}
             className="shrink-0 h-11 w-11 rounded-full hover:bg-muted/60 flex items-center justify-center transition-colors active:scale-95"
           >
             <Plus className="h-6 w-6 text-muted-foreground" />
@@ -1068,7 +1119,7 @@ const ChatView: React.FC<ChatViewProps> = ({
         onMediaSelect={(url, type) => {
           // We can reuse the lightbox here logic by finding the item
           const singleMediaItem: MediaItem = { id: url, url, type };
-          setLightbox({ items: [singleMediaItem], index: 0 });
+          handleOpenLightbox([singleMediaItem], 0);
         }}
       />
     </div>

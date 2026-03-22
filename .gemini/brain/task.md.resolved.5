@@ -1,8 +1,7 @@
-# Fixing UI Component Errors
+# Tasks
 
-- [x] Fix `Cannot find name 'Progress'` in [CircleVideoComposer.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx)
-- [x] Fix `useQueryClient is not defined` in [useCircleVideos.ts](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts)
-- [x] Check other hooks for similar errors
-- [x] Fix coin transaction enum error (`invalid input value: 'tip'`)
-- [ ] Auto-play video instantly after unlock
-- [x] Verify build status
+- [/] Implement resilient message sync <!-- id: 3 -->
+    - [/] Modify [syncConversation](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/lib/sync.ts#4-97) in [sync.ts](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/lib/sync.ts) to handle individual insertion failures <!-- id: 4 -->
+    - [/] Update [sanitizeMessage](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/lib/db.ts#18-34) in [db.ts](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/lib/db.ts) to be more aggressive <!-- id: 5 -->
+- [ ] Verify fix <!-- id: 6 -->
+    - [ ] Ensure sync continues even if one message is corrupt <!-- id: 7 -->

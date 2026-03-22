@@ -14,6 +14,7 @@ import { useConversations } from '@/hooks/useConversations';
 import { useCoinWallet } from '@/hooks/useCoinWallet';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 interface HeaderProps {
   onNotifications?: () => void;
@@ -83,12 +84,34 @@ const MenuItem = ({ icon, label, danger, badge, onClick, 'data-testid': dataTest
 const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpenChange, onProfileModalChange, onSettingsModalChange, onWalletModalChange }) => {
   const { navigateToNotifications, navigateToMessages, navigateToShop } = useAppNav();
   const navigate = useNavigate();
+  const { pushModalState } = useNavigation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
+
+  const handleOpenMenu = () => {
+    pushModalState('header-menu', () => setMenuOpen(false));
+    setMenuOpen(true);
+  };
+  const handleOpenProfile = () => {
+    pushModalState('header-profile', () => setShowProfileModal(false));
+    setShowProfileModal(true);
+  };
+  const handleOpenSearch = () => {
+    pushModalState('header-search', () => setShowSearchModal(false));
+    setShowSearchModal(true);
+  };
+  const handleOpenSettings = () => {
+    pushModalState('header-settings', () => setShowSettingsModal(false));
+    setShowSettingsModal(true);
+  };
+  const handleOpenWallet = () => {
+    pushModalState('header-wallet', () => setShowWalletModal(false));
+    setShowWalletModal(true);
+  };
   const { unreadCount } = useNotifications();
   const { theme, setTheme } = useTheme();
 
@@ -156,7 +179,7 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
             </IconButton>
             <IconButton 
               label="Search" 
-              onClick={() => setShowSearchModal(true)}
+              onClick={handleOpenSearch}
               data-testid="header-search"
             >
               <Search className="size-4 text-primary" />
@@ -167,7 +190,10 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
               className="ml-1 inline-flex items-center gap-2 rounded-full border border-border px-2 py-1 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              onClick={() => setMenuOpen(!menuOpen)}
+              onClick={() => {
+                if (!menuOpen) handleOpenMenu();
+                else setMenuOpen(false);
+              }}
               data-testid="header-user-menu"
             >
                 <span className="relative inline-block">
@@ -204,7 +230,7 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
                 type="button"
                 className="flex items-center gap-3 w-full hover:bg-card/10 rounded-lg p-2 transition-colors"
                 onClick={() => {
-                  setShowProfileModal(true);
+                  handleOpenProfile();
                   setMenuOpen(false);
                 }}
               >
@@ -225,7 +251,7 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
               type="button"
               className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent/50 transition-colors"
               onClick={() => {
-                setShowWalletModal(true);
+                handleOpenWallet();
                 setMenuOpen(false);
               }}
             >
@@ -245,7 +271,7 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
               icon={<Search className="size-4" />} 
               label="Search" 
               onClick={() => {
-                setShowSearchModal(true);
+                handleOpenSearch();
                 setMenuOpen(false);
               }} 
             />
@@ -253,7 +279,7 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
               icon={<UserIcon className="size-4" />} 
               label="View profile" 
               onClick={() => {
-                setShowProfileModal(true);
+                handleOpenProfile();
                 setMenuOpen(false);
               }} 
             />
@@ -271,7 +297,7 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
               icon={<Settings className="size-4" />} 
               label="Settings" 
               onClick={() => {
-                setShowSettingsModal(true);
+                handleOpenSettings();
                 setMenuOpen(false);
               }}
             />

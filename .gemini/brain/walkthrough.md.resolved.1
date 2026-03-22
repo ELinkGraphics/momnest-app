@@ -1,24 +1,59 @@
-# Fix: Missing 'Progress' Component Import
+# Walkthrough - Fix missing `updateFile` in [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-218)
 
-The [CircleVideoComposer.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx) file was using the [Progress](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts#114-118) component but it was not imported, leading to a TypeScript error: `Cannot find name 'Progress'`.
+I have added the `updateFile` method to the [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-218) hook in [CustomFilePicker.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx). This resolves the TypeScript error in [CreatePost.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/CreatePost.tsx) and enables functionality like image cropping to update the file manager's state.
 
 ## Changes Made
 
-### CircleVideoComposer.tsx
+### [CustomFilePicker](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx)
 
-- Added the missing import for the [Progress](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts#114-118) component:
-  ```tsx
-  import { Progress } from '@/components/ui/progress';
-  ```
+#### [MODIFY] [CustomFilePicker.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx)
 
-### useCircleVideos.ts
-
-- Added missing imports from `@tanstack/react-query`:
-  ```ts
-  import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-  ```
+- Implemented `updateFile` using `useCallback`:
+    ```tsx
+    const updateFile = useCallback((id: string, updates: Partial<FileItem>) => {
+      setFiles((prev) =>
+        prev.map((f) => {
+          if (f.id === id) {
+            if (updates.url && updates.url !== f.url) {
+              URL.revokeObjectURL(f.url);
+            }
+            return { ...f, ...updates };
+          }
+          return f;
+        })
+      );
+    }, []);
+    ```
+- Included `updateFile` in the `useMemo` return object of the hook.
 
 ## Verification Results
 
-- Verified that [Progress](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts#114-118) is correctly imported in other files using it, such as [UploadProgressOverlay.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/UploadProgressOverlay.tsx).
-- Confirmed that [CircleVideoCard.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx) also has the correct imports for its components (e.g., `Crown`, `Badge`, [Card](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx#25-143)).
+### Manual Verification
+- Verified that [CreatePost.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/CreatePost.tsx) now correctly references `updateFile` on the `fileManager` object.
+- The `updateFile` implementation correctly handles merging updates and revoking old `URL` objects to prevent memory leaks during repeated edits/crops.
+- All other components using [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-218) now have access to this utility method if needed.
+
+---
+
+# Walkthrough - Resilient Chat Sync ("utf8: invalid string" fix)
+
+I have implemented a resilient synchronization strategy to prevent corrupt chat messages from blocking the entire sync process.
+
+## Changes Made
+
+### [Chat Sync Layer](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/lib/sync.ts)
+
+#### [MODIFY] [sync.ts](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/lib/sync.ts)
+- Modified [syncConversation](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/lib/sync.ts#4-113) to handle insertion failures at the individual message level. 
+- If a bulk insert fails (often due to encryption issues with corrupt strings), it now falls back to inserting messages one-by-one and skipping any that cause an error.
+
+#### [MODIFY] [db.ts](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/lib/db.ts)
+- Improved [sanitizeMessage](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/lib/db.ts#18-40) with an [ensureString](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/lib/db.ts#20-25) helper to strictly guarantee that all encrypted fields are valid strings before they reach the database middleware.
+
+## Verification Results
+
+### Manual Verification
+- The sync process now completes even if corrupt messages are encountered.
+- "Good" messages are successfully displayed while corrupt ones are skipped and logged as warnings in the console.
+- Memory safety and data integrity are maintained by strictly sanitizing all incoming message fields.
+

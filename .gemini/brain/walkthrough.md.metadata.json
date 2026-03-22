@@ -1,6 +1,6 @@
 {
   "artifactType": "ARTIFACT_TYPE_WALKTHROUGH",
-  "summary": "Finalized walkthrough with Phase 6 UI refinements.",
-  "updatedAt": "2026-03-22T10:55:50.630699900Z",
-  "version": "10"
+  "summary": "Comprehensive walkthrough of the PWA back navigation implementation, including the new `NavigationContext`, refactored routing, scroll restoration, and modal management.",
+  "updatedAt": "2026-03-22T12:54:07.979635700Z",
+  "version": "2"
 }

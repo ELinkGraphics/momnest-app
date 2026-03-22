@@ -1,34 +1,25 @@
-# Add Search Functionality to ChatView
+# Fix Dexie "utf8: invalid string" sync error
 
-The user wants to add a search icon to the message view header to allow searching through the conversation's messages by matching text, to easily find specific content without extensive scrolling.
+One or more messages with corrupt encoding are causing the entire chat synchronization to fail. I will implement a "resilient sync" strategy that attempts to process messages individually if the bulk process fails, skipping any that are unrecoverable.
 
 ## Proposed Changes
 
-### [ChatView.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/messages/ChatView.tsx)
+### [Chat Sync Layer](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/lib/sync.ts)
 
-#### [MODIFY] [ChatView.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/messages/ChatView.tsx)
--   **Imports**: Add `Search`, `ChevronUp`, `ChevronDown` from `lucide-react`.
--   **State**: Add new state variables for search:
-    -   `isSearchOpen` (boolean)
-    -   `searchQuery` (string)
-    -   `searchResults` (array of message IDs)
-    -   `currentSearchIndex` (number)
--   **Logic**:
-    -   Add a `useEffect` to filter the `messages` array based on the `searchQuery` (case-insensitive) and populate `searchResults`.
-    -   Implement `handleSearchNext` and `handleSearchPrev` to navigate between search results, updating the `currentSearchIndex`.
-    -   Use the existing [scrollToMessage](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/messages/ChatView.tsx#299-307) function to scroll the chat view to the highlighted message and briefly highlight it.
--   **UI Updates**:
-    -   Modify the chat header: 
-        -   In normal mode, add a `Search` icon button on the right edge of the header.
-        -   When `isSearchOpen` is true, replace the standard header with a text input field, a back button to close the search, and navigation controls (`ChevronUp`, `ChevronDown`) with a results counter (e.g., "1 of 5 results").
+#### [MODIFY] [sync.ts](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/lib/sync.ts)
+
+- Wrap the `bulkPut` operation in a try-catch.
+- On failure, attempt to [put](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#307-324) messages one by one.
+- On individual failure, skip the corrupt message, log it, and continue with the rest of the sync.
+- This ensures that a single bad message doesn't prevent other messages from appearing in the UI.
+
+#### [MODIFY] [db.ts](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/lib/db.ts)
+
+- Update [sanitizeMessage](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/lib/db.ts#18-34) to be even more defensive, ensuring that all fields are strictly strings and not just "not null".
 
 ## Verification Plan
 
 ### Manual Verification
-1.  Open the application and navigate to any chat conversation (personal or group).
-2.  Click the new search icon in the top right of the chat header.
-3.  Type a word or sentence known to be in the chat history.
-4.  Verify that it shows the correct number of results.
-5.  Verify that the chat automatically scrolls to the most recent match and highlights it.
-6.  Use the up/down arrow buttons to navigate to older and newer matches.
-7.  Click the back arrow in the search header to close the search and ensure the query is cleared.
+1.  Verify that with the new logic, the sync process completes even if the console shows `[Sync] Failed to insert corrupt message`.
+2.  Observe that "good" messages continue to stream in even if a "bad" one exists.
+3.  Check the console for clear diagnostic messages about skipped items.

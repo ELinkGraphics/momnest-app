@@ -1,17 +1,34 @@
-# Fix: Missing 'Progress' Component Import
+# Walkthrough - Fix missing `updateFile` in [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-218)
 
-The [CircleVideoComposer.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx) file was using the [Progress](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/UploadProgressOverlay.tsx#6-67) component but it was not imported, leading to a TypeScript error: `Cannot find name 'Progress'`.
+I have added the `updateFile` method to the [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-218) hook in [CustomFilePicker.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx). This resolves the TypeScript error in [CreatePost.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/CreatePost.tsx) and enables functionality like image cropping to update the file manager's state.
 
 ## Changes Made
 
-### CircleVideoComposer.tsx
+### [CustomFilePicker](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx)
 
-- Added the missing import for the [Progress](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/UploadProgressOverlay.tsx#6-67) component:
-  ```tsx
-  import { Progress } from '@/components/ui/progress';
-  ```
+#### [MODIFY] [CustomFilePicker.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx)
+
+- Implemented `updateFile` using `useCallback`:
+    ```tsx
+    const updateFile = useCallback((id: string, updates: Partial<FileItem>) => {
+      setFiles((prev) =>
+        prev.map((f) => {
+          if (f.id === id) {
+            if (updates.url && updates.url !== f.url) {
+              URL.revokeObjectURL(f.url);
+            }
+            return { ...f, ...updates };
+          }
+          return f;
+        })
+      );
+    }, []);
+    ```
+- Included `updateFile` in the `useMemo` return object of the hook.
 
 ## Verification Results
 
-- Verified that [Progress](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/UploadProgressOverlay.tsx#6-67) is correctly imported in other files using it, such as [UploadProgressOverlay.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/UploadProgressOverlay.tsx).
-- Confirmed that [CircleVideoCard.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx) also has the correct imports for its components (e.g., `Crown`, `Badge`, [Card](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoCard.tsx#25-143)).
+### Manual Verification
+- Verified that [CreatePost.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/CreatePost.tsx) now correctly references `updateFile` on the `fileManager` object.
+- The `updateFile` implementation correctly handles merging updates and revoking old `URL` objects to prevent memory leaks during repeated edits/crops.
+- All other components using [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-218) now have access to this utility method if needed.

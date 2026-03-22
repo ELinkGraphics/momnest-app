@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useUser } from '@/contexts/UserContext';
 import { useConversations, useCreateConversation } from '@/hooks/useConversations';
 import ConversationsList from '@/components/messages/ConversationsList';
 import ChatView from '@/components/messages/ChatView';
 import CreateGroupModal from '@/components/messages/CreateGroupModal';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 const Messages = () => {
   const navigate = useNavigate();
+  const { conversationId: selectedConversationId } = useParams();
   const [searchParams] = useSearchParams();
   const { user } = useUser();
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const { pushModalState } = useNavigation();
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+
+  const handleOpenCreateGroup = () => {
+    pushModalState('create-group', () => setShowCreateGroup(false));
+    setShowCreateGroup(true);
+  };
   
   const { conversations, isLoading } = useConversations(user?.id);
   const { createConversation } = useCreateConversation();
@@ -32,8 +39,7 @@ const Messages = () => {
       const initConversation = async () => {
         try {
           const conversationId = await createConversation(user.id, userId);
-          setSelectedConversationId(conversationId);
-          navigate('/messages', { replace: true });
+          navigate(`/messages/${conversationId}`, { replace: true });
         } catch (error) {
           console.error('Error creating conversation:', error);
         }
@@ -47,9 +53,11 @@ const Messages = () => {
   );
 
   const handleBack = () => {
-    setSelectedConversationId(null);
-    // Clear the userId from URL when going back
-    navigate('/messages', { replace: true });
+    navigate('/messages');
+  };
+
+  const handleSelectConversation = (id: string) => {
+    navigate(`/messages/${id}`);
   };
 
   if (!user) return null;
@@ -68,7 +76,7 @@ const Messages = () => {
             </button>
             <h1 className="text-xl font-bold">Messages</h1>
             <button
-              onClick={() => setShowCreateGroup(true)}
+              onClick={handleOpenCreateGroup}
               className="p-2 -mr-2 hover:bg-muted rounded-full active:scale-95 transition-all"
             >
               <Plus className="h-6 w-6" />
@@ -84,7 +92,7 @@ const Messages = () => {
           <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-lg border-b border-border px-4 py-4 flex items-center justify-between">
             <h1 className="text-xl font-bold">Messages</h1>
             <button
-              onClick={() => setShowCreateGroup(true)}
+              onClick={handleOpenCreateGroup}
               className="p-2 -mr-2 hover:bg-muted rounded-full active:scale-95 transition-all"
             >
               <Plus className="h-5 w-5" />
@@ -92,8 +100,8 @@ const Messages = () => {
           </div>
           <ConversationsList
             conversations={conversations}
-            selectedConversationId={selectedConversationId}
-            onSelectConversation={setSelectedConversationId}
+            selectedConversationId={selectedConversationId || null}
+            onSelectConversation={handleSelectConversation}
             isLoading={isLoading}
             currentUserId={user.id}
           />
@@ -137,8 +145,8 @@ const Messages = () => {
         ) : (
           <ConversationsList
             conversations={conversations}
-            selectedConversationId={selectedConversationId}
-            onSelectConversation={setSelectedConversationId}
+            selectedConversationId={selectedConversationId || null}
+            onSelectConversation={handleSelectConversation}
             isLoading={isLoading}
             currentUserId={user.id}
           />
@@ -149,7 +157,7 @@ const Messages = () => {
         open={showCreateGroup}
         onClose={() => setShowCreateGroup(false)}
         currentUserId={user.id}
-        onGroupCreated={(id) => setSelectedConversationId(id)}
+        onGroupCreated={handleSelectConversation}
       />
     </div>
   );

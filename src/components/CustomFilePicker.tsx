@@ -55,6 +55,7 @@ import React, {
 } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -235,9 +236,15 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
 }) => {
   const internalManager = useFileManager();
   const { files, addFiles, removeFile, updateStatus, clearAll } = externalManager ?? internalManager;
+  const { pushModalState } = useNavigation();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [sizeError, setSizeError] = useState<string | null>(null);
+
+  const handleOpenSheet = () => {
+    pushModalState('file-picker-sheet', () => setSheetOpen(false));
+    setSheetOpen(true);
+  };
 
   // Hidden file inputs — one per accept type for clean separation
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -247,27 +254,6 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
 
   const maxBytes = maxFileSizeMB * 1024 * 1024;
 
-  // ── FIX #2: Android hardware back button closes sheet ──────────────────────
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-
-    let listener: Promise<{ remove: () => void }> | null = null;
-    
-    const setupListener = async () => {
-      const { App } = await import('@capacitor/app');
-      listener = App.addListener('backButton', () => {
-        if (sheetOpen) setSheetOpen(false);
-      });
-    };
-
-    setupListener();
-
-    return () => {
-      if (listener) {
-        listener.then(h => h.remove());
-      }
-    };
-  }, [sheetOpen]);
 
   // ── File list builder ───────────────────────────────────────────────────────
   const buildItems = (rawFiles: FileList | null, fallbackKind: FileKind = 'file'): FileItem[] => {
@@ -546,7 +532,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
           if (useCameraImmediate) {
             handleCamera();
           } else {
-            setSheetOpen(true);
+            handleOpenSheet();
           }
         }} className="cursor-pointer">
           {children}
@@ -557,7 +543,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
             if (useCameraImmediate) {
               handleCamera();
             } else {
-              setSheetOpen(true);
+              handleOpenSheet();
             }
           }}
           className="flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground font-semibold rounded-xl shadow-sm hover:opacity-90 active:scale-95 transition-all w-full"

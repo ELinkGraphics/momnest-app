@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { useCircleSubscription } from '@/hooks/useCircleSubscription';
 import { PremiumUnlockBanner } from '@/components/premium/PremiumUnlockBanner';
 import { PremiumContentSkeleton } from '@/components/premium/PremiumContentSkeleton';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 console.log('DEBUG V3: useCircleSubscription hook (PostDetail):', typeof useCircleSubscription);
 
@@ -65,6 +66,7 @@ const PostDetail: React.FC = () => {
   const { user } = useUser();
   const { toggleLike, addComment } = usePostMutations();
   const { transferCoins, wallet } = useCoinWallet(user?.id);
+  const { pushModalState } = useNavigation();
 
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -285,6 +287,7 @@ const PostDetail: React.FC = () => {
     const comment = comments.find(c => c.id === commentId);
     if (!comment || comment.userId !== user?.id) return;
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    pushModalState('comment-action', () => setCommentAction(null));
     setCommentAction({
       commentId,
       position: { x: rect.left + rect.width / 2, y: rect.top },

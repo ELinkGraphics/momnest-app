@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Download, MapPin, Play, Pause, ExternalLink } from 'lucide-react';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 const URL_REGEX = /(https?:\/\/[^\s<]+[^\s<.,;:!?)"'\]])/g;
 
@@ -99,6 +100,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ content, messageType, att
 // ---- Photo Bubble ----
 const PhotoBubble: React.FC<{ url: string; caption: string; isOwn: boolean }> = ({ url, caption, isOwn }) => {
   const [fullscreen, setFullscreen] = useState(false);
+  const { pushModalState } = useNavigation();
   const isCaption = caption && caption !== '📷 Photo';
 
   return (
@@ -111,7 +113,11 @@ const PhotoBubble: React.FC<{ url: string; caption: string; isOwn: boolean }> = 
             className="w-full h-full object-cover"
             style={{ maxHeight: '320px', minHeight: '120px', minWidth: '160px' }}
             loading="lazy"
-            onClick={(e) => { e.stopPropagation(); setFullscreen(true); }}
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              pushModalState('photo-fullscreen', () => setFullscreen(false));
+              setFullscreen(true); 
+            }}
           />
         </div>
         {isCaption && (

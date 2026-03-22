@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useCoinWallet } from '@/hooks/useCoinWallet';
 import { useUser } from '@/contexts/UserContext';
 import { toast } from 'sonner';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 export interface GiftEmoji {
   emoji: string;
@@ -38,6 +39,16 @@ export const GiftEmojiPicker: React.FC<GiftEmojiPickerProps> = ({
   const [open, setOpen] = useState(false);
   const { user } = useUser();
   const { wallet } = useCoinWallet(user?.id);
+  const { pushModalState } = useNavigation();
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen) {
+      pushModalState('gift-picker', () => setOpen(false));
+      setOpen(true);
+    } else {
+      setOpen(false);
+    }
+  };
   const balance = wallet?.balance ?? 0;
 
   const handleSelect = (gift: GiftEmoji) => {
@@ -50,7 +61,7 @@ export const GiftEmojiPicker: React.FC<GiftEmojiPickerProps> = ({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           type="button"

@@ -1,23 +1,25 @@
-# Fix Coin Transaction Enum Error
+# Fix missing `updateFile` in [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-203)
 
-The `unlockVideo` mutation in [useCircleVideos.ts](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts) currently uses `'tip'` as the transaction type when calling the `transfer_coins` RPC. However, `'tip'` is not a valid value for the `coin_transaction_type` enum in the database, causing an "invalid input value" error.
+The [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-203) hook in [CustomFilePicker.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx) is missing the `updateFile` method, which is required by [CreatePost.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/CreatePost.tsx) to handle cropped images.
 
 ## Proposed Changes
 
-### [useCircleVideos.ts](file:///c:/Users/elink/./heart-lens-studio-main/src/hooks/useCircleVideos.ts)
+### [Component Name]
 
-#### [MODIFY] [useCircleVideos.ts](file:///c:/Users/elink/./heart-lens-studio-main/src/hooks/useCircleVideos.ts)
-- Update the `transfer_coins` RPC call to use correct enum values.
-- Change `_type_sent` to `'premium_unlock'`.
-- Change `_type_received` to `'premium_earning'`.
+#### [MODIFY] [CustomFilePicker.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx)
+
+1.  Add `updateFile` to the [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-203) hook.
+2.  Ensure `updateFile` revokes the old object URL if it's being replaced.
+3.  Include `updateFile` in the memoized return object.
 
 ## Verification Plan
 
+### Automated Tests
+- N/A (Manual verification via UI)
+
 ### Manual Verification
-- **Test Video Unlock**:
-    1. Open the application.
-    2. Navigate to a premium video in a circle.
-    3. Attempt to unlock the video by paying coins.
-    4. Verify that the unlock succeeds without the "invalid input value for enum coin_transaction_type: 'tip'" error.
-- **Verify Toast Message**:
-    1. Ensure the success toast appears or the video becomes playable.
+1.  Open [CreatePost.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/CreatePost.tsx) and ensure the TypeScript error is gone.
+2.  Test the "Edit" (Pencil) icon on an attached image in the "Create Post" screen.
+3.  Crop the image and save.
+4.  Verify that the image preview updates with the newly cropped version.
+5.  Verify that the old object URL was properly revoked (no memory leaks).

@@ -8,6 +8,7 @@ import { FeedView } from '../components/FeedView';
 import { RelaxView } from '../components/RelaxView';
 import { FeedRelaxToggle } from '../components/FeedRelaxToggle';
 import FooterNav from '../components/FooterNav';
+import { useNavigation } from '@/contexts/NavigationContext';
 import CreateModal from '../components/CreateModal';
 import GoLiveModal from '../components/live/GoLiveModal';
 import { InstallPrompt } from '../components/InstallPrompt';
@@ -23,6 +24,7 @@ const Index = () => {
     restoreScrollPosition,
   } = usePersistedNavState();
 
+  const { pushModalState } = useNavigation();
   const [openCreate, setOpenCreate] = useState(false);
   const [openGoLive, setOpenGoLive] = useState(false);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
@@ -59,7 +61,7 @@ const Index = () => {
   // Auto-open create modal when Add tab is selected
   useEffect(() => {
     if (activeTab === 'add') {
-      setOpenCreate(true);
+      handleOpenCreate();
     }
   }, [activeTab]);
 
@@ -73,8 +75,14 @@ const Index = () => {
     setActiveTab(tab);
   };
 
-  const handleOpenCreate = () => setOpenCreate(true);
-  const handleOpenGoLive = () => setOpenGoLive(true);
+  const handleOpenCreate = () => {
+    pushModalState('create', handleCloseCreate);
+    setOpenCreate(true);
+  };
+  const handleOpenGoLive = () => {
+    pushModalState('go-live', () => setOpenGoLive(false));
+    setOpenGoLive(true);
+  };
 
   // Render sub-views based on active tab
   if (activeTab === 'circles') {

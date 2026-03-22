@@ -1,44 +1,50 @@
-# Local-First Chat Implementation Plan
+# Implementation Plan - Proper Back Navigation for Android PWA
 
-This plan details the exact, phase-by-phase execution to transition the cloud-first chat to a robust, production-ready **local-first** architecture capable of handling high scale safely.
+This plan ensures that the Android hardware/gesture back button provides a consistent and expected user experience, following the navigation hierarchy and implementation requirements provided.
 
-## Phase 1: The Server-Side & Database Foundation
-**Goal:** Prepare the Supabase schema to support monotonically increasing sequence cursors and a dedicated read receipts system for bulletproof delta syncing.
--   **Add Sequence Identifiers:** Create migrations to add a `seq` column (`BIGINT`) to the `messages` table.
--   **Conversation Sequence Tracking:** Add `current_seq` (`BIGINT`, default 0) to the `conversations` table.
--   **Database Triggers:** Create a trigger on `messages` that increments `conversations.current_seq` and assigns it to `messages.seq` on `INSERT` or `UPDATE` (if content changed).
--   **Read Receipts Table:** Create a new table `read_receipts` (`user_id`, `conversation_id`, `last_read_seq`, `updated_at`).
--   **Build Delta API/RPC:** Create a Supabase RPC or view to efficiently fetch messages for a conversation where `seq > last_seen_local_seq`.
+## User Review Required
 
-## Phase 2: Client Storage & Security Initialize (Dexie)
-**Goal:** Set up secure, persistent local storage on the client.
--   **Installation:** Run `npm install dexie dexie-react-hooks dexie-encrypted`.
--   **Schema Definition:** Create `src/lib/db.ts`. Define the schema for `messages`, `conversations`, `read_receipts`, and `sync_queue`.
--   **Encryption Middleware:** Implement `dexie-encrypted`. Use a key derivation function to turn the current user's session token into an AES key. 
--   **Auth Integration:** Ensure `db.open()` happens on login, and `db.delete()` or `db.close()` happens on logout to clear local data perfectly.
--   **Persistent Storage Request:** On web app initialization, call `navigator.storage.persist()` to ask the OS not to evict the DB.
+> [!IMPORTANT]
+> I will be refactoring the `/messages` route to use sub-routes (e.g., `/messages/:conversationId`). This might affect existing links to the chat view if they rely on state rather than URL.
 
-## Phase 3: The Core Sync Engine & UI Binding
-**Goal:** Replace the cloud calls with local queries and background synchronization.
--   **Rewrite `useMessages` Output:** Instead of reading state from a Supabase query context, change `useMessages` to return data using `useLiveQuery(() => db.messages.where({ conversation_id: id }).toArray())`.
--   **Implement Delta Sync Function:** Create a background function `syncConversation(id)` that:
-    1. Checks the `last_seen_seq` in the local `conversations` table.
-    2. Calls the Supabase Delta RPC.
-    3. Writes the new messages into Dexie using Last-Write-Wins (LWW) resolution based on `updated_at`.
--   **Proxy WebSockets to Dexie:** Update the existing Supabase real-time channel. When an `INSERT` or `UPDATE` event arrives, write the payload directly to Dexie. (The UI will react automatically via `useLiveQuery`).
+## Proposed Changes
 
-## Phase 4: Optimistic UI & Robust Sending
-**Goal:** Provide instant UX when sending messages, backed by a persistent queue for failures.
--   **Update Local Schema:** Ensure local messages have an [id](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCoinWallet.ts#92-96) (temporary UUIDv4) and a `sync_status` (`'pending' | 'synced' | 'failed'`).
--   **Optimistic Send Mutation:** Update the UI send function to:
-    1. Write a `pending` message instantly into Dexie.
-    2. Attempt to `POST` to Supabase.
-    3. If successful, update the Dexie record resolving the temporary [id](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCoinWallet.ts#92-96) with the real server UUID and `seq`, marking it `synced`.
--   **Queueing Background Failures:** If the `POST` fails (e.g., offline), leave the status as `pending`. 
--   **UI Indicators:** Render messages lightly faded with a clock icon if their `sync_status` is `pending`, or a red exclamation mark with a retry button if `failed`.
+### [Core Navigation Framework](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/contexts/NavigationContext.tsx)
 
-## Phase 5: Storage Rules & Service Worker
-**Goal:** Handle massive histories and prevent storage crashes over time.
--   **Eviction Policy Script:** Implement an initialization script that queries `navigator.storage.estimate()`. If usage exceeds 80%, delete messages order than 90 days from Dexie where `sync_status === 'synced'`.
--   **Background Sync API:** Register a Service Worker `sync` event. When the OS detects the network is restored, the Service Worker wakes up, reads the `pending` queue from Dexie, and flushes them to Supabase, guaranteeing delivery even if the app tab was closed dynamically.
--   **Historical Scrolling:** If the user scrolls past what's in IndexedDB (e.g., beyond the 90-day evicted window), trigger an older paginated fetch to Supabase to append those legacy messages *dynamically* to the UI (without necessarily storing them back permanently).
+#### [NEW] [NavigationContext.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/contexts/NavigationContext.tsx)
+- Create a context to manage "back-press consumers" (modals, sheets, overlays).
+- Implement a global `popstate` listener.
+- Provide a `pushModalState(closeFn: () => void)` helper that:
+    1. Pushes a dummy state to history: `window.history.pushState({ isModal: true }, '')`.
+    2. Registers the `closeFn`.
+- In `popstate`, if we were in a modal state, call the registered `closeFn` and prevent further navigation.
+
+### [Routing Updates](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/App.tsx)
+
+#### [MODIFY] [App.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/App.tsx)
+- Update `/messages` to support `:conversationId`.
+- Add placeholders for `/thread/:messageId` and `/media/:mediaId` if needed, or integrate them into sub-components.
+
+### [Messages & Chat Refactor](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/Messages.tsx)
+
+#### [MODIFY] [Messages.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/Messages.tsx)
+- Use `useParams()` to get `conversationId`.
+- Remove internal `selectedConversationId` state where it conflicts with URL.
+- Implement scroll position saving in `window.history.replaceState` before navigating forward.
+
+#### [MODIFY] [ChatView.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/messages/ChatView.tsx)
+- Implement scroll restoration logic in `useEffect`.
+
+### [Modal & Sheet Integration]
+
+#### [MODIFY] [Various Modals]
+- Update `CreateGroupModal`, `SOSCreationModal`, and [CustomFilePicker](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#221-729) to use the `NavigationContext`'s `pushModalState`.
+
+## Verification Plan
+
+### Manual Verification (on Android/Emulator or via Desktop Back Button)
+- [ ] **Home -> Chat -> Back**: Should return to Home.
+- [ ] **Chat -> Modal -> Back**: Should close Modal, stay in Chat.
+- [ ] **Chat -> Scroll -> Open Profile -> Back**: Should return to Chat at the same scroll position.
+- [ ] **Home -> Back**: App should minimize (not show blank/exit unexpectedly).
+- [ ] **Chat -> Fullscreen Media -> Back**: Should close media, stay in Chat.

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Smile } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 const EMOJI_CATEGORIES = [
   {
@@ -61,13 +62,23 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
 }) => {
   const [activeCategory, setActiveCategory] = useState(0);
   const [open, setOpen] = useState(false);
+  const { pushModalState } = useNavigation();
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen) {
+      pushModalState('emoji-picker', () => setOpen(false));
+      setOpen(true);
+    } else {
+      setOpen(false);
+    }
+  };
 
   const handleSelect = (emoji: string) => {
     onEmojiSelect(emoji);
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button
           type="button"

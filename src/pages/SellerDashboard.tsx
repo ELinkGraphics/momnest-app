@@ -11,6 +11,7 @@ import { useUser } from '@/contexts/UserContext';
 import { Loader2 } from 'lucide-react';
 import FooterNav from '@/components/FooterNav';
 import { SellerOrdersList } from '@/components/shop/SellerOrdersList';
+import { useNavigation } from '@/contexts/NavigationContext';
 import { SellerInventory } from '@/components/shop/SellerInventory';
 import { SellerAnalyticsEnhanced } from '@/components/shop/SellerAnalyticsEnhanced';
 import { SellerVerificationModal } from '@/components/shop/SellerVerificationModal';
@@ -21,8 +22,14 @@ const SellerDashboard: React.FC = () => {
   const { user } = useUser();
   const { profile, isLoading: profileLoading } = useSellerProfile(user?.id);
   const { data: orders, isLoading: ordersLoading } = useSellerOrders();
+  const { pushModalState } = useNavigation();
   const [activeTab, setActiveTab] = useState('orders');
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+
+  const handleOpenVerification = () => {
+    pushModalState('seller-verification', () => setVerificationModalOpen(false));
+    setVerificationModalOpen(true);
+  };
 
   if (profileLoading) {
     return (
@@ -83,7 +90,7 @@ const SellerDashboard: React.FC = () => {
           <Button
             variant={profile?.verification_status === 'verified' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setVerificationModalOpen(true)}
+            onClick={handleOpenVerification}
           >
             {profile?.verification_status === 'verified' ? (
               <>

@@ -8,9 +8,11 @@ import { Phone, MapPin, Users, Heart, Shield, Search, AlertTriangle, Volume2, Vo
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { SOSCreationModal } from './SOSCreationModal';
 import { MedicalIcon } from '@/components/ui/medical-icon';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 export const SOSEmergencyView: React.FC = () => {
   const navigate = useNavigate();
+  const { pushModalState } = useNavigation();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedSOSType, setSelectedSOSType] = useState<string>('');
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
@@ -154,6 +156,7 @@ export const SOSEmergencyView: React.FC = () => {
     if (sosType) {
       triggerHaptic('heavy');
       setSelectedSOSType(type);
+      pushModalState('sos-creation', () => setShowCreateModal(false));
       setShowCreateModal(true);
     }
   };

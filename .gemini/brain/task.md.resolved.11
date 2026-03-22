@@ -1,22 +1,14 @@
-# Fixing UI Component Errors
+# Tasks
 
-- [x] Fix `Cannot find name 'Progress'` in [CircleVideoComposer.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx)
-- [x] Fix `useQueryClient is not defined` in [useCircleVideos.ts](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts)
-- [x] Check other hooks for similar errors
-- [x] Fix coin transaction enum error (`invalid input value: 'tip'`)
-- [x] Auto-play video instantly after unlock
-- [x] Add search functionality to message view (ChatView) header
-- [x] Verify build status
-
-**Local-First Chat Architecture**
-- [x] Phase 1: Database Schema Updates
-  - [x] Add `seq` to `messages` and `current_seq` to `conversations`
-  - [x] Create database triggers for auto-incrementing `seq`
-  - [x] Create `read_receipts` table
-  - [x] Build Delta Sync RPC
-- [/] Phase 2: Client Storage Setup (Dexie)
-- [ ] Phase 3: Core Sync Engine & UI Binding
-- [ ] Phase 4: Optimistic UI & Robust Sending
-- [ ] Phase 5: Storage Rules & Background Sync
-
-```
+- [x] Refactor Routing to support proper back navigation <!-- id: 8 -->
+    - [x] Update [App.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/App.tsx) routes for Chat, Thread, Media, etc. <!-- id: 9 -->
+    - [/] Refactor [Messages.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/Messages.tsx) and [ChatView.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/messages/ChatView.tsx) to use URL params <!-- id: 10 -->
+- [/] Implement Global Popstate Listener for Modals <!-- id: 11 -->
+    - [/] Create a `NavigationManager` context to track open modals/sheets <!-- id: 12 -->
+    - [/] Integrate `popstate` to close modals before navigating back <!-- id: 13 -->
+- [x] Implement Scroll Restoration <!-- id: 14 -->
+    - [x] Store scroll position in history state when navigating forward <!-- id: 15 -->
+    - [x] Restore scroll position on back navigation <!-- id: 16 -->
+- [ ] Verify Android Gesture Compatibility <!-- id: 17 -->
+    - [ ] Check for horizontal swipe conflicts <!-- id: 18 -->
+- [ ] Manual Verification of Scenarios <!-- id: 19 -->

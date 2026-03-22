@@ -1,33 +1,22 @@
-# Auto-play Video After Unlock
+# Fix missing `updateFile` in [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-203)
 
-The user wants the video to start playing immediately after it is successfully unlocked. Currently, the UI updates but the video remains paused.
-
-## User Review Required
-
-> [!NOTE]
-> We need to ensure that `selectedVideo` in [CircleVideos.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideos.tsx) is kept in sync with the refreshed data from the [useCircleVideos](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts#29-298) hook after invalidation.
+The [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-203) hook in [CustomFilePicker.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx) is missing the `updateFile` method, which is required by [CreatePost.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/CreatePost.tsx) to handle cropped images.
 
 ## Proposed Changes
 
-### [CircleVideos.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideos.tsx)
+### [CustomFilePicker](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx)
 
-#### [MODIFY] [CircleVideos.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideos.tsx)
-- Synchronize `selectedVideo` with the latest video data from the `videos` array.
-- This ensures that when the query is invalidated and refetched, the [CircleVideoPlayer](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx#34-445) receives the updated `user_has_unlocked: true` property.
+#### [MODIFY] [CustomFilePicker.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx)
 
-### [CircleVideoPlayer.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx)
-
-#### [MODIFY] [CircleVideoPlayer.tsx](file:///c:/Users/elink/./heart-lens-studio-main/src/components/circles/CircleVideoPlayer.tsx)
-- Add a `useEffect` hook to watch for changes in `video.user_has_unlocked`.
-- When `user_has_unlocked` transition from `false` to `true`, trigger `videoRef.current.play()` and set `isPlaying` to `true`.
-- Ensure handle case where `videoRef.current` might not be immediately available (though it should be once `isLocked` is false).
+- Add `updateFile` to [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-203) to allow updating existing file items (e.g., after cropping).
+- Ensure `updateFile` revokes the old `url` if a new one is provided to avoid memory leaks.
+- Include `updateFile` in the `useMemo` result of [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-203).
 
 ## Verification Plan
 
 ### Manual Verification
-1.  Open a premium video that is locked.
-2.  Click the "Unlock" button and pay the coins.
-3.  Verify that:
-    -   The lock overlay disappears.
-    -   The video starts playing automatically.
-    -   The play/pause button state updates to "Pause".
+- [ ] Open [CreatePost.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/CreatePost.tsx) and verify that the TypeScript error at line 414 is resolved.
+- [ ] Run the app, go to Create Post, add an image, and click the Edit (Pencil) icon.
+- [ ] Crop the image and save. Verify the preview updates correctly.
+- [ ] Check console for any errors related to object URL revocation.
+

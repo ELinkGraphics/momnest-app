@@ -1,5 +1,5 @@
-# Fixing UI Component Errors
+# Tasks
 
-- [x] Fix `Cannot find name 'Progress'` in [CircleVideoComposer.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx)
-- [ ] Check `CircleVideoCard.tsx` for similar errors
-- [ ] Verify build status
+- [ ] Fix missing `updateFile` in [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-203) <!-- id: 0 -->
+    - [ ] Add `updateFile` to [useFileManager](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx#145-203) hook in [CustomFilePicker.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CustomFilePicker.tsx) <!-- id: 1 -->
+    - [ ] Verify fix in [CreatePost.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/CreatePost.tsx) <!-- id: 2 -->

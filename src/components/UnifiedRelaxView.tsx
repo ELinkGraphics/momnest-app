@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { UnifiedVideoPlayer } from './UnifiedVideoPlayer';
 import { VideoFullscreenModal } from './VideoFullscreenModal';
 import { useVideoFeed, Video } from '@/hooks/useVideoFeed';
+import { useNavigation } from '@/contexts/NavigationContext';
 
 interface UnifiedRelaxViewProps {
   autoOpenFirstVideo?: boolean;
@@ -24,6 +25,7 @@ export const UnifiedRelaxView: React.FC<UnifiedRelaxViewProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [fullscreenVideo, setFullscreenVideo] = useState<Video | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const { pushModalState } = useNavigation();
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef<number>(0);
   const touchStartTime = useRef<number>(0);
@@ -74,8 +76,9 @@ export const UnifiedRelaxView: React.FC<UnifiedRelaxViewProps> = ({
   }, [currentIndex, videos.length, onRefresh, isTransitioning]);
 
   const handleVideoClick = useCallback((video: Video) => {
+    pushModalState('video-fullscreen', () => setFullscreenVideo(null));
     setFullscreenVideo(video);
-  }, []);
+  }, [pushModalState]);
 
   const handleCloseFullscreen = useCallback(() => {
     setFullscreenVideo(null);
@@ -87,9 +90,10 @@ export const UnifiedRelaxView: React.FC<UnifiedRelaxViewProps> = ({
   // Auto-open first video in fullscreen - only when component first mounts
   React.useEffect(() => {
     if (autoOpenFirstVideo && videos.length > 0 && !fullscreenVideo && currentIndex === 0) {
+      pushModalState('video-fullscreen-auto', () => setFullscreenVideo(null));
       setFullscreenVideo(videos[0]);
     }
-  }, [autoOpenFirstVideo, videos.length]);
+  }, [autoOpenFirstVideo, videos.length, pushModalState]);
 
   // Render only current video and adjacent ones to prevent duplicates
   const visibleIndices = [];

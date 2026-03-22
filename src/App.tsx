@@ -9,6 +9,7 @@ import { UserProvider, useUser } from "@/contexts/UserContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { UploadProvider } from "@/contexts/UploadContext";
+import { NavigationProvider } from "@/contexts/NavigationContext";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { AppLoader } from "@/components/AppLoader";
 import UploadProgressOverlay from "@/components/UploadProgressOverlay";
@@ -122,6 +123,7 @@ const AppRoutes = () => {
     <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
     <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
     <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+    <Route path="/messages/:conversationId" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
     <Route path="/shop" element={<ProtectedRoute><Shop activeTab="shop" onTabSelect={() => {}} onOpenCreate={() => {}} /></ProtectedRoute>} />
     <Route path="/shop/product/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
     <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
@@ -238,17 +240,19 @@ const App = () => {
           <UploadProvider>
             <CartProvider>
               <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <UpdateNotifier />
-                <GlobalRealtimeListener />
-                <InstallPrompt />
-                <UploadProgressOverlay />
-                <NotificationPermissionPrompt />
-                <IncomingHelperRequestAlert />
-                <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                  <AppRoutes />
-                </BrowserRouter>
+                <NavigationProvider>
+                  <Toaster />
+                  <Sonner />
+                  <UpdateNotifier />
+                  <GlobalRealtimeListener />
+                  <InstallPrompt />
+                  <UploadProgressOverlay />
+                  <NotificationPermissionPrompt />
+                  <IncomingHelperRequestAlert />
+                  <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                    <AppRoutes />
+                  </BrowserRouter>
+                </NavigationProvider>
               </TooltipProvider>
             </CartProvider>
           </UploadProvider>

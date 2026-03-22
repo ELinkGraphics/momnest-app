@@ -1,10 +1,14 @@
-# Fixing UI Component Errors
+# Tasks
 
-- [x] Fix `Cannot find name 'Progress'` in [CircleVideoComposer.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/circles/CircleVideoComposer.tsx)
-- [x] Fix `useQueryClient is not defined` in [useCircleVideos.ts](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/hooks/useCircleVideos.ts)
-- [x] Check other hooks for similar errors
-- [x] Fix coin transaction enum error (`invalid input value: 'tip'`)
-- [x] Auto-play video instantly after unlock
-- [ ] Add search functionality to message view (ChatView) header
-- [x] Verify build status
-```
+- [ ] Refactor Routing to support proper back navigation <!-- id: 8 -->
+    - [ ] Update [App.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/App.tsx) routes for Chat, Thread, Media, etc. <!-- id: 9 -->
+    - [ ] Refactor [Messages.tsx](file:///c:/Users/elink/.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/Messages.tsx) and `ChatView.tsx` to use URL params <!-- id: 10 -->
+- [ ] Implement Global Popstate Listener for Modals <!-- id: 11 -->
+    - [ ] Create a `NavigationManager` context to track open modals/sheets <!-- id: 12 -->
+    - [ ] Integrate `popstate` to close modals before navigating back <!-- id: 13 -->
+- [ ] Implement Scroll Restoration <!-- id: 14 -->
+    - [ ] Store scroll position in history state when navigating forward <!-- id: 15 -->
+    - [ ] Restore scroll position on back navigation <!-- id: 16 -->
+- [ ] Verify Android Gesture Compatibility <!-- id: 17 -->
+    - [ ] Check for horizontal swipe conflicts <!-- id: 18 -->
+- [ ] Manual Verification of Scenarios <!-- id: 19 -->
