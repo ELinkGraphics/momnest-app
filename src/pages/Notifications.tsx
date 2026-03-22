@@ -402,72 +402,83 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   return (
     <div
       {...swipeHandlers}
-      className={`relative px-4 py-3 transition-all cursor-pointer ${
-        isUnread ? 'bg-primary/[0.04] border-l-2 border-l-primary' : 'hover:bg-muted/50'
-      } ${isDeleting ? 'opacity-0 -translate-x-full' : ''}`}
-      style={{ transition: 'opacity 0.3s, transform 0.3s' }}
+      className={`group relative px-4 py-3 sm:py-3.5 transition-all duration-300 ease-out cursor-pointer overflow-hidden border-b border-border/40 last:border-0 ${
+        isUnread ? 'bg-primary/[0.03] hover:bg-primary/[0.06]' : 'bg-transparent hover:bg-muted/40'
+      } ${isDeleting ? 'opacity-0 scale-95 -translate-x-full' : 'opacity-100 scale-100 translate-x-0'}`}
       onClick={() => onClickItem(notification)}
     >
-      <div className="flex items-start gap-3">
+      {/* Subtle glowing unread indicator on the left edge */}
+      {isUnread && (
+        <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary/80 rounded-r-md shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
+      )}
+
+      <div className="flex items-start gap-3.5">
         {/* Avatar or Icon */}
-        <div className="flex-shrink-0 mt-0.5">
+        <div className="relative flex-shrink-0 mt-0.5">
           {profile ? (
             <Avatar
-              className="size-10 ring-2 ring-background shadow-sm cursor-pointer"
+              className="size-10 sm:size-11 ring-2 ring-background/50 shadow-sm transition-transform duration-300 group-hover:scale-105 cursor-pointer"
               onClick={(e) => { e.stopPropagation(); onNavigateProfile(profile.id); }}
             >
-              <AvatarImage src={profile.avatar_url} />
+              <AvatarImage src={profile.avatar_url} className="object-cover" />
               <AvatarFallback
                 className="text-xs font-semibold"
-                style={{ backgroundColor: profile.avatar_color, color: 'var(--primary-foreground)' }}
+                style={{ backgroundColor: profile.avatar_color, color: '#fff' }}
               >
                 {profile.initials}
               </AvatarFallback>
             </Avatar>
           ) : (
-            <div className={`size-10 rounded-full flex items-center justify-center ${colorClass}`}>
+            <div className={`size-10 sm:size-11 rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-105 shadow-sm ${colorClass}`}>
               <Icon className="size-4.5" />
+            </div>
+          )}
+          
+          {/* Notification Type Micro-Icon overlay for profile-based notifications */}
+          {profile && (
+            <div className={`absolute -bottom-1 -right-1 size-4.5 rounded-full flex items-center justify-center border-[1.5px] border-background shadow-sm ${colorClass}`}>
+              <Icon className="size-2.5" />
             </div>
           )}
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <p className="text-sm font-semibold text-foreground truncate flex-1">
+        <div className="flex-1 min-w-0 py-0.5">
+          <div className="flex items-center justify-between gap-2 mb-0.5">
+            <p className="text-sm font-medium text-foreground truncate">
               {notification.title}
             </p>
-            {isUnread && <div className="size-2 bg-primary rounded-full flex-shrink-0" />}
+            <span className="text-[10px] font-medium text-muted-foreground/60 whitespace-nowrap flex-shrink-0">
+              {formatDistanceToNow(new Date(notification.sent_at), { addSuffix: true })}
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-1">
+          
+          <p className="text-xs text-muted-foreground line-clamp-1 leading-snug">
             {notification.body}
           </p>
-          <span className="text-[10px] text-muted-foreground/70">
-            {formatDistanceToNow(new Date(notification.sent_at), { addSuffix: true })}
-          </span>
         </div>
 
-        {/* Actions */}
-        <div className="flex flex-col items-center gap-1 flex-shrink-0 mt-1">
+        {/* Desktop Hover Actions */}
+        <div className="hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-center ml-2">
           {isUnread && (
             <Button
               variant="ghost"
               size="icon"
               onClick={(e) => { e.stopPropagation(); onMarkRead(notification.id); }}
-              className="h-6 w-6 hover:bg-primary/10 hover:text-primary"
+              className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary text-muted-foreground"
               title="Mark as read"
             >
-              <Check className="size-3" />
+              <Check className="size-4" />
             </Button>
           )}
           <Button
             variant="ghost"
             size="icon"
             onClick={(e) => { e.stopPropagation(); setIsDeleting(true); setTimeout(() => onDelete(notification.id), 300); }}
-            className="h-6 w-6 hover:bg-destructive/10 hover:text-destructive"
+            className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
             title="Delete"
           >
-            <Trash2 className="size-3" />
+            <Trash2 className="size-4" />
           </Button>
         </div>
       </div>
