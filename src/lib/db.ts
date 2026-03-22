@@ -1,5 +1,5 @@
 import { Dexie, type Table } from 'dexie';
-import 'dexie-encrypted';
+import { applyEncryptionMiddleware, NON_INDEXED_FIELDS, clearAllTables } from 'dexie-encrypted';
 
 export interface LocalMessage {
   id: string; 
@@ -50,6 +50,11 @@ export class ChatDatabase extends Dexie {
       read_receipts: '[user_id+conversation_id], conversation_id',
       sync_queue: 'id, type'
     });
+
+    // Schema version 2: add created_at as an index for eviction queries
+    this.version(2).stores({
+      messages: 'id, conversation_id, created_at, [conversation_id+created_at], sync_status'
+    });
   }
 
   // Initialize DB with encryption key derived from session
@@ -74,16 +79,20 @@ export class ChatDatabase extends Dexie {
       const encryptionKey = new Uint8Array(hashBuffer);
 
       // Apply dexie-encrypted middleware
-      // Encrypts everything EXCEPT the indexed fields specified in stores()
-      // @ts-ignore - dexie-encrypted adds this method to Dexie instances
-      this.encrypt({
-        key: encryptionKey,
-        tables: {
-          messages: 'NON_INDEXED_FIELDS',
-          conversations: 'NON_INDEXED_FIELDS',
-          read_receipts: 'NON_INDEXED_FIELDS',
+      // @ts-ignore - TS types for dexie-encrypted might clash with Dexie v4 Table types
+      applyEncryptionMiddleware(
+        this, 
+        encryptionKey, 
+        {
+          messages: NON_INDEXED_FIELDS,
+          conversations: NON_INDEXED_FIELDS,
+          read_receipts: NON_INDEXED_FIELDS,
+        },
+        async (db) => {
+          console.warn('[Dexie] Encryption key changed or invalid, clearing local tables to prevent crash.');
+          await clearAllTables(db);
         }
-      });
+      );
       
       console.log('Chat local database encryption initialized.');
     } catch (err) {
