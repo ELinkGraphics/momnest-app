@@ -175,7 +175,7 @@ const ChatView: React.FC<ChatViewProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: instant ? 'instant' : 'smooth' });
   };
 
-  // Scroll instantly to bottom when conversation first loads
+  // Scroll control: only scroll to bottom if near bottom or it's our own new message
   const initialLoadRef = useRef(true);
   useEffect(() => {
     if (messages.length > 0) {
@@ -184,11 +184,20 @@ const ChatView: React.FC<ChatViewProps> = ({
         setTimeout(() => scrollToBottom(true), 50);
         initialLoadRef.current = false;
       } else {
-        // New messages: scroll smoothly
-        scrollToBottom(false);
+        // Only auto-scroll if we are near the bottom OR the last message is from us
+        const container = scrollContainerRef.current;
+        if (container) {
+          const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+          const lastMessage = messages[messages.length - 1];
+          const isOurMessage = lastMessage?.sender_id === currentUserId;
+          
+          if (isNearBottom || isOurMessage) {
+            scrollToBottom(false);
+          }
+        }
       }
     }
-  }, [messages]);
+  }, [messages, currentUserId]);
 
   // Reset initial load flag when conversation changes
   useEffect(() => {

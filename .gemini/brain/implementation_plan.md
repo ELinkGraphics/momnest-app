@@ -1,4 +1,4 @@
-# Implementation Plan - Proper Back Navigation for Android PWA
+# Implementation Plan - PWA Back Navigation & Chat Scroll Fix
 
 This plan ensures that the Android hardware/gesture back button provides a consistent and expected user experience, following the navigation hierarchy and implementation requirements provided.
 
@@ -34,6 +34,9 @@ This plan ensures that the Android hardware/gesture back button provides a consi
 
 #### [MODIFY] [ChatView.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/messages/ChatView.tsx)
 - Implement scroll restoration logic in `useEffect`.
+- **Fix**: Update the messages-triggered `useEffect` to only call `scrollToBottom` if:
+    1. The user is already near the bottom (within ~100px).
+    2. OR the last message in the list is from the current user (sent by them).
 
 ### [Modal & Sheet Integration]
 
