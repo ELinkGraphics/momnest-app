@@ -10,11 +10,10 @@ export async function syncConversation(conversationId: string) {
     const lastSeq = conv?.last_seen_seq || 0;
 
     // 2. Fetch deltas from the server
-    // @ts-ignore - sync_messages RPC is newly added, types may be outdated
+    // @ts-ignore
     const { data, error } = await (supabase.rpc as any)('sync_messages', {
       p_conversation_id: conversationId,
-      p_last_seq: lastSeq,
-      p_limit: 1000
+      p_after_seq: lastSeq
     });
 
     if (error) {
@@ -29,42 +28,29 @@ export async function syncConversation(conversationId: string) {
 
     let maxSeq = lastSeq;
     const messagesToInsert: any[] = [];
-    const readReceiptsToInsert: any[] = [];
 
-    // 3. Process the replication log
-    for (const row of logData) {
-      if (row.type === 'message') {
-        const p = row.payload;
-        messagesToInsert.push({
-          id: p.id,
-          conversation_id: p.conversation_id,
-          sender_id: p.sender_id,
-          content: p.content,
-          created_at: p.created_at,
-          updated_at: p.updated_at,
-          seq: p.seq,
-          sync_status: 'synced'
-        });
-        if (p.seq > maxSeq) maxSeq = p.seq;
-      } else if (row.type === 'read_receipt') {
-        const p = row.payload;
-        readReceiptsToInsert.push({
-          user_id: p.user_id,
-          conversation_id: p.conversation_id,
-          last_read_seq: p.last_read_seq,
-          updated_at: p.updated_at
-        });
-        if (p.seq > maxSeq) maxSeq = p.seq;
-      }
+    // 3. Process the messages
+    for (const msg of logData) {
+      messagesToInsert.push({
+        id: msg.id,
+        conversation_id: msg.conversation_id,
+        sender_id: msg.sender_id,
+        content: msg.content,
+        message_type: msg.message_type || 'text',
+        attachment_url: msg.attachment_url,
+        reply_to_id: msg.reply_to_id,
+        created_at: msg.created_at,
+        updated_at: msg.updated_at,
+        seq: msg.seq,
+        sync_status: 'synced'
+      });
+      if (msg.seq > maxSeq) maxSeq = msg.seq;
     }
 
     // 4. Batch write to Dexie
-    await chatDb.transaction('rw', chatDb.messages, chatDb.conversations, chatDb.read_receipts, async () => {
+    await chatDb.transaction('rw', chatDb.messages, chatDb.conversations, async () => {
       if (messagesToInsert.length > 0) {
         await chatDb.messages.bulkPut(messagesToInsert);
-      }
-      if (readReceiptsToInsert.length > 0) {
-        await chatDb.read_receipts.bulkPut(readReceiptsToInsert);
       }
       
       // Update the high-water mark
