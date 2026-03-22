@@ -18,12 +18,17 @@ export interface LocalMessage {
 /** Call this before any Dexie write to guarantee no null leaks into encrypted fields */
 export function sanitizeMessage(msg: Partial<LocalMessage>): LocalMessage {
   return {
-    ...msg,
-    content:        msg.content        ?? '',
+    id:             msg.id!,
+    conversation_id: msg.conversation_id!,
     sender_id:      String(msg.sender_id ?? ''),
-    message_type:   msg.message_type   ?? 'text',
-    attachment_url: msg.attachment_url ?? '',
-    reply_to_id:    msg.reply_to_id    ?? '',
+    content:        typeof msg.content === 'string' ? msg.content : '',
+    message_type:   typeof msg.message_type === 'string' ? msg.message_type : 'text',
+    attachment_url: typeof msg.attachment_url === 'string' ? msg.attachment_url : '',
+    reply_to_id:    typeof msg.reply_to_id === 'string' ? msg.reply_to_id : '',
+    created_at:     msg.created_at!,
+    updated_at:     msg.updated_at!,
+    seq:            msg.seq,
+    sync_status:    msg.sync_status ?? 'pending',
   } as LocalMessage;
 }
 

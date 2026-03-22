@@ -31,7 +31,7 @@ export async function syncConversation(conversationId: string) {
 
     // 3. Process the messages
     for (const msg of logData) {
-      messagesToInsert.push(sanitizeMessage({
+      const sanitized = sanitizeMessage({
         id: msg.id,
         conversation_id: msg.conversation_id,
         sender_id: String(msg.sender_id),
@@ -43,7 +43,16 @@ export async function syncConversation(conversationId: string) {
         updated_at: msg.updated_at,
         seq: Number(msg.seq),
         sync_status: 'synced'
-      }));
+      });
+
+      // Diagnostic check for dexie-encrypted fields (must not be undefined)
+      for (const field of ['content', 'attachment_url', 'sender_id', 'message_type', 'reply_to_id']) {
+        if ((sanitized as any)[field] === undefined) {
+          console.error(`[Sync] CRITICAL: field "${field}" is undefined for message ${sanitized.id}. This will crash local DB.`);
+        }
+      }
+
+      messagesToInsert.push(sanitized);
       if (msg.seq > maxSeq) maxSeq = msg.seq;
     }
 
@@ -59,13 +68,23 @@ export async function syncConversation(conversationId: string) {
         last_seen_seq: maxSeq
       });
 
-      // 5. Fetch and update read receipts for this conversation
-      // Use 'as any' for the table name to avoid deep type instantiation errors 
-      // when the table is missing from the generated Database types.
-      const { data: receipts } = await supabase
-        .from('read_receipts' as any)
-        .select('*')
-        .eq('conversation_id', conversationId) as { data: any[] | null };
+    // 5. Fetch read receipts for this conversation BEFORE opening the transaction
+    const { data: receipts } = await supabase
+      .from('read_receipts' as any)
+      .select('*')
+      .eq('conversation_id', conversationId) as { data: any[] | null };
+
+    // 6. Batch write messages and high-water mark to Dexie
+    await chatDb.transaction('rw', chatDb.messages, chatDb.conversations, chatDb.read_receipts, async () => {
+      if (messagesToInsert.length > 0) {
+        await chatDb.messages.bulkPut(messagesToInsert);
+      }
+
+      // Update the high-water mark
+      await chatDb.conversations.put({
+        id: conversationId,
+        last_seen_seq: maxSeq
+      });
 
       if (receipts && receipts.length > 0) {
         await chatDb.read_receipts.bulkPut(receipts.map(r => ({
