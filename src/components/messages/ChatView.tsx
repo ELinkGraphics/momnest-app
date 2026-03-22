@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Send, ArrowLeft, Loader2, Plus, X, Pencil, Reply, Pin, Check, CheckCheck, Users } from 'lucide-react';
+import { Send, ArrowLeft, Loader2, Plus, X, Pencil, Reply, Pin, Check, CheckCheck, Users, Search, ChevronUp, ChevronDown } from 'lucide-react';
 import { useMessages, useSendMessage, useOtherUserLastRead } from '@/hooks/useMessages';
 import { useMessageReactions, useEditMessage, useDeleteMessage, useForwardMessage, usePinnedMessage } from '@/hooks/useMessageActions';
 import { useConversations, Conversation } from '@/hooks/useConversations';
@@ -63,6 +63,13 @@ const ChatView: React.FC<ChatViewProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // Search state
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(-1);
+
 
   const { messages, isLoading } = useMessages(conversation.conversation_id, currentUserId);
   const otherUserLastRead = useOtherUserLastRead(conversation.conversation_id, currentUserId);
@@ -305,6 +312,44 @@ const ChatView: React.FC<ChatViewProps> = ({
     }
   };
 
+  // Search functionality
+  useEffect(() => {
+    if (!searchQuery.trim() || !isSearchOpen) {
+      setSearchResults([]);
+      setCurrentSearchIndex(-1);
+      return;
+    }
+    const query = searchQuery.toLowerCase();
+    const results = messages
+      .filter((m: any) => m.content?.toLowerCase().includes(query))
+      .map((m: any) => m.id);
+    
+    setSearchResults(results);
+    if (results.length > 0) {
+      setCurrentSearchIndex(results.length - 1); // Start at the newest match
+    } else {
+      setCurrentSearchIndex(-1);
+    }
+  }, [searchQuery, messages, isSearchOpen]);
+
+  useEffect(() => {
+    if (currentSearchIndex >= 0 && searchResults[currentSearchIndex]) {
+       scrollToMessage(searchResults[currentSearchIndex]);
+    }
+  }, [currentSearchIndex, searchResults]);
+
+  const handleSearchNext = () => {
+    if (searchResults.length === 0) return;
+    const nextIndex = (currentSearchIndex + 1) % searchResults.length;
+    setCurrentSearchIndex(nextIndex);
+  };
+
+  const handleSearchPrev = () => {
+    if (searchResults.length === 0) return;
+    const prevIndex = (currentSearchIndex - 1 + searchResults.length) % searchResults.length;
+    setCurrentSearchIndex(prevIndex);
+  };
+
   // Get reactions for a message
   const getMessageReactions = (messageId: string) => {
     return reactions.filter((r: any) => r.message_id === messageId);
@@ -399,60 +444,126 @@ const ChatView: React.FC<ChatViewProps> = ({
     <div className="flex flex-col h-screen lg:h-full bg-background">
       {/* Header */}
       <div className="flex-none sticky top-0 z-10 bg-background/95 backdrop-blur-lg border-b border-border">
-        <div className="flex items-center gap-3 px-3 py-3 safe-top">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onBack}
-            className="lg:hidden -ml-2 h-10 w-10 active:scale-95 transition-transform"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+        {!isSearchOpen ? (
+          <div className="flex items-center gap-3 px-3 py-3 safe-top">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onBack}
+              className="lg:hidden -ml-2 h-10 w-10 active:scale-95 transition-transform"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
 
-          <div
-            className="relative cursor-pointer active:scale-95 transition-transform"
-            onClick={handleProfileClick}
-          >
-            <Avatar className="h-11 w-11">
-              <AvatarImage src={conversation.is_group ? (conversation.group_avatar_url || undefined) : (conversation.other_user_avatar || undefined)} />
-              <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-primary-foreground text-sm">
-                {conversation.is_group ? (
-                  <Users className="h-5 w-5" />
-                ) : (
-                  conversation.other_user_initials
-                )}
-              </AvatarFallback>
-            </Avatar>
-            {!conversation.is_group && conversation.other_user_id && isUserOnline(conversation.other_user_id) && (
-              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-success border-2 border-background" />
-            )}
-          </div>
-
-          <div
-            className="flex-1 min-w-0 cursor-pointer"
-            onClick={handleProfileClick}
-          >
-            <h2 className="font-semibold text-foreground truncate text-base">
-              {conversation.is_group ? conversation.group_name : conversation.other_user_name}
-            </h2>
-            <div className="flex items-center gap-2">
-              {conversation.is_group ? (
-                <p className="text-xs text-muted-foreground">
-                  {conversation.member_count} members · Tap for info
-                </p>
-              ) : (
-                <>
-                  <p className="text-xs text-muted-foreground">
-                    @{conversation.other_user_username}
-                  </p>
-                  {conversation.other_user_id && isUserOnline(conversation.other_user_id) && (
-                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">Online</Badge>
+            <div
+              className="relative cursor-pointer active:scale-95 transition-transform"
+              onClick={handleProfileClick}
+            >
+              <Avatar className="h-11 w-11">
+                <AvatarImage src={conversation.is_group ? (conversation.group_avatar_url || undefined) : (conversation.other_user_avatar || undefined)} />
+                <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-primary-foreground text-sm">
+                  {conversation.is_group ? (
+                    <Users className="h-5 w-5" />
+                  ) : (
+                    conversation.other_user_initials
                   )}
-                </>
+                </AvatarFallback>
+              </Avatar>
+              {!conversation.is_group && conversation.other_user_id && isUserOnline(conversation.other_user_id) && (
+                <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-success border-2 border-background" />
               )}
             </div>
+
+            <div
+              className="flex-1 min-w-0 cursor-pointer"
+              onClick={handleProfileClick}
+            >
+              <h2 className="font-semibold text-foreground truncate text-base">
+                {conversation.is_group ? conversation.group_name : conversation.other_user_name}
+              </h2>
+              <div className="flex items-center gap-2">
+                {conversation.is_group ? (
+                  <p className="text-xs text-muted-foreground">
+                    {conversation.member_count} members · Tap for info
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      @{conversation.other_user_username}
+                    </p>
+                    {conversation.other_user_id && isUserOnline(conversation.other_user_id) && (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">Online</Badge>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSearchOpen(true)}
+              className="h-10 w-10 active:scale-95 transition-transform ml-auto text-muted-foreground hover:bg-muted"
+            >
+              <Search className="h-5 w-5" />
+            </Button>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col gap-2 px-3 py-2 safe-top">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setIsSearchOpen(false);
+                  setSearchQuery('');
+                }}
+                className="-ml-2 h-10 w-10 active:scale-95 transition-transform text-muted-foreground hover:bg-muted"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex-1 relative">
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search messages..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-10 bg-muted/50 rounded-full px-4 text-sm outline-none focus:bg-muted/80 transition-colors"
+                />
+              </div>
+            </div>
+            {searchQuery && (
+              <div className="flex items-center justify-between px-2 pb-1">
+                <span className="text-xs text-muted-foreground">
+                  {searchResults.length > 0 
+                    ? `${currentSearchIndex + 1} of ${searchResults.length} results` 
+                    : 'No results found'}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:bg-muted"
+                    onClick={handleSearchPrev}
+                    disabled={searchResults.length === 0}
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:bg-muted"
+                    onClick={handleSearchNext}
+                    disabled={searchResults.length === 0}
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Pinned Message Banner */}
         {pinnedMessage && (
