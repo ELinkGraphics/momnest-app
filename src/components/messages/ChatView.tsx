@@ -118,7 +118,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   const prevMessagesCount = useRef(0);
 
 
-  const { messages, isLoading } = useMessages(conversation.conversation_id, currentUserId);
+  const { messages, isLoading, isSyncing } = useMessages(conversation.conversation_id, currentUserId);
   const otherUserLastRead = useOtherUserLastRead(conversation.conversation_id, currentUserId);
   const { sendMessage, isSending } = useSendMessage();
   const { reactions, toggleReaction } = useMessageReactions(conversation.conversation_id);
@@ -685,11 +685,18 @@ const ChatView: React.FC<ChatViewProps> = ({
             </Button>
           </div>
         )}
-        {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
-                <Skeleton className="h-16 w-3/4 rounded-2xl" />
+        {isLoading || (isSyncing && visibleMessages.length === 0) ? (
+          <div className="space-y-4 animate-in fade-in duration-500">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div 
+                key={i} 
+                className={`flex gap-3 ${i % 2 === 0 ? 'flex-row-reverse' : 'flex-row'}`}
+              >
+                <Skeleton className="h-9 w-9 rounded-full shrink-0 mt-auto" />
+                <div className={`flex flex-col gap-1 max-w-[70%] ${i % 2 === 0 ? 'items-end' : 'items-start'}`}>
+                  <Skeleton className={`h-16 w-48 rounded-2xl ${i % 2 === 0 ? 'rounded-br-none bg-primary/20' : 'rounded-bl-none bg-muted/60'}`} />
+                  <Skeleton className="h-3 w-16 rounded-full opacity-50" />
+                </div>
               </div>
             ))}
           </div>

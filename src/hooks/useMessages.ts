@@ -135,12 +135,15 @@ export const useMessages = (conversationId: string | null, userId: string | unde
         retry_count: 0
       });
 
-      // 3. Trigger queue processing
+    // 3. Trigger queue processing
       processSyncQueue().catch(console.error);
+      
+      // 4. Invalidate conversations to refresh unread badges
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
 
     markAsRead();
-  }, [conversationId, userId, localMessages]);
+  }, [conversationId, userId, localMessages, queryClient]);
 
   const messagesWithSenders = useMemo(() => {
     return localMessages?.map((msg: any) => ({
