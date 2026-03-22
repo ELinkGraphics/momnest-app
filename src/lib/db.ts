@@ -15,6 +15,18 @@ export interface LocalMessage {
   sync_status: 'synced' | 'pending' | 'failed';
 }
 
+/** Call this before any Dexie write to guarantee no null leaks into encrypted fields */
+export function sanitizeMessage(msg: Partial<LocalMessage>): LocalMessage {
+  return {
+    ...msg,
+    content:        msg.content        ?? '',
+    sender_id:      String(msg.sender_id ?? ''),
+    message_type:   msg.message_type   ?? 'text',
+    attachment_url: msg.attachment_url ?? '',
+    reply_to_id:    msg.reply_to_id    ?? '',
+  } as LocalMessage;
+}
+
 export interface LocalConversation {
   id: string;
   last_seen_seq: number;

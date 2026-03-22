@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { chatDb } from '@/lib/db';
+import { chatDb, sanitizeMessage } from '@/lib/db';
 
 export async function syncConversation(conversationId: string) {
   if (!conversationId) return;
@@ -31,19 +31,19 @@ export async function syncConversation(conversationId: string) {
 
     // 3. Process the messages
     for (const msg of logData) {
-      messagesToInsert.push({
+      messagesToInsert.push(sanitizeMessage({
         id: msg.id,
         conversation_id: msg.conversation_id,
         sender_id: String(msg.sender_id),
-        content: msg.content || '',
-        message_type: msg.message_type || 'text',
-        attachment_url: msg.attachment_url || '',
-        reply_to_id: msg.reply_to_id || '',
+        content: msg.content,
+        message_type: msg.message_type,
+        attachment_url: msg.attachment_url,
+        reply_to_id: msg.reply_to_id,
         created_at: msg.created_at,
         updated_at: msg.updated_at,
         seq: Number(msg.seq),
         sync_status: 'synced'
-      });
+      }));
       if (msg.seq > maxSeq) maxSeq = msg.seq;
     }
 
@@ -52,7 +52,7 @@ export async function syncConversation(conversationId: string) {
       if (messagesToInsert.length > 0) {
         await chatDb.messages.bulkPut(messagesToInsert);
       }
-      
+
       // Update the high-water mark
       await chatDb.conversations.put({
         id: conversationId,
@@ -60,10 +60,12 @@ export async function syncConversation(conversationId: string) {
       });
 
       // 5. Fetch and update read receipts for this conversation
+      // Use 'as any' for the table name to avoid deep type instantiation errors 
+      // when the table is missing from the generated Database types.
       const { data: receipts } = await supabase
-        .from('read_receipts')
+        .from('read_receipts' as any)
         .select('*')
-        .eq('conversation_id', conversationId);
+        .eq('conversation_id', conversationId) as { data: any[] | null };
 
       if (receipts && receipts.length > 0) {
         await chatDb.read_receipts.bulkPut(receipts.map(r => ({
@@ -76,10 +78,10 @@ export async function syncConversation(conversationId: string) {
     });
 
     console.log(`[Sync] Conversation ${conversationId} synced ${messagesToInsert.length} messages. Cursor at ${maxSeq}`);
-    
+
     // Attempt to process queue after a successful sync
     processSyncQueue().catch(console.error);
-    
+
     return logData.length;
   } catch (err) {
     console.error('Error during chat sync:', err);
@@ -105,9 +107,9 @@ export async function processSyncQueue() {
         });
       } else if (item.type === 'read_receipt') {
         const { error } = await supabase
-          .from('read_receipts')
+          .from('read_receipts' as any)
           .upsert(item.payload);
-        
+
         if (error) throw error;
 
         // On success, remove from queue
@@ -116,7 +118,7 @@ export async function processSyncQueue() {
       // Future: handle message_update, message_delete, read_receipt
     } catch (err: any) {
       console.error(`[Sync] Failed to process queue item ${item.id}:`, err);
-      
+
       // Increment retry count
       await chatDb.sync_queue.update(item.id, {
         retry_count: item.retry_count + 1

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { chatDb } from '@/lib/db';
+import { chatDb, sanitizeMessage } from '@/lib/db';
 import { syncConversation, processSyncQueue } from '@/lib/sync';
 
 export interface Message {
@@ -208,13 +208,13 @@ export const useSendMessage = () => {
       if (replyToId) insertData.reply_to_id = replyToId;
 
       // 1. Instantly write to local UI db
-      await chatDb.messages.put({
+      await chatDb.messages.put(sanitizeMessage({
         ...insertData,
-        attachment_url: attachmentUrl || '',
-        reply_to_id: replyToId || '',
-        message_type: messageType || 'text',
+        attachment_url: attachmentUrl,
+        reply_to_id: replyToId,
+        message_type: messageType,
         sync_status: 'pending'
-      });
+      }));
 
       // 2. Try pushing to server (if online)
       if (navigator.onLine) {
