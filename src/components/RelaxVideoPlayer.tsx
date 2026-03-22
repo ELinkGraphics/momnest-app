@@ -57,6 +57,7 @@ export const RelaxVideoPlayer: React.FC<RelaxVideoPlayerProps> = ({
   const [followStates, setFollowStates] = useState<Record<string, 'visible' | 'checked' | 'hidden'>>({});
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [landscapeVideos, setLandscapeVideos] = useState<Set<string>>(new Set());
+  const [pausedVideos, setPausedVideos] = useState<Set<string>>(new Set());
   const [expandedCaptions, setExpandedCaptions] = useState<Set<string>>(new Set());
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [pipVideoIndex, setPipVideoIndex] = useState<string | null>(null);
@@ -128,7 +129,20 @@ export const RelaxVideoPlayer: React.FC<RelaxVideoPlayerProps> = ({
         const handleLoadStart = () => setIsLoading(prev => ({ ...prev, [videoId]: true }));
         const handleCanPlay = () => setIsLoading(prev => ({ ...prev, [videoId]: false }));
         const handleWaiting = () => setIsLoading(prev => ({ ...prev, [videoId]: true }));
-        const handlePlaying = () => setIsLoading(prev => ({ ...prev, [videoId]: false }));
+        const handlePlaying = () => {
+          setIsLoading(prev => ({ ...prev, [videoId]: false }));
+          setPausedVideos(prev => {
+            const next = new Set(prev);
+            next.delete(videoId);
+            return next;
+          });
+        };
+        const handlePause = () => {
+          setPausedVideos(prev => new Set(prev).add(videoId));
+        };
+        const handleEnded = () => {
+          setPausedVideos(prev => new Set(prev).add(videoId));
+        };
         const handleLoadedMetadata = () => {
           if (element.videoWidth > element.videoHeight) {
             setLandscapeVideos(prev => new Set(prev).add(videoId));
@@ -139,6 +153,8 @@ export const RelaxVideoPlayer: React.FC<RelaxVideoPlayerProps> = ({
         element.addEventListener('canplay', handleCanPlay);
         element.addEventListener('waiting', handleWaiting);
         element.addEventListener('playing', handlePlaying);
+        element.addEventListener('pause', handlePause);
+        element.addEventListener('ended', handleEnded);
         element.addEventListener('loadedmetadata', handleLoadedMetadata);
         
         // Store cleanup function
@@ -298,6 +314,18 @@ export const RelaxVideoPlayer: React.FC<RelaxVideoPlayerProps> = ({
     triggerHaptic('light');
   }, [isMuted, triggerHaptic]);
 
+  const togglePlayPause = useCallback((videoId: string) => {
+    const video = videoRefs.current.get(videoId);
+    if (!video) return;
+    
+    if (video.paused) {
+      video.play().catch(e => console.log('Error playing video:', e));
+    } else {
+      video.pause();
+    }
+    triggerHaptic('light');
+  }, [triggerHaptic]);
+
   // Double-tap to like handler
   const handleDoubleTap = useCallback((e: React.MouseEvent | React.TouchEvent, videoId: string) => {
     const now = Date.now();
@@ -307,8 +335,8 @@ export const RelaxVideoPlayer: React.FC<RelaxVideoPlayerProps> = ({
       clientX = e.changedTouches?.[0]?.clientX ?? 0;
       clientY = e.changedTouches?.[0]?.clientY ?? 0;
     } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
     }
 
     const timeDiff = now - lastTapRef.current.time;
@@ -340,6 +368,49 @@ export const RelaxVideoPlayer: React.FC<RelaxVideoPlayerProps> = ({
       lastTapRef.current = { time: now, x: clientX, y: clientY };
     }
   }, [likedVideos, handleLike, triggerHaptic]);
+
+  // Combined tap handler for single-tap (play/pause) and double-tap (like)
+  const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const handleTap = useCallback((e: React.MouseEvent | React.TouchEvent, videoId: string) => {
+    const now = Date.now();
+    const timeDiff = now - lastTapRef.current.time;
+    
+    // Extract position for potential double tap heart
+    let clientX: number, clientY: number;
+    if ('touches' in e) {
+      const touch = e.nativeEvent instanceof TouchEvent ? e.nativeEvent.changedTouches[0] : (e as any).changedTouches?.[0] || (e as any).touches?.[0];
+      clientX = touch?.clientX ?? 0;
+      clientY = touch?.clientY ?? 0;
+    } else {
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
+    }
+
+    if (timeDiff < 300) {
+      // Double tap detected
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current);
+        tapTimeoutRef.current = null;
+      }
+      
+      // Handle heart animation and like logic
+      handleDoubleTap(e, videoId);
+      lastTapRef.current = { time: 0, x: 0, y: 0 };
+    } else {
+      // Potential single tap - wait to see if it's a double tap
+      lastTapRef.current = { 
+        time: now, 
+        x: clientX,
+        y: clientY
+      };
+      
+      tapTimeoutRef.current = setTimeout(() => {
+        togglePlayPause(videoId);
+        tapTimeoutRef.current = null;
+        lastTapRef.current = { time: 0, x: 0, y: 0 };
+      }, 300);
+    }
+  }, [handleDoubleTap, togglePlayPause, triggerHaptic]);
 
   const handleAction = useCallback(async (action: string, videoId?: string) => {
     console.log(`${action} action triggered`);
@@ -441,11 +512,20 @@ export const RelaxVideoPlayer: React.FC<RelaxVideoPlayerProps> = ({
                 muted={isMuted}
               />
 
-              {/* Double-tap zone for like */}
+              {/* Tap zone for play/pause and like */}
               <div
                 className="absolute inset-0 z-10"
-                onClick={(e) => handleDoubleTap(e, video.id)}
+                onClick={(e) => handleTap(e, video.id)}
               />
+
+              {/* Play icon overlay */}
+              {isActive && pausedVideos.has(video.id) && !videoIsLoading && (
+                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none transition-all duration-300">
+                  <div className="size-20 bg-black/30 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 shadow-2xl animate-in zoom-in-75 duration-200">
+                    <div className="w-0 h-0 border-l-[24px] border-l-white border-t-[16px] border-t-transparent border-b-[16px] border-b-transparent ml-1.5 opacity-90" />
+                  </div>
+                </div>
+              )}
 
               {/* Double-tap heart animations */}
               {doubleTapHearts.map(heart => (

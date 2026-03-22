@@ -60,6 +60,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [showShareToStory, setShowShareToStory] = useState(false);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [playingVideos, setPlayingVideos] = useState<Set<number>>(new Set());
   const navigate = useNavigate();
   const { user } = useUser();
   const { toggleLike, toggleSave, incrementShare, deletePost } = usePostMutations();
@@ -81,6 +82,11 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     carouselApi.on('select', onSelect);
     return () => { carouselApi.off('select', onSelect); };
   }, [carouselApi]);
+
+  // Reset playing state when slide changes
+  useEffect(() => {
+    setPlayingVideos(new Set());
+  }, [currentSlide]);
 
   const relative = formatRelativeTime(post.time);
   const isPremiumCirclePost = post.isPremium && post.circleId;
@@ -296,6 +302,17 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                         preload="metadata"
                         playsInline
                         onClick={(e) => e.stopPropagation()}
+                        onPlay={() => setPlayingVideos(prev => new Set(prev).add(index))}
+                        onPause={() => setPlayingVideos(prev => {
+                          const next = new Set(prev);
+                          next.delete(index);
+                          return next;
+                        })}
+                        onEnded={() => setPlayingVideos(prev => {
+                          const next = new Set(prev);
+                          next.delete(index);
+                          return next;
+                        })}
                       />
                     ) : (
                       <img
@@ -308,9 +325,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                     {shouldShowPaywall && (
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center" />
                     )}
-                    {isVideoUrl(url) && (
+                    {isVideoUrl(url) && !playingVideos.has(index) && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="bg-black/30 backdrop-blur-md rounded-full p-4 border border-white/20 shadow-2xl">
+                        <div className="bg-black/30 backdrop-blur-md rounded-full p-4 border border-white/20 shadow-2xl transition-opacity duration-300">
                           <Play className="size-8 text-white fill-white opacity-90" />
                         </div>
                       </div>
@@ -347,6 +364,17 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               preload="metadata"
               playsInline
               onClick={(e) => e.stopPropagation()}
+              onPlay={() => setPlayingVideos(prev => new Set(prev).add(0))}
+              onPause={() => setPlayingVideos(prev => {
+                const next = new Set(prev);
+                next.delete(0);
+                return next;
+              })}
+              onEnded={() => setPlayingVideos(prev => {
+                const next = new Set(prev);
+                next.delete(0);
+                return next;
+              })}
             />
           ) : (
             <img
@@ -364,9 +392,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           {shouldShowPaywall && (
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center" />
           )}
-          {isVideoUrl(post.media.url) && (
+          {isVideoUrl(post.media.url) && !playingVideos.has(0) && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="bg-black/30 backdrop-blur-md rounded-full p-4 border border-white/20 shadow-2xl">
+              <div className="bg-black/30 backdrop-blur-md rounded-full p-4 border border-white/20 shadow-2xl transition-opacity duration-300">
                 <Play className="size-8 text-white fill-white opacity-90" />
               </div>
             </div>
