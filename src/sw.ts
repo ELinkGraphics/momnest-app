@@ -62,3 +62,22 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+
+// Handle Background Sync
+self.addEventListener('sync', (event: any) => {
+  if (event.tag === 'chat-sync') {
+    console.log('[Service Worker] Background Sync Triggered!');
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window' }).then((clients) => {
+        if (clients.length > 0) {
+          // Tell the open window (which has Supabase Auth Context) to process the queue
+          clients.forEach(client => client.postMessage({ type: 'PROCESS_SYNC_QUEUE' }));
+        } else {
+          // If no windows are open, we'd ideally run a direct sync here.
+          // However, Supabase auth requires localStorage (unavailable in SW) or an IndexedDB session sharing mechanism.
+          console.warn('[Service Worker] Cannot background sync without an active client due to Auth token constraints. Will sync on next app open.');
+        }
+      })
+    );
+  }
+});

@@ -4,6 +4,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { chatDb } from '@/lib/db';
+import { registerSyncListeners } from '@/lib/sync';
 
 const CACHED_PROFILE_KEY = 'cached_user_profile';
 const CACHED_SESSION_KEY = 'cached_has_session';
@@ -132,6 +133,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       setSession(session);
       if (session?.access_token) {
         chatDb.initEncryption(session.access_token);
+        registerSyncListeners();
       }
       
       if (session?.user) {
@@ -168,6 +170,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       setSession(session);
       if (session?.access_token) {
         chatDb.initEncryption(session.access_token);
+        registerSyncListeners();
       }
       
       if (session?.user) {

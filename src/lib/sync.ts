@@ -121,3 +121,58 @@ export async function processSyncQueue() {
   }
 }
 
+export async function cleanupOldData() {
+  const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
+  const cutoffDate = new Date(Date.now() - NINETY_DAYS_MS).toISOString();
+
+  try {
+    // Delete messages older than 90 days that are fully synced
+    const oldMessages = await chatDb.messages
+      .where('created_at').below(cutoffDate)
+      .and(msg => msg.sync_status === 'synced')
+      .primaryKeys();
+
+    if (oldMessages.length > 0) {
+      await chatDb.messages.bulkDelete(oldMessages);
+      console.log(`[Eviction] Cleared ${oldMessages.length} old synced messages to save storage.`);
+    }
+  } catch (err) {
+    console.error('[Eviction] Failed to cleanup old data:', err);
+  }
+}
+
+export function registerSyncListeners() {
+  if (typeof window === 'undefined') return;
+
+  // Trigger sync queue when network comes back online
+  window.addEventListener('online', () => {
+    console.log('[Network] Back online, processing sync queue...');
+    processSyncQueue().catch(console.error);
+  });
+
+  // Try to register Background Sync API if supported by Service Worker
+  if ('serviceWorker' in navigator) {
+    if ('SyncManager' in window) {
+      navigator.serviceWorker.ready.then(registration => {
+        try {
+          // @ts-ignore - sync is valid in browsers supporting Background Sync
+          registration.sync.register('chat-sync');
+          console.log('[Background Sync] Registered "chat-sync".');
+        } catch (e) {
+          console.warn('[Background Sync] Registration failed.', e);
+        }
+      });
+    }
+
+    // Listen for wake-up calls from the Service Worker
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'PROCESS_SYNC_QUEUE') {
+        console.log('[Background Sync] Service worker requested sync queue processing...');
+        processSyncQueue().catch(console.error);
+      }
+    });
+  }
+
+  // Run cleanup once on load
+  cleanupOldData().catch(console.error);
+}
