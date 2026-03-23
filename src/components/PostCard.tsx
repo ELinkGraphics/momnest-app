@@ -58,6 +58,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [sharesCount, setSharesCount] = useState(post.stats.shares);
   const [followState, setFollowState] = useState<'visible' | 'checked' | 'hidden'>('visible');
   const [showProfileModal, setShowProfileModal] = useState(false);
+
+  // Sync state with props when post changes (important for real-time updates after refetch)
+  useEffect(() => {
+    setLiked(post.userHasLiked || false);
+    setLikesCount(post.stats.likes);
+  }, [post.userHasLiked, post.stats.likes]);
   const [showLikersModal, setShowLikersModal] = useState(false);
   const [showShareToStory, setShowShareToStory] = useState(false);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();

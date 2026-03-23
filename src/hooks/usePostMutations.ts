@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface CreatePostData {
   content: string;
@@ -12,6 +13,7 @@ export interface CreatePostData {
 }
 
 export const usePostMutations = () => {
+  const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
 
@@ -106,11 +108,13 @@ export const usePostMutations = () => {
         // Find existing reaction
         const { data: existingLike } = await supabase
           .from('likes')
+          // @ts-ignore
           .select('reaction_type')
           .eq('post_id', postId)
           .eq('user_id', userId)
           .maybeSingle();
 
+        // @ts-ignore
         if (existingLike && existingLike.reaction_type === reactionType) {
           // Same reaction -> Unlike
           const { error } = await supabase
@@ -124,6 +128,7 @@ export const usePostMutations = () => {
           // Different reaction -> Update
           const { error } = await supabase
             .from('likes')
+            // @ts-ignore
             .update({ reaction_type: reactionType })
             .eq('post_id', postId)
             .eq('user_id', userId);
@@ -137,11 +142,20 @@ export const usePostMutations = () => {
           .insert({
             post_id: postId,
             user_id: userId,
+            // @ts-ignore
             reaction_type: reactionType
           });
 
         if (error) throw error;
       }
+
+      // Automatically invalidate relevant queries to ensure system-wide consistency
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['post-detail', postId] });
+      queryClient.invalidateQueries({ queryKey: ['circle-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['circle-post', postId] });
+
     } catch (error) {
       console.error('Error toggling like/reaction:', error);
       toast({

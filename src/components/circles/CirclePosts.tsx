@@ -187,6 +187,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
         }
       }
       queryClient.invalidateQueries({ queryKey: ['circle-posts', circleId] });
+      queryClient.invalidateQueries({ queryKey: ['circle-post', postId] });
     } catch (error: any) {
       console.error('Error liking post:', error);
       toast({ title: "Failed to like post", description: error.message, variant: "destructive" });

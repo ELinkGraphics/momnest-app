@@ -317,6 +317,8 @@ const CirclePostDetail: React.FC = () => {
       }
 
       queryClient.invalidateQueries({ queryKey: ['circle-post', postId] });
+      // Also invalidate the circle feed to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['circle-posts', circleId] });
     } catch (error: any) {
       toast({ title: "Failed to like post", description: error.message, variant: "destructive" });
     }
