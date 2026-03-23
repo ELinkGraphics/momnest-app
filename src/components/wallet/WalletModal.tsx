@@ -12,7 +12,6 @@ import { useCoinWallet, ChapaBank } from '@/hooks/useCoinWallet';
 import { useUser } from '@/contexts/UserContext';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import ChapaPaymentModal from './ChapaPaymentModal';
 
 
 interface WalletModalProps {
@@ -59,8 +58,6 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
   const [customTopUp, setCustomTopUp] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [topUpDone, setTopUpDone] = useState(false);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [checkoutUrl, setCheckoutUrl] = useState('');
   const finalTopUp = topUpAmount || parseInt(customTopUp) || 0;
 
   // ── Withdraw state ────────────────────────────────────────────────────────
@@ -110,18 +107,34 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
     if (finalTopUp < 10) return;
     initiateTopUp.mutate({ amount: finalTopUp }, {
       onSuccess: (data) => {
-        if (data.checkoutUrl) {
-          setCheckoutUrl(data.checkoutUrl);
-          setIsPaymentModalOpen(true);
+        const chapaPublicKey = import.meta.env.VITE_CHAPA_PUBLIC_KEY;
+        
+        if (typeof window !== 'undefined' && (window as any).Chapa) {
+          (window as any).Chapa.pay({
+            public_key: chapaPublicKey,
+            tx_ref: data.txRef,
+            amount: finalTopUp,
+            currency: 'ETB',
+            callback_url: '', // Webhook handles account crediting
+            return_url: window.location.href, // Redirect back to this page
+            customization: {
+              title: "MomNest Wallet Top-Up",
+              description: `Add ${finalTopUp} ETB to your MomNest wallet`,
+            },
+            onclose: () => {
+              handleClosePaymentModal(); // Triggers verification
+            }
+          });
+        } else {
+          // Fallback if script didn't load for some reason
+          window.open(data.checkoutUrl, '_blank');
         }
       }
     });
   };
 
   const handleClosePaymentModal = async () => {
-    setIsPaymentModalOpen(false);
-    
-    // Trigger verification when the modal closes
+    // Trigger verification
     const pendingRef = localStorage.getItem('chapa_pending_txref');
     if (!pendingRef || isVerifying) return;
 
@@ -488,12 +501,6 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
           </Tabs>
         </div>
       </div>
-
-      <ChapaPaymentModal
-        isOpen={isPaymentModalOpen}
-        onClose={handleClosePaymentModal}
-        checkoutUrl={checkoutUrl}
-      />
     </div>
   );
 };
