@@ -12,6 +12,8 @@ import { useCoinWallet, ChapaBank } from '@/hooks/useCoinWallet';
 import { useUser } from '@/contexts/UserContext';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import ChapaPaymentModal from './ChapaPaymentModal';
+
 
 interface WalletModalProps {
   isOpen: boolean;
@@ -57,6 +59,8 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
   const [customTopUp, setCustomTopUp] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [topUpDone, setTopUpDone] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState('');
   const finalTopUp = topUpAmount || parseInt(customTopUp) || 0;
 
   // ── Withdraw state ────────────────────────────────────────────────────────
@@ -104,8 +108,38 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
 
   const handleTopUp = () => {
     if (finalTopUp < 10) return;
-    initiateTopUp.mutate({ amount: finalTopUp });
+    initiateTopUp.mutate({ amount: finalTopUp }, {
+      onSuccess: (data) => {
+        if (data.checkoutUrl) {
+          setCheckoutUrl(data.checkoutUrl);
+          setIsPaymentModalOpen(true);
+        }
+      }
+    });
   };
+
+  const handleClosePaymentModal = async () => {
+    setIsPaymentModalOpen(false);
+    
+    // Trigger verification when the modal closes
+    const pendingRef = localStorage.getItem('chapa_pending_txref');
+    if (!pendingRef || isVerifying) return;
+
+    setIsVerifying(true);
+    try {
+      const result = await verifyTopUp.mutateAsync({ txRef: pendingRef });
+      if (result?.status === 'success') {
+        setTopUpDone(true);
+        setTopUpAmount(null);
+        setCustomTopUp('');
+      }
+    } catch {
+      // Toast shown in hook
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
 
   const handleWithdraw = () => {
     const amount = parseInt(withdrawAmount);
@@ -454,6 +488,12 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
           </Tabs>
         </div>
       </div>
+
+      <ChapaPaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={handleClosePaymentModal}
+        checkoutUrl={checkoutUrl}
+      />
     </div>
   );
 };

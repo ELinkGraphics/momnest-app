@@ -100,10 +100,9 @@ export function useCoinWallet(userId?: string) {
       return callEdgeFunction('chapa-initialize', { amount });
     },
     onSuccess: (data) => {
-      // Store txRef so we can verify after the user returns from Chapa
+      // Store txRef so we can verify if needed
       localStorage.setItem('chapa_pending_txref', data.txRef);
-      // Open Chapa checkout in a new tab
-      window.open(data.checkoutUrl, '_blank');
+      // We no longer window.open here; the component will handle the checkoutUrl
     },
     onError: (err: any) => {
       toast({
