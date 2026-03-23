@@ -25,17 +25,15 @@ export const CreateCirclePostModal: React.FC<CreateCirclePostModalProps> = ({
   onPostCreated,
 }) => {
   const [content, setContent] = useState('');
-  const coverManager = useFileManager();
-  const coverImage = coverManager.files[0]?.file as File | undefined;
-  const coverPreview = coverManager.files[0]?.url || '';
+  const mediaManager = useFileManager();
   const [isPremium, setIsPremium] = useState(false);
   const [premiumPrice, setPremiumPrice] = useState<string>('');
   const [hasTipsEnabled, setHasTipsEnabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const removeCoverImage = () => {
-    coverManager.clearAll();
+  const removeMedia = (id: string) => {
+    mediaManager.removeFile(id);
   };
 
   const handleSubmit = async () => {
@@ -63,23 +61,29 @@ export const CreateCirclePostModal: React.FC<CreateCirclePostModalProps> = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      let coverImageUrl = null;
+      let mediaUrls: string[] = [];
+      
+      // Upload media files if provided
+      if (mediaManager.files.length > 0) {
+        const uploadPromises = mediaManager.files.map(async (item, index) => {
+          const file = item.file as File;
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${user.id}/post-${Date.now()}-${index}.${fileExt}`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('post-media')
+            .upload(fileName, file);
 
-      // Upload cover image if provided
-      if (coverImage) {
-        const fileExt = coverImage.name.split('.').pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('post-media')
-          .upload(fileName, coverImage);
+          if (uploadError) throw uploadError;
 
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('post-media')
-          .getPublicUrl(uploadData.path);
+          const { data: { publicUrl } } = supabase.storage
+            .from('post-media')
+            .getPublicUrl(uploadData.path);
+          
+          return publicUrl;
+        });
         
-        coverImageUrl = publicUrl;
+        mediaUrls = await Promise.all(uploadPromises);
       }
 
       // Create post
@@ -89,7 +93,8 @@ export const CreateCirclePostModal: React.FC<CreateCirclePostModalProps> = ({
           user_id: user.id,
           circle_id: circleId,
           content: content.trim(),
-          cover_image_url: coverImageUrl,
+          media_url: mediaUrls[0] || null,
+          media_urls: mediaUrls,
           is_premium: isPremium,
           premium_price: isPremium ? parseInt(premiumPrice) : null,
           has_tips_enabled: hasTipsEnabled,
@@ -103,7 +108,7 @@ export const CreateCirclePostModal: React.FC<CreateCirclePostModalProps> = ({
       });
 
       setContent('');
-      coverManager.clearAll();
+      mediaManager.clearAll();
       setIsPremium(false);
       setPremiumPrice('');
       setHasTipsEnabled(true);
@@ -138,37 +143,45 @@ export const CreateCirclePostModal: React.FC<CreateCirclePostModalProps> = ({
         <div className="p-6 space-y-8">
           {/* Cover Image Upload */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold text-foreground/80 ml-1">Cover Image</Label>
-            <CustomFilePicker manager={coverManager} hideUploadButton hidePreviewList accept="image/*" maxFileSizeMB={5}>
-              {!coverPreview ? (
-                <div className="group relative mt-2 flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-border/50 rounded-2xl cursor-pointer bg-muted/10 hover:bg-muted/20 hover:border-primary/50 transition-all duration-300">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <div className="p-4 rounded-2xl bg-primary/10 text-primary mb-4 group-hover:scale-110 transition-transform duration-300">
-                      <ImageIcon className="w-8 h-8" />
-                    </div>
-                    <p className="mb-2 text-sm font-medium">
-                      <span className="text-primary font-bold">Click to upload</span> or drag and drop
-                    </p>
-                    <p className="text-xs text-muted-foreground/60">PNG, JPG, WEBP (MAX. 5MB)</p>
+            <Label className="text-sm font-semibold text-foreground/80 ml-1">Media (Photos/Videos)</Label>
+            <CustomFilePicker manager={mediaManager} hideUploadButton hidePreviewList multiple={true}>
+              <div className="group relative mt-2 flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border/50 rounded-2xl cursor-pointer bg-muted/10 hover:bg-muted/20 hover:border-primary/50 transition-all duration-300">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <div className="p-3 rounded-xl bg-primary/10 text-primary mb-2 group-hover:scale-110 transition-transform duration-300">
+                    <ImageIcon className="w-6 h-6" />
                   </div>
+                  <p className="text-xs font-medium">
+                    <span className="text-primary font-bold">Add media</span> to your post
+                  </p>
                 </div>
-              ) : (
-                <div className="group relative mt-2 w-full h-64 rounded-2xl overflow-hidden shadow-lg">
-                  <img src={coverPreview} alt="Cover preview" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeCoverImage();
-                      }}
-                      className="p-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all duration-300 shadow-xl transform scale-90 group-hover:scale-100"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              )}
+              </div>
             </CustomFilePicker>
+
+            {/* Media Preview Grid */}
+            {mediaManager.files.length > 0 && (
+              <div className="grid grid-cols-3 gap-3 mt-4">
+                {mediaManager.files.map((item) => (
+                  <div key={item.id} className="group relative aspect-square rounded-xl overflow-hidden shadow-md bg-muted/20 border border-border/50">
+                    {item.kind === 'video' ? (
+                      <video src={item.url} className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={item.url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="Preview" />
+                    )}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeMedia(item.id);
+                        }}
+                        className="p-2 bg-destructive text-white rounded-lg hover:bg-destructive/80 transition-all transform scale-90 group-hover:scale-100 shadow-lg"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Content */}

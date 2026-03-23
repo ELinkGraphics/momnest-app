@@ -489,7 +489,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
         ref={imageInputRef}
         type="file"
         accept="image/*"
-        multiple
+        multiple={multiple}
         className="hidden"
         onChange={(e) => processInput(e, 'image')}
       />
@@ -497,14 +497,14 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
         ref={videoInputRef}
         type="file"
         accept="video/*"
-        multiple
+        multiple={multiple}
         className="hidden"
         onChange={(e) => processInput(e, 'video')}
       />
       <input
         ref={anyInputRef}
         type="file"
-        multiple
+        multiple={multiple}
         className="hidden"
         onChange={(e) => processInput(e, 'file')}
       />

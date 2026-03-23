@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { ArrowLeft, Camera, MapPin, Users, Globe, Image, Video, Mic, X, Loader2, Square, Pencil, ChevronLeft, ChevronRight, Wand2 } from 'lucide-react';
+import { ArrowLeft, Camera, MapPin, Users, Globe, Image, Video, Mic, X, Loader2, Square, Pencil, ChevronLeft, ChevronRight, Wand2, FileText } from 'lucide-react';
 import ImageCropper from '@/components/ImageCropper';
 import VideoEditorModal from '@/components/VideoEditorModal';
 import { InlineVideoLoader } from '@/components/ui/VideoLoader';
@@ -339,7 +339,7 @@ const CreatePost: React.FC = () => {
         {/* Additional Options */}
         <div className="space-y-4 pt-4 border-t border-border/50">
           <div className="grid grid-cols-2 gap-3">
-            <CustomFilePicker manager={fileManager} hideUploadButton hidePreviewList accept="image/*">
+            <CustomFilePicker manager={fileManager} hideUploadButton hidePreviewList accept="image/*" multiple={true}>
               <button className="w-full flex items-center p-4 rounded-3xl bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-all group active:scale-95 duration-200">
                 <div className="p-3 rounded-2xl bg-primary/10 text-primary mr-3 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm shadow-primary/10">
                   <Image className="w-5 h-5" />
@@ -351,7 +351,7 @@ const CreatePost: React.FC = () => {
               </button>
             </CustomFilePicker>
 
-            <CustomFilePicker manager={fileManager} hideUploadButton hidePreviewList accept="video/*">
+            <CustomFilePicker manager={fileManager} hideUploadButton hidePreviewList accept="video/*" multiple={true}>
               <button className="w-full flex items-center p-4 rounded-3xl bg-secondary/5 hover:bg-secondary/10 border border-secondary/10 transition-all group active:scale-95 duration-200">
                 <div className="p-3 rounded-2xl bg-secondary/10 text-secondary mr-3 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-300 shadow-sm shadow-secondary/10">
                   <Video className="w-5 h-5" />
@@ -365,6 +365,18 @@ const CreatePost: React.FC = () => {
           </div>
 
           <div className="space-y-2">
+            <CustomFilePicker manager={fileManager} hideUploadButton hidePreviewList multiple={true}>
+              <button className="w-full flex items-center p-4 rounded-3xl bg-orange-500/5 hover:bg-orange-500/10 border border-orange-500/10 transition-all group active:scale-[0.98] duration-200">
+                <div className="p-3 rounded-2xl bg-orange-500/10 text-orange-500 mr-3 group-hover:scale-110 transition-all duration-300 shadow-sm shadow-orange-500/10">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-black text-foreground tracking-tight">Files</p>
+                  <p className="text-[10px] text-muted-foreground/70 font-bold uppercase tracking-tighter">Documents</p>
+                </div>
+              </button>
+            </CustomFilePicker>
+            
             <button onClick={handleAddLocation} className="w-full flex items-center p-4 rounded-3xl bg-muted/30 hover:bg-muted/50 border border-border/50 transition-all group active:scale-[0.98] duration-200">
               <div className={`p-3 rounded-2xl mr-3 group-hover:scale-110 transition-all duration-300 shadow-sm ${locationText ? 'bg-primary/20 text-primary shadow-primary/10' : 'bg-muted text-muted-foreground shadow-black/5'}`}>
                 {loadingLocation ? (
