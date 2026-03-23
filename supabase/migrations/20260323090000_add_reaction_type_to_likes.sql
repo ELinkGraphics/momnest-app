@@ -2,6 +2,8 @@
 ALTER TABLE public.likes ADD COLUMN IF NOT EXISTS reaction_type text DEFAULT 'like';
 
 -- Update get_feed_posts to return user_reaction
+DROP FUNCTION IF EXISTS public.get_feed_posts(integer, integer);
+
 CREATE OR REPLACE FUNCTION public.get_feed_posts(
   page_num integer DEFAULT 0,
   page_size integer DEFAULT 10
