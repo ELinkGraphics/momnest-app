@@ -55,9 +55,8 @@ serve(async (req) => {
       last_name: lastName || "User",
       phone_number: phoneNumber || undefined,
       tx_ref: txRef,
-      // After payment, Chapa will redirect user to this URL
-      // The client will detect focus-back and call chapa-verify
-      return_url: `https://momnest-app.vercel.app/?verify_topup=${txRef}&wallet=open`,
+      // After payment, Chapa will redirect user to this URL (/verify path)
+      return_url: `https://momnest-app.vercel.app/verify`,
       customization: {
         title: "MomNest Wallet Top-Up",
         description: `Add ${amount} ETB to your MomNest wallet`,

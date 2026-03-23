@@ -120,7 +120,7 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
             amount: finalTopUp,
             currency: 'ETB',
             callback_url: '', // Webhook handles account crediting
-            return_url: `https://momnest-app.vercel.app/?wallet=open`, // Redirect back to this page
+            return_url: `https://momnest-app.vercel.app/verify`, // Redirect back to verify page
             customization: {
               title: "MomNest Wallet Top-Up",
               description: `Add ${finalTopUp} ETB to your MomNest wallet`,

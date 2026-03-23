@@ -82,6 +82,7 @@ import AdminLiveStreams from "./pages/admin/AdminLiveStreams";
 import AdminShopManagement from "./pages/admin/AdminShopManagement";
 import AdminSafetyOperations from "./pages/admin/AdminSafetyOperations";
 import AdminExpertVerification from "./pages/admin/AdminExpertVerification";
+import VerifyTopUp from "./pages/VerifyTopUp";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -186,6 +187,7 @@ const AppRoutes = () => {
       <Route path="settings" element={<AdminSettings />} />
       <Route path="expert-verification" element={<AdminExpertVerification />} />
     </Route>
+    <Route path="/verify" element={<VerifyTopUp />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
   );
