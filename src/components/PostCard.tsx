@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Share2, MoreHorizontal, BadgeCheck, Plus, Check, Trash2, Bookmark, Flag, Crown, Lock, MapPin, Mic, BookImage, Play } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, BadgeCheck, Plus, Check, Trash2, Bookmark, Flag, Crown, Lock, MapPin, Mic, BookImage, Play, ThumbsUp, Laugh, LifeBuoy, Ghost, Angry } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import ReactionPicker from './post/ReactionPicker';
 
 interface PostCardProps {
   post: Post;
@@ -61,6 +62,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [playingVideos, setPlayingVideos] = useState<Set<number>>(new Set());
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [currentReaction, setCurrentReaction] = useState<string | null>(post.userReaction || (liked ? 'like' : null));
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
   const { user } = useUser();
   const { toggleLike, toggleSave, incrementShare, deletePost } = usePostMutations();
@@ -93,12 +97,57 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const isUnlocked = post.userHasUnlocked || user?.id === post.user.id;
   const shouldShowPaywall = isPremiumCirclePost && !isUnlocked;
 
-  const handleLike = async () => {
+  const handleLike = async (reactionType: string = 'like') => {
     if (!user) return;
-    const newLikedState = !liked;
-    setLiked(newLikedState);
-    setLikesCount(prev => newLikedState ? prev + 1 : prev - 1);
-    await toggleLike(String(post.id), user.id, liked);
+    
+    const isRemoving = currentReaction === reactionType;
+    const isUpdating = currentReaction !== null && !isRemoving;
+    
+    const wasLiked = currentReaction !== null;
+    const willBeLiked = !isRemoving;
+    
+    // Optimistic UI
+    if (!wasLiked && willBeLiked) {
+      setLikesCount(prev => prev + 1);
+    } else if (wasLiked && !willBeLiked) {
+      setLikesCount(prev => prev - 1);
+    }
+    
+    setLiked(willBeLiked);
+    setCurrentReaction(willBeLiked ? reactionType : null);
+    
+    await toggleLike(String(post.id), user.id, wasLiked, reactionType);
+  };
+
+  const onTouchStart = () => {
+    longPressTimer.current = setTimeout(() => {
+      setShowReactionPicker(true);
+    }, 500);
+  };
+
+  const onTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const getReactionIcon = () => {
+    switch (currentReaction) {
+      case 'love': return <ThumbsUp className="size-[22px] text-[#4267B2] fill-[#4267B2] animate-in zoom-in duration-300" />;
+      case 'haha': return <span className="text-[20px] animate-in zoom-in duration-300">😂</span>;
+      case 'wow': return <span className="text-[20px] animate-in zoom-in duration-300">😮</span>;
+      case 'sad': return <span className="text-[20px] animate-in zoom-in duration-300">😢</span>;
+      case 'angry': return <span className="text-[20px] animate-in zoom-in duration-300">😡</span>;
+      default:
+        return (
+          <Heart className={cn(
+            "size-[22px] transition-all duration-300",
+            liked ? "fill-red-500 text-red-500" : "text-muted-foreground group-hover:text-foreground",
+            liked && "scale-110"
+          )} />
+        );
+    }
   };
 
   const handleSave = async () => {
@@ -414,16 +463,41 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       <div className="px-3 pt-3 pb-1 flex items-center">
         <div className="flex items-center gap-4">
           {/* Like */}
-          <button onClick={handleLike} className="flex items-center gap-1.5 group" aria-label={liked ? 'Unlike' : 'Like'}>
-            <Heart className={cn(
-              "size-[22px] transition-all duration-300",
-              liked ? "fill-red-500 text-red-500" : "text-muted-foreground group-hover:text-foreground",
-              liked && "scale-110"
-            )} />
-            <button onClick={(e) => { e.stopPropagation(); setShowLikersModal(true); }}>
-              <span className="text-[13px] font-semibold text-muted-foreground">{formatCount(likesCount)}</span>
+          <div className="relative">
+            <button 
+              onMouseDown={onTouchStart}
+              onMouseUp={onTouchEnd}
+              onTouchStart={onTouchStart}
+              onTouchEnd={onTouchEnd}
+              onMouseLeave={onTouchEnd}
+              onClick={() => {
+                if (!showReactionPicker) {
+                  handleLike(currentReaction || 'like');
+                }
+              }} 
+              className="flex items-center gap-1.5 group" 
+              aria-label={liked ? 'Unlike' : 'Like'}
+            >
+              {getReactionIcon()}
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  setShowLikersModal(true); 
+                }}
+              >
+                <span className="text-[13px] font-semibold text-muted-foreground">{formatCount(likesCount)}</span>
+              </button>
             </button>
-          </button>
+
+            {showReactionPicker && (
+              <div className="absolute bottom-full left-0 mb-2 z-50">
+                <ReactionPicker 
+                  onSelect={(emoji) => handleLike(emoji)} 
+                  onClose={() => setShowReactionPicker(false)} 
+                />
+              </div>
+            )}
+          </div>
           {/* Comment */}
           <button onClick={handleOpenPost} className="flex items-center gap-1.5 group" aria-label="Comments">
             <MessageCircle className="size-[22px] text-muted-foreground group-hover:text-foreground transition-colors" />

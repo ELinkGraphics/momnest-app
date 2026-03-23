@@ -99,34 +99,54 @@ export const usePostMutations = () => {
     }
   };
 
-  const toggleLike = async (postId: string, userId: string, isLiked: boolean) => {
+  const toggleLike = async (postId: string, userId: string, isLiked: boolean, reactionType: string = 'like') => {
     setIsLiking(true);
     try {
       if (isLiked) {
-        // Unlike
-        const { error } = await supabase
+        // Find existing reaction
+        const { data: existingLike } = await supabase
           .from('likes')
-          .delete()
+          .select('reaction_type')
           .eq('post_id', postId)
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .maybeSingle();
 
-        if (error) throw error;
+        if (existingLike && existingLike.reaction_type === reactionType) {
+          // Same reaction -> Unlike
+          const { error } = await supabase
+            .from('likes')
+            .delete()
+            .eq('post_id', postId)
+            .eq('user_id', userId);
+
+          if (error) throw error;
+        } else {
+          // Different reaction -> Update
+          const { error } = await supabase
+            .from('likes')
+            .update({ reaction_type: reactionType })
+            .eq('post_id', postId)
+            .eq('user_id', userId);
+
+          if (error) throw error;
+        }
       } else {
-        // Like
+        // Like (New reaction)
         const { error } = await supabase
           .from('likes')
           .insert({
             post_id: postId,
             user_id: userId,
+            reaction_type: reactionType
           });
 
         if (error) throw error;
       }
     } catch (error) {
-      console.error('Error toggling like:', error);
+      console.error('Error toggling like/reaction:', error);
       toast({
         title: "Error",
-        description: "Failed to update like. Please try again.",
+        description: "Failed to update reaction. Please try again.",
         variant: "destructive",
       });
     } finally {

@@ -24,6 +24,7 @@ export interface Post {
   stats: { likes: number; comments: number; shares: number };
   sponsored?: boolean;
   userHasLiked?: boolean;
+  userReaction?: string;
   userHasUnlocked?: boolean;
   circleId?: string;
   circleName?: string;
