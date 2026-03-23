@@ -15,6 +15,8 @@ import { Input } from '@/components/ui/input';
 import EmojiPicker from '@/components/EmojiPicker';
 import { PremiumUnlockBanner } from '@/components/premium/PremiumUnlockBanner';
 import { PremiumContentSkeleton } from '@/components/premium/PremiumContentSkeleton';
+import PostReactionButton from '@/components/post/PostReactionButton';
+import LikersModal from '@/components/LikersModal';
 
 console.log('DEBUG V3: useCircleSubscription hook:', typeof useCircleSubscription);
 
@@ -146,6 +148,7 @@ const CirclePostDetail: React.FC = () => {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const { user } = useUser();
   const { wallet } = useCoinWallet(user?.id);
+  const [showLikersModal, setShowLikersModal] = useState(false);
 
   // Fetch circle details
   const { data: circle } = useQuery({
@@ -191,10 +194,10 @@ const CirclePostDetail: React.FC = () => {
 
       if (error) throw error;
 
-      // Check if user has liked the post
       const { data: likeData } = await supabase
         .from('likes')
-        .select('id')
+        // @ts-ignore
+        .select('id, reaction_type')
         .eq('post_id', postId)
         .eq('user_id', user?.id)
         .maybeSingle();
@@ -222,6 +225,8 @@ const CirclePostDetail: React.FC = () => {
         author: data.profiles,
         stats: data.post_stats,
         user_has_liked: !!likeData,
+        // @ts-ignore
+        user_reaction: likeData?.reaction_type,
         tip_count: tipCount || 0,
         user_has_unlocked: hasUnlocked,
       };
@@ -283,18 +288,32 @@ const CirclePostDetail: React.FC = () => {
     }
   };
 
-  const handleLike = async () => {
+  const handleLike = async (reactionType: string = 'like') => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({ title: "Please log in to like posts", variant: "destructive" });
         return;
       }
 
-      if (post.user_has_liked) {
+      const isRemoving = post.user_has_liked && (reactionType === 'like' || !reactionType);
+      
+      if (isRemoving) {
         await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
       } else {
-        await supabase.from('likes').insert({ post_id: postId, user_id: user.id });
+        const { data: existingLike } = await supabase
+          .from('likes')
+          .select('id')
+          .eq('post_id', postId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (existingLike) {
+          // @ts-ignore
+          await supabase.from('likes').update({ reaction_type: reactionType }).eq('id', existingLike.id);
+        } else {
+          // @ts-ignore
+          await supabase.from('likes').insert({ post_id: postId, user_id: user.id, reaction_type: reactionType });
+        }
       }
 
       queryClient.invalidateQueries({ queryKey: ['circle-post', postId] });
@@ -420,16 +439,13 @@ const CirclePostDetail: React.FC = () => {
 
             {/* Interaction buttons */}
             <div className="flex items-center gap-6 py-4 border-y border-border">
-              <button 
-                onClick={handleLike}
-                className={cn(
-                  "flex items-center gap-2 transition-colors",
-                  post.user_has_liked ? "text-red-500" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Heart className={cn("size-5", post.user_has_liked && "text-red-500 fill-red-500")} />
-                <span className="text-sm">{post.stats?.likes_count || 0}</span>
-              </button>
+              <PostReactionButton
+                isLiked={post.user_has_liked}
+                likesCount={post.stats?.likes_count || 0}
+                userReaction={post.user_reaction}
+                onLike={handleLike}
+                onShowLikers={() => setShowLikersModal(true)}
+              />
               
               <button className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
                 <MessageCircle className="size-5" />

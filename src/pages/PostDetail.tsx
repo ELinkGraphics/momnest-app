@@ -18,6 +18,8 @@ import { useCircleSubscription } from '@/hooks/useCircleSubscription';
 import { PremiumUnlockBanner } from '@/components/premium/PremiumUnlockBanner';
 import { PremiumContentSkeleton } from '@/components/premium/PremiumContentSkeleton';
 import { useNavigation } from '@/contexts/NavigationContext';
+import PostReactionButton from '@/components/post/PostReactionButton';
+import LikersModal from '@/components/LikersModal';
 
 console.log('DEBUG V3: useCircleSubscription hook (PostDetail):', typeof useCircleSubscription);
 
@@ -84,6 +86,8 @@ const PostDetail: React.FC = () => {
   const [hasUnlocked, setHasUnlocked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [circleCreatorId, setCircleCreatorId] = useState<string | null>(null);
+  const [userReaction, setUserReaction] = useState<string | undefined>(undefined);
+  const [showLikersModal, setShowLikersModal] = useState(false);
 
   const { data: subscription } = useCircleSubscription(post?.circle_id);
 
@@ -137,12 +141,13 @@ const PostDetail: React.FC = () => {
         if (user) {
           const { data: likeData } = await supabase
             .from('likes')
-            .select('id')
+            .select('id, reaction_type')
             .eq('post_id', postId)
             .eq('user_id', user.id)
             .maybeSingle();
 
           setLiked(!!likeData);
+          if (likeData) setUserReaction(likeData.reaction_type);
         }
 
         // Check if user has unlocked this premium post
@@ -427,13 +432,20 @@ const PostDetail: React.FC = () => {
     toast.success('Post reported');
   };
 
-  const handleLikePost = async () => {
+  const handleLikePost = async (reactionType: string = 'like') => {
     if (!user) return;
-    const newLikedState = !liked;
-    setLiked(newLikedState);
-    setLikesCount(prev => newLikedState ? prev + 1 : prev - 1);
+    const isRemoving = liked && (reactionType === 'like' || !reactionType);
+    const wasLiked = liked;
+    const willBeLiked = !isRemoving;
+
+    setLiked(willBeLiked);
+    if (!wasLiked && willBeLiked) setLikesCount(prev => prev + 1);
+    else if (wasLiked && !willBeLiked) setLikesCount(prev => prev - 1);
+    
+    setUserReaction(willBeLiked ? reactionType : undefined);
+    
     triggerHaptic('light');
-    await toggleLike(postId!, user.id, liked);
+    await toggleLike(postId!, user.id, wasLiked, reactionType);
   };
 
   return (
@@ -705,15 +717,13 @@ const PostDetail: React.FC = () => {
 
           {/* Post Actions */}
           <div className="px-4 py-3 flex items-center gap-6 border-t border-border/40">
-            <button
-              onClick={handleLikePost}
-              className="flex items-center gap-2 text-sm font-medium hover:text-red-500 transition-colors"
-            >
-              <Heart
-                className={`size-5 transition-all ${liked ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`}
-              />
-              <span>{formatCount(likesCount)}</span>
-            </button>
+            <PostReactionButton
+              isLiked={liked}
+              likesCount={likesCount}
+              userReaction={userReaction}
+              onLike={handleLikePost}
+              onShowLikers={() => setShowLikersModal(true)}
+            />
 
             <button className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               <MessageCircle className="size-5" />
@@ -903,6 +913,7 @@ const PostDetail: React.FC = () => {
         onEdit={(newText) => commentAction && handleEditComment(commentAction.commentId, newText)}
         onDelete={() => commentAction && handleDeleteComment(commentAction.commentId)}
       />
+      <LikersModal isOpen={showLikersModal} onClose={() => setShowLikersModal(false)} postId={postId!} />
     </div>
   );
 };

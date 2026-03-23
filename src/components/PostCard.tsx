@@ -12,6 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import PublicProfileModal from '@/components/PublicProfileModal';
 import LikersModal from '@/components/LikersModal';
+import PostReactionButton from './post/PostReactionButton';
 import { PremiumContentSkeleton } from '@/components/premium/PremiumContentSkeleton';
 import SharePostToStoryModal from '@/components/story/SharePostToStoryModal';
 import { Carousel, CarouselContent, CarouselItem, CarouselApi } from '@/components/ui/carousel';
@@ -62,9 +63,6 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [playingVideos, setPlayingVideos] = useState<Set<number>>(new Set());
-  const [showReactionPicker, setShowReactionPicker] = useState(false);
-  const [currentReaction, setCurrentReaction] = useState<string | null>(post.userReaction || (liked ? 'like' : null));
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
   const { user } = useUser();
   const { toggleLike, toggleSave, incrementShare, deletePost } = usePostMutations();
@@ -98,12 +96,18 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const shouldShowPaywall = isPremiumCirclePost && !isUnlocked;
 
   const handleLike = async (reactionType: string = 'like') => {
-    if (!user) return;
+    if (!user) {
+      toast({ title: "Please login to like posts" });
+      return;
+    }
     
-    const isRemoving = currentReaction === reactionType;
-    const isUpdating = currentReaction !== null && !isRemoving;
+    // Toggle logic if no type provided or if same type clicked
+    const isRemoving = liked && (reactionType === 'like' || !reactionType);
     
-    const wasLiked = currentReaction !== null;
+    // In our new button, reactionType is always provided if liking. 
+    // If unliking, it might be undefined or 'like'.
+    
+    const wasLiked = liked;
     const willBeLiked = !isRemoving;
     
     // Optimistic UI
@@ -114,40 +118,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     }
     
     setLiked(willBeLiked);
-    setCurrentReaction(willBeLiked ? reactionType : null);
     
     await toggleLike(String(post.id), user.id, wasLiked, reactionType);
-  };
-
-  const onTouchStart = () => {
-    longPressTimer.current = setTimeout(() => {
-      setShowReactionPicker(true);
-    }, 500);
-  };
-
-  const onTouchEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  };
-
-  const getReactionIcon = () => {
-    switch (currentReaction) {
-      case 'love': return <ThumbsUp className="size-[22px] text-[#4267B2] fill-[#4267B2] animate-in zoom-in duration-300" />;
-      case 'haha': return <span className="text-[20px] animate-in zoom-in duration-300">😂</span>;
-      case 'wow': return <span className="text-[20px] animate-in zoom-in duration-300">😮</span>;
-      case 'sad': return <span className="text-[20px] animate-in zoom-in duration-300">😢</span>;
-      case 'angry': return <span className="text-[20px] animate-in zoom-in duration-300">😡</span>;
-      default:
-        return (
-          <Heart className={cn(
-            "size-[22px] transition-all duration-300",
-            liked ? "fill-red-500 text-red-500" : "text-muted-foreground group-hover:text-foreground",
-            liked && "scale-110"
-          )} />
-        );
-    }
   };
 
   const handleSave = async () => {
@@ -463,41 +435,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       <div className="px-3 pt-3 pb-1 flex items-center">
         <div className="flex items-center gap-4">
           {/* Like */}
-          <div className="relative">
-            <button 
-              onMouseDown={onTouchStart}
-              onMouseUp={onTouchEnd}
-              onTouchStart={onTouchStart}
-              onTouchEnd={onTouchEnd}
-              onMouseLeave={onTouchEnd}
-              onClick={() => {
-                if (!showReactionPicker) {
-                  handleLike(currentReaction || 'like');
-                }
-              }} 
-              className="flex items-center gap-1.5 group" 
-              aria-label={liked ? 'Unlike' : 'Like'}
-            >
-              {getReactionIcon()}
-              <button 
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  setShowLikersModal(true); 
-                }}
-              >
-                <span className="text-[13px] font-semibold text-muted-foreground">{formatCount(likesCount)}</span>
-              </button>
-            </button>
-
-            {showReactionPicker && (
-              <div className="absolute bottom-full left-0 mb-2 z-50">
-                <ReactionPicker 
-                  onSelect={(emoji) => handleLike(emoji)} 
-                  onClose={() => setShowReactionPicker(false)} 
-                />
-              </div>
-            )}
-          </div>
+          <PostReactionButton
+            isLiked={liked}
+            likesCount={likesCount}
+            userReaction={post.userReaction}
+            onLike={handleLike}
+            onShowLikers={() => setShowLikersModal(true)}
+          />
           {/* Comment */}
           <button onClick={handleOpenPost} className="flex items-center gap-1.5 group" aria-label="Comments">
             <MessageCircle className="size-[22px] text-muted-foreground group-hover:text-foreground transition-colors" />

@@ -26,6 +26,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import PostReactionButton from '@/components/post/PostReactionButton';
+import LikersModal from '@/components/LikersModal';
 
 interface CirclePostsProps {
   circle: any;
@@ -50,6 +52,8 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedPostForEdit, setSelectedPostForEdit] = useState<any>(null);
+  const [showLikersModal, setShowLikersModal] = useState(false);
+  const [activePostId, setActivePostId] = useState<string | null>(null);
 
   // Initialize Tiptap Editor
   const editor = useEditor({
@@ -154,17 +158,33 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
     navigate(`/circle/${circleId}/post/${post.id}`);
   };
 
-  const handleLike = async (postId: string, isLiked: boolean) => {
+  const handleLike = async (postId: string, isLiked: boolean, reactionType: string = 'like') => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({ title: "Please log in to like posts", variant: "destructive" });
         return;
       }
-      if (isLiked) {
+
+      const isRemoving = isLiked && (reactionType === 'like' || !reactionType);
+      
+      if (isRemoving) {
         await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
       } else {
-        await supabase.from('likes').insert({ post_id: postId, user_id: user.id });
+        const { data: existingLike } = await supabase
+          .from('likes')
+          .select('id')
+          .eq('post_id', postId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (existingLike) {
+          // @ts-ignore
+          await supabase.from('likes').update({ reaction_type: reactionType }).eq('id', existingLike.id);
+        } else {
+          // @ts-ignore
+          await supabase.from('likes').insert({ post_id: postId, user_id: user.id, reaction_type: reactionType });
+        }
       }
       queryClient.invalidateQueries({ queryKey: ['circle-posts', circleId] });
     } catch (error: any) {
@@ -472,16 +492,17 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                     {/* Row with social buttons including tip button */}
                     {canView && (
                       <div className="flex gap-2 mb-4">
-                        <button 
-                          onClick={() => handleLike(post.id, post.user_has_liked)}
-                          className={cn(
-                            "flex-1 flex items-center justify-center gap-2 rounded-full backdrop-blur-sm px-4 py-2 text-sm font-medium text-white transition-smooth hover-scale",
-                            post.user_has_liked ? "bg-red-500/30" : "bg-card/15 hover:bg-card/25"
-                          )}
-                        >
-                          <Heart className={cn("h-4 w-4", post.user_has_liked && "text-red-500 fill-red-500")} />
-                          <span>{post.stats.likes_count}</span>
-                        </button>
+                        <PostReactionButton
+                          isLiked={post.user_has_liked}
+                          likesCount={post.stats.likes_count}
+                          userReaction={post.user_reaction}
+                          onLike={(reactionType) => handleLike(post.id, post.user_has_liked, reactionType)}
+                          onShowLikers={() => {
+                            setActivePostId(post.id);
+                            setShowLikersModal(true);
+                          }}
+                          variant="circle"
+                        />
                         <button 
                           onClick={() => navigate(`/circle/${circleId}/post/${post.id}`, { state: { openComments: true } })}
                           className="flex-1 flex items-center justify-center gap-2 rounded-full bg-card/15 backdrop-blur-sm px-4 py-2 text-sm font-medium text-white hover:bg-card/25 transition-smooth hover-scale"
@@ -562,6 +583,11 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
         onSave={() => {
           queryClient.invalidateQueries({ queryKey: ['circle-posts', circleId] });
         }}
+      />
+      <LikersModal 
+        isOpen={showLikersModal} 
+        onClose={() => setShowLikersModal(false)} 
+        postId={activePostId || ''} 
       />
     </div>
   );

@@ -24,6 +24,7 @@ export interface CirclePost {
     shares_count: number;
   };
   user_has_liked: boolean;
+  user_reaction: string | null;
   user_has_unlocked: boolean;
   tip_count: number;
   user_has_tipped: boolean;
@@ -87,7 +88,7 @@ export const useCirclePosts = (circleId: string | undefined) => {
           .in('post_id', postIds) : { data: [] },
       ]);
 
-      const userLikedPosts = new Set(likesData.data?.map(l => l.post_id) || []);
+      const userLikes = new Map<string, string | null>((likesData.data || []).map(l => [l.post_id as string, l.reaction_type as string | null]));
       const userUnlockedPosts = new Set(unlocksData.data?.map(u => u.post_id) || []);
       
       // Count tips per post and check if user tipped
@@ -124,7 +125,8 @@ export const useCirclePosts = (circleId: string | undefined) => {
           comments_count: (post.post_stats as any)?.comments_count || 0,
           shares_count: (post.post_stats as any)?.shares_count || 0,
         },
-        user_has_liked: userLikedPosts.has(post.id),
+        user_has_liked: userLikes.has(post.id),
+        user_reaction: userLikes.get(post.id) || null,
         user_has_unlocked: userUnlockedPosts.has(post.id),
         tip_count: tipsByPost[post.id]?.count || 0,
         user_has_tipped: tipsByPost[post.id]?.userTipped || false,
