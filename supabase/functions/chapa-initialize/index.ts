@@ -57,7 +57,7 @@ serve(async (req) => {
       tx_ref: txRef,
       // After payment, Chapa will redirect user to this URL
       // The client will detect focus-back and call chapa-verify
-      return_url: `${Deno.env.get("APP_URL") || "http://localhost:8080"}/?verify_topup=${txRef}`,
+      return_url: `https://momnest-app.vercel.app/?verify_topup=${txRef}&wallet=open`,
       customization: {
         title: "MomNest Wallet Top-Up",
         description: `Add ${amount} ETB to your MomNest wallet`,

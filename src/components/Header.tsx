@@ -130,6 +130,17 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
   React.useEffect(() => {
     onWalletModalChange?.(showWalletModal);
   }, [showWalletModal, onWalletModalChange]);
+
+  // Handle URL parameters to auto-open wallet
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('wallet') === 'open' || params.get('verify_topup')) {
+      handleOpenWallet();
+      // Clean up URL without refreshing
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, []);
   const { user, isLoading } = useUser();
   const { conversations } = useConversations(user?.id);
   const { balance } = useCoinWallet(user?.id);

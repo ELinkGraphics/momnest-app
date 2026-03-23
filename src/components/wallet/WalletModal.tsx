@@ -58,6 +58,7 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
   const [customTopUp, setCustomTopUp] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [topUpDone, setTopUpDone] = useState(false);
+  const [topUpError, setTopUpError] = useState<string | null>(null);
   const finalTopUp = topUpAmount || parseInt(customTopUp) || 0;
 
   // ── Withdraw state ────────────────────────────────────────────────────────
@@ -85,9 +86,12 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
         setTopUpDone(true);
         setTopUpAmount(null);
         setCustomTopUp('');
+        setTopUpError(null);
+      } else {
+        setTopUpError('Verification failed. Please check your payment status.');
       }
-    } catch {
-      // Verification errors are shown via toast inside the hook
+    } catch (err: any) {
+      setTopUpError(err.message || 'Something went wrong during verification.');
     } finally {
       setIsVerifying(false);
     }
@@ -116,7 +120,7 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
             amount: finalTopUp,
             currency: 'ETB',
             callback_url: '', // Webhook handles account crediting
-            return_url: window.location.href, // Redirect back to this page
+            return_url: `https://momnest-app.vercel.app/?wallet=open`, // Redirect back to this page
             customization: {
               title: "MomNest Wallet Top-Up",
               description: `Add ${finalTopUp} ETB to your MomNest wallet`,
@@ -145,9 +149,12 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
         setTopUpDone(true);
         setTopUpAmount(null);
         setCustomTopUp('');
+        setTopUpError(null);
+      } else {
+        setTopUpError('Transaction could not be verified.');
       }
-    } catch {
-      // Toast shown in hook
+    } catch (err: any) {
+      setTopUpError(err.message || 'Verification failed.');
     } finally {
       setIsVerifying(false);
     }
@@ -500,6 +507,69 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
             </TabsContent>
           </Tabs>
         </div>
+
+        {/* Elegant Success Overlay */}
+        {topUpDone && (
+          <div className="absolute inset-0 z-50 bg-background/95 backdrop-blur-xl flex flex-col items-center justify-center p-8 animate-in fade-in zoom-in duration-300">
+            <div className="relative mb-6">
+              <div className="absolute inset-0 bg-success/20 blur-3xl rounded-full" />
+              <div className="relative w-24 h-24 rounded-full bg-success/10 flex items-center justify-center border-4 border-success animate-bounce-short">
+                <CheckCircle2 className="w-12 h-12 text-success" />
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Payment Successful!</h2>
+            <p className="text-muted-foreground text-center mb-8">
+              Your coins have been added to your wallet successfully.
+            </p>
+            <div className="w-full space-y-3">
+              <div className="p-4 rounded-2xl bg-card border border-border/40 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">New Balance</span>
+                <span className="text-xl font-bold text-primary flex items-center gap-1.5">
+                  <Coins className="w-5 h-5 text-yellow-500" />
+                  {balance.toLocaleString()}
+                </span>
+              </div>
+              <Button 
+                onClick={() => setTopUpDone(false)} 
+                className="w-full h-14 rounded-2xl text-lg font-semibold bg-gradient-to-r from-primary to-primary/80"
+              >
+                Awesome!
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Elegant Error Overlay */}
+        {topUpError && (
+          <div className="absolute inset-0 z-50 bg-background/95 backdrop-blur-xl flex flex-col items-center justify-center p-8 animate-in fade-in zoom-in duration-300">
+            <div className="relative mb-6">
+              <div className="absolute inset-0 bg-destructive/20 blur-3xl rounded-full" />
+              <div className="relative w-24 h-24 rounded-full bg-destructive/10 flex items-center justify-center border-4 border-destructive animate-in shake duration-500">
+                <Loader2 className="w-12 h-12 text-destructive" />
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Verification Failed</h2>
+            <p className="text-muted-foreground text-center mb-8 max-w-[280px]">
+              {topUpError} If you have already paid, don't worry—our team will verify it soon.
+            </p>
+            <div className="w-full space-y-3">
+              <Button 
+                onClick={handleClosePaymentModal}
+                disabled={isVerifying}
+                className="w-full h-14 rounded-2xl text-lg font-semibold bg-primary"
+              >
+                {isVerifying ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Try Verifying Again'}
+              </Button>
+              <Button 
+                variant="ghost"
+                onClick={() => setTopUpError(null)} 
+                className="w-full h-12 rounded-2xl text-muted-foreground"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
