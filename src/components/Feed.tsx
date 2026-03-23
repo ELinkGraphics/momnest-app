@@ -46,6 +46,7 @@ const formatPost = (item: any): Post => ({
   stats: { likes: item.likes_count || 0, comments: item.comments_count || 0, shares: item.shares_count || 0 },
   sponsored: item.is_sponsored || false,
   userHasLiked: item.user_has_liked || false,
+  userReaction: item.user_reaction,
   circleId: item.circle_id || undefined,
   circleName: item.circle_name || undefined,
   circleAvatar: item.circle_avatar_url || undefined,

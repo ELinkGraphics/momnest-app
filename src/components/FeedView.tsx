@@ -57,6 +57,7 @@ const formatPost = (item: any): Post => ({
   },
   sponsored: item.is_sponsored || false,
   userHasLiked: item.user_has_liked || false,
+  userReaction: item.user_reaction,
   userHasUnlocked: item.user_has_unlocked || false,
   circleId: item.circle_id || undefined,
   circleName: item.circle_name || undefined,
