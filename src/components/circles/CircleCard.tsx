@@ -1,11 +1,12 @@
 import React from 'react';
-import { MapPin, Users, Crown, Lock, TrendingUp, BadgeCheck, Shield } from 'lucide-react';
+import { MapPin, Users, Crown, Lock, TrendingUp, BadgeCheck, Shield, Share2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Circle } from '@/hooks/useCircles';
+import { shareCircle } from '@/utils/shareUtils';
 
 interface CircleCardProps {
   circle: Circle;
@@ -20,6 +21,11 @@ const CircleCard: React.FC<CircleCardProps> = ({ circle, onClick, showManageButt
   const handleJoinClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onJoin?.(circle.id, !!circle.is_private);
+  };
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    shareCircle(circle.id, circle.name);
   };
 
   return (
@@ -135,15 +141,20 @@ const CircleCard: React.FC<CircleCardProps> = ({ circle, onClick, showManageButt
           </Badge>
           
           {/* Action Button */}
-          <div onClick={(e) => e.stopPropagation()}>
+          <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-2">
             {showManageButton ? (
               <Button variant="outline" size="sm" onClick={onManage}>
                 Manage
               </Button>
             ) : circle.is_joined ? (
-              <Button variant="outline" size="sm" disabled className="bg-muted text-muted-foreground border-border cursor-not-allowed opacity-70">
-                Joined
-              </Button>
+              <>
+                <Button variant="outline" size="sm" disabled className="bg-muted text-muted-foreground border-border cursor-not-allowed opacity-70">
+                  Joined
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors" onClick={handleShare}>
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </>
             ) : (
               <Button 
                 size="sm" 
@@ -158,6 +169,7 @@ const CircleCard: React.FC<CircleCardProps> = ({ circle, onClick, showManageButt
         </div>
       </CardContent>
     </Card>
+
   );
 };
 

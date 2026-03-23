@@ -28,6 +28,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { type TabKey } from '@/hooks/useAppNav';
 import { useQueryClient } from '@tanstack/react-query';
+import { shareCircle } from '@/utils/shareUtils';
+import { Share2 } from 'lucide-react';
 
 interface CircleDetailProps {
   activeTab: TabKey;
@@ -241,6 +243,10 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
                   No subscription
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem onClick={() => circle && shareCircle(circle.id, circle.name)}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Share Circle
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -368,13 +374,22 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
                 )}
                 
                 {circle.is_joined && (
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={toggleNotifications}
-                  >
-                    <Bell className={`h-4 w-4 ${notificationsEnabled ? 'fill-current' : ''}`} />
-                  </Button>
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => shareCircle(circle.id, circle.name)}
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={toggleNotifications}
+                    >
+                      <Bell className={`h-4 w-4 ${notificationsEnabled ? 'fill-current' : ''}`} />
+                    </Button>
+                  </>
                 )}
               </>
             )}
