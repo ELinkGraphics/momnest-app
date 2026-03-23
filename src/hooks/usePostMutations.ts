@@ -104,47 +104,27 @@ export const usePostMutations = () => {
   const toggleLike = async (postId: string, userId: string, isLiked: boolean, reactionType: string = 'like') => {
     setIsLiking(true);
     try {
-      if (isLiked) {
-        // Find existing reaction
-        const { data: existingLike } = await supabase
-          .from('likes')
-          // @ts-ignore
-          .select('reaction_type')
-          .eq('post_id', postId)
-          .eq('user_id', userId)
-          .maybeSingle();
+      // Determine if we are removing the reaction entirely
+      const isRemoving = isLiked && (reactionType === 'like' || !reactionType);
 
-        // @ts-ignore
-        if (existingLike && existingLike.reaction_type === reactionType) {
-          // Same reaction -> Unlike
-          const { error } = await supabase
-            .from('likes')
-            .delete()
-            .eq('post_id', postId)
-            .eq('user_id', userId);
-
-          if (error) throw error;
-        } else {
-          // Different reaction -> Update
-          const { error } = await supabase
-            .from('likes')
-            // @ts-ignore
-            .update({ reaction_type: reactionType })
-            .eq('post_id', postId)
-            .eq('user_id', userId);
-
-          if (error) throw error;
-        }
-      } else {
-        // Like (New reaction)
+      if (isRemoving) {
+        // Unlike/Remove reaction
         const { error } = await supabase
           .from('likes')
-          .insert({
+          .delete()
+          .match({ post_id: postId, user_id: userId });
+
+        if (error) throw error;
+      } else {
+        // Add or update reaction using upsert for robustness (prevents 409 Conflict)
+        const { error } = await supabase
+          .from('likes')
+          .upsert({
             post_id: postId,
             user_id: userId,
             // @ts-ignore
             reaction_type: reactionType
-          });
+          }, { onConflict: 'post_id,user_id' });
 
         if (error) throw error;
       }

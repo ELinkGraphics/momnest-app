@@ -171,20 +171,13 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
       if (isRemoving) {
         await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
       } else {
-        const { data: existingLike } = await supabase
-          .from('likes')
-          .select('id')
-          .eq('post_id', postId)
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (existingLike) {
-          // @ts-ignore
-          await supabase.from('likes').update({ reaction_type: reactionType }).eq('id', existingLike.id);
-        } else {
-          // @ts-ignore
-          await supabase.from('likes').insert({ post_id: postId, user_id: user.id, reaction_type: reactionType });
-        }
+        // Use upsert to prevent 409 Conflict and ensure post owner persistence
+        // @ts-ignore
+        await supabase.from('likes').upsert({
+          post_id: postId,
+          user_id: user.id,
+          reaction_type: reactionType
+        }, { onConflict: 'post_id,user_id' });
       }
       queryClient.invalidateQueries({ queryKey: ['circle-posts', circleId] });
       queryClient.invalidateQueries({ queryKey: ['circle-post', postId] });
