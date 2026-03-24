@@ -2,36 +2,56 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useMemo } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { chatDb } from '@/lib/db';
 import { Message } from './useMessages';
 
 export const useMessageReactions = (conversationId: string | null) => {
   const queryClient = useQueryClient();
 
-  const { data: reactions } = useQuery({
-    queryKey: ['message-reactions', conversationId],
-    queryFn: async () => {
+  const reactions = useLiveQuery(
+    async () => {
       if (!conversationId) return [];
-      // Get all message IDs in this conversation
-      const { data: msgs } = await supabase
-        .from('messages')
-        .select('id')
-        .eq('conversation_id', conversationId);
-      if (!msgs || msgs.length === 0) return [];
+      
+      // Step 1: Get all message IDs for this conversation from local DB
+      const msgIds = await chatDb.messages
+        .where('conversation_id')
+        .equals(conversationId)
+        .primaryKeys();
+        
+      if (msgIds.length === 0) return [];
 
-      const msgIds = msgs.map(m => m.id);
-      const { data, error } = await supabase
-        .from('message_reactions')
-        .select('*')
-        .in('message_id', msgIds);
-      if (error) throw error;
-      return data || [];
+      // Step 2: Fetch reactions for these message IDs from local DB
+      return await chatDb.reactions
+        .where('message_id')
+        .anyOf(msgIds)
+        .toArray();
     },
-    enabled: !!conversationId,
-  });
+    [conversationId],
+    []
+  );
 
   const toggleReaction = useMutation({
     mutationFn: async ({ messageId, userId, emoji }: { messageId: string; userId: string; emoji: string }) => {
-      // Check if reaction exists
+      // 1. Optimistic update in local Dexie DB for instant feedback
+      const existingInDexie = await chatDb.reactions
+        .where('[message_id+user_id+emoji]')
+        .equals([messageId, userId, emoji])
+        .first();
+
+      if (existingInDexie) {
+        await chatDb.reactions.delete(existingInDexie.id);
+      } else {
+        await chatDb.reactions.add({
+          id: crypto.randomUUID(),
+          message_id: messageId,
+          user_id: userId,
+          emoji,
+          created_at: new Date().toISOString()
+        });
+      }
+
+      // 2. Persist to Supabase
       const { data: existing } = await supabase
         .from('message_reactions')
         .select('id')
@@ -50,10 +70,7 @@ export const useMessageReactions = (conversationId: string | null) => {
         });
         if (error) throw error;
       }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['message-reactions', conversationId] });
-    },
+    }
   });
 
   return { reactions: reactions || [], toggleReaction };

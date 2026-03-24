@@ -61,8 +61,13 @@ export async function syncConversation(conversationId: string) {
       .select('*')
       .eq('conversation_id', conversationId) as { data: any[] | null };
 
-    // 5. Batch write messages and high-water mark to Dexie
-    await chatDb.transaction('rw', chatDb.messages, chatDb.conversations, chatDb.read_receipts, async () => {
+    // 5. Fetch reactions for this conversation
+    const { data: reactions } = await (supabase.rpc as any)('get_conversation_reactions', {
+      p_conversation_id: conversationId
+    });
+
+    // 6. Batch write messages, high-water mark, read receipts, and reactions to Dexie
+    await chatDb.transaction('rw', chatDb.messages, chatDb.conversations, chatDb.read_receipts, chatDb.reactions, async () => {
       if (messagesToInsert.length > 0) {
         try {
           await chatDb.messages.bulkPut(messagesToInsert);
@@ -97,6 +102,10 @@ export async function syncConversation(conversationId: string) {
           last_read_seq: r.last_read_seq,
           updated_at: r.updated_at
         })));
+      }
+
+      if (reactions && reactions.length > 0) {
+        await chatDb.reactions.bulkPut(reactions);
       }
     });
 

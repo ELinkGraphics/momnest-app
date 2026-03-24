@@ -15,6 +15,14 @@ export interface LocalMessage {
   sync_status: 'synced' | 'pending' | 'failed';
 }
 
+export interface LocalReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+}
+
 /** Call this before any Dexie write to guarantee no null leaks into encrypted fields */
 export function sanitizeMessage(msg: Partial<LocalMessage>): LocalMessage {
   const ensureString = (val: any, fallback: string = ''): string => {
@@ -61,6 +69,7 @@ export interface SyncQueueItem {
 
 export class ChatDatabase extends Dexie {
   messages!: Table<LocalMessage, string>;
+  reactions!: Table<LocalReaction, string>;
   conversations!: Table<LocalConversation, string>;
   read_receipts!: Table<LocalReadReceipt, [string, string]>;
   sync_queue!: Table<SyncQueueItem, string>;
@@ -83,6 +92,11 @@ export class ChatDatabase extends Dexie {
     // Schema version 2: add created_at as an index for eviction queries
     this.version(2).stores({
       messages: 'id, conversation_id, created_at, [conversation_id+created_at], sync_status'
+    });
+
+    // Schema version 3: add reactions table
+    this.version(3).stores({
+      reactions: 'id, message_id, [message_id+user_id+emoji]'
     });
 
     // Defer the encryption key so Dexie blocks queries until we provide it from UserContext
