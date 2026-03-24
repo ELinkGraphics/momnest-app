@@ -270,10 +270,22 @@ export async function processSyncQueue() {
     } catch (err: any) {
       console.error(`[Sync] Failed to process message batch starting with ${batch[0].id}:`, err);
       
-      // Bulk update retry counts
-      await chatDb.sync_queue.where('id').anyOf(batchIds).modify(item => {
-        item.status = 'pending';
-        item.retry_count = (item.retry_count || 0) + 1;
+      // Bulk update retry counts and handle maximum retries
+      await chatDb.transaction('rw', chatDb.sync_queue, chatDb.messages, async () => {
+        for (const item of batch) {
+          const newRetryCount = (item.retry_count || 0) + 1;
+          if (newRetryCount >= MAX_RETRIES) {
+            // Permanent failure: mark message as failed and remove from queue
+            await chatDb.messages.update(item.payload.id, { sync_status: 'failed' });
+            await chatDb.sync_queue.delete(item.id);
+          } else {
+            // Incremental failure: update queue item
+            await chatDb.sync_queue.update(item.id, {
+              status: 'pending',
+              retry_count: newRetryCount
+            });
+          }
+        }
       });
  
       if (err.code === 'PGRST301') break; // Fatal auth

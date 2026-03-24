@@ -312,8 +312,13 @@ export const useRetryMessage = () => {
       // Update status to pending
       await chatDb.messages.update(messageId, { sync_status: 'pending' });
 
+      toast.success('Retrying message...');
+
       // Trigger sync
       processSyncQueue().catch(console.error);
+    },
+    onSuccess: () => {
+      // Refresh local messages if needed or let hooks handle it
     }
   });
 };
