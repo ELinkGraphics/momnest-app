@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -16,6 +16,7 @@ export const useTypingIndicator = (
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
   const [typingTimeout, setTypingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const typingTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
     if (!conversationId || !currentUserId) return;
@@ -26,6 +27,12 @@ export const useTypingIndicator = (
       .on('broadcast', { event: 'typing' }, ({ payload }: { payload: TypingPayload }) => {
         if (payload.user_id === currentUserId) return;
 
+        const existingTimer = typingTimers.current.get(payload.user_id);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+          typingTimers.current.delete(payload.user_id);
+        }
+
         if (payload.is_typing) {
           setTypingUsers(prev => {
             const newMap = new Map(prev);
@@ -34,13 +41,15 @@ export const useTypingIndicator = (
           });
 
           // Auto-remove after 3 seconds of no updates
-          setTimeout(() => {
+          const timer = setTimeout(() => {
             setTypingUsers(prev => {
               const newMap = new Map(prev);
               newMap.delete(payload.user_id);
               return newMap;
             });
+            typingTimers.current.delete(payload.user_id);
           }, 3000);
+          typingTimers.current.set(payload.user_id, timer);
         } else {
           setTypingUsers(prev => {
             const newMap = new Map(prev);
@@ -55,6 +64,8 @@ export const useTypingIndicator = (
 
     return () => {
       if (typingTimeout) clearTimeout(typingTimeout);
+      typingTimers.current.forEach(timer => clearTimeout(timer));
+      typingTimers.current.clear();
       supabase.removeChannel(typingChannel);
     };
   }, [conversationId, currentUserId]);
