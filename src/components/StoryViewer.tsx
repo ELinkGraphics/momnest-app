@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, BarChart3, Repeat2, Loader2, ExternalLink, MoreVertical, Trash2, EyeOff, Flag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import EmojiPicker from '@/components/EmojiPicker';
@@ -46,6 +46,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   const [mentionProfileUserId, setMentionProfileUserId] = useState<string | null>(null);
   const [showStoryMenu, setShowStoryMenu] = useState(false);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
+  const viewedStoryIds = useRef<Set<string>>(new Set());
   
 
   const navigate = useNavigate();
@@ -66,11 +67,18 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
   // Record view when story changes
   useEffect(() => {
-    const recordView = async () => {
-      // Must be a string (UUID) to work with Supabase
-      const storyId = typeof currentStory?.id === 'string' ? currentStory.id : null;
-      if (!isOpen || !storyId || !user?.id || isOwnStory || isTransitioning) return;
+    const storyId = typeof currentStory?.id === "string" ? currentStory.id : null;
+    if (!isOpen || !storyId || !user?.id || isOwnStory || isTransitioning) return;
+    
+    // Skip if already viewed in this session
+    if (viewedStoryIds.current.has(storyId)) {
+      onStoryViewed?.(storyId);
+      return;
+    }
 
+    const controller = new AbortController();
+    
+    const recordView = async () => {
       try {
         console.log(`[StoryViewer] Recording view for story: ${storyId} by user: ${user.id}`);
         
@@ -81,16 +89,19 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             viewer_id: user.id
           });
 
+        if (controller.signal.aborted) return;
+
         if (error) {
           if (error.code === '23505') {
-            // Already viewed — still fire optimistic callback so ring turns grey
             console.log('[StoryViewer] Story already viewed by this user.');
+            viewedStoryIds.current.add(storyId);
             onStoryViewed?.(storyId);
           } else {
             console.error('[StoryViewer] Failed to record story view:', error);
           }
         } else {
           console.log('[StoryViewer] Successfully recorded view.');
+          viewedStoryIds.current.add(storyId);
           onStoryViewed?.(storyId);
         }
       } catch (err) {
@@ -99,7 +110,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     };
 
     recordView();
-  }, [isOpen, currentIndex, user?.id, isOwnStory, isTransitioning, stories]);
+    
+    return () => controller.abort();
+  }, [isOpen, currentStory?.id, user?.id, isOwnStory, isTransitioning, onStoryViewed]);
 
   // Check if user already liked this story
   useEffect(() => {
