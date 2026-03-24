@@ -238,7 +238,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   }, [stories]);
   
   // Find current user group and story index within that group
-  const getCurrentUserContext = useCallback(() => {
+  const currentUserContext = useMemo(() => {
     for (let userIndex = 0; userIndex < userGroups.length; userIndex++) {
       const userStories = userGroups[userIndex];
       const storyIndex = userStories.findIndex(story => (story as any).originalIndex === currentIndex);
@@ -249,9 +249,18 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     return { userIndex: 0, storyIndex: 0, userStories: userGroups[0] || [] };
   }, [userGroups, currentIndex]);
 
+  // Memoize progress bar config (ENHANCE-5)
+  const progressBarConfig = useMemo(() => {
+    const { userStories, storyIndex } = currentUserContext;
+    return userStories.map((_, index) => ({
+      isCurrent: index === storyIndex,
+      isComplete: index < storyIndex,
+    }));
+  }, [currentUserContext]);
+
   // ✅ PRELOADING PIPELINE (ENHANCE-1)
   const getAllStoriesAhead = useCallback((count = 3) => {
-    const { userIndex, storyIndex } = getCurrentUserContext();
+    const { userIndex, storyIndex } = currentUserContext;
     if (userIndex === -1) return [];
 
     const ahead: Array<{ image: string; mediaType: 'image' | 'video' }> = [];
@@ -270,7 +279,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       }
     }
     return ahead;
-  }, [userGroups, getCurrentUserContext]);
+  }, [userGroups, currentUserContext]);
 
   // Trigger preloading whenever the story or groups change
   useEffect(() => {
@@ -288,7 +297,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   }, [currentIndex, stories, userGroups, isOpen, getAllStoriesAhead, currentStory?.image]);
 
   const goToNext = useCallback(async () => {
-    const { userIndex, storyIndex, userStories } = getCurrentUserContext();
+    const { userIndex, storyIndex, userStories } = currentUserContext;
     
     // If there's a next story in the current user's stories
     if (storyIndex < userStories.length - 1) {
@@ -333,10 +342,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     else {
       onClose();
     }
-  }, [currentIndex, stories, userGroups, onClose, triggerHaptic, preloadImage]);
+  }, [currentIndex, stories, userGroups, onClose, triggerHaptic, preloadImage, currentUserContext]);
 
   const goToPrevious = useCallback(async () => {
-    const { userIndex, storyIndex, userStories } = getCurrentUserContext();
+    const { userIndex, storyIndex, userStories } = currentUserContext;
     
     // If there's a previous story in the current user's stories
     if (storyIndex > 0) {
@@ -378,7 +387,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         }, 100);
       }, 200);
     }
-  }, [currentIndex, stories, userGroups, triggerHaptic, preloadImage]);
+  }, [currentIndex, stories, userGroups, triggerHaptic, preloadImage, currentUserContext]);
 
   const swipeHandlers = useSwipeGestures({
     onSwipeLeft: goToNext,
@@ -562,24 +571,21 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     <div className="fixed inset-0 bg-black z-[100] flex items-center justify-center animate-in fade-in duration-300">
       {/* Progress bars - only show current user's stories */}
       <div className="absolute top-4 left-12 right-4 flex gap-1 z-10">
-        {(() => {
-          const { userStories, storyIndex } = getCurrentUserContext();
-          return userStories.map((_, index) => (
+        {progressBarConfig.map((bar, index) => (
+          <div
+            key={index}
+            className="flex-1 h-1 bg-card/30 rounded-full overflow-hidden"
+          >
             <div
-              key={index}
-              className="flex-1 h-1 bg-card/30 rounded-full overflow-hidden"
-            >
-              <div
-                className="h-full bg-card"
-                style={{
-                  width: index < storyIndex ? '100%' : 
-                         index === storyIndex ? `${progress}%` : '0%',
-                  transition: index === storyIndex ? 'width 100ms linear' : 'none',
-                }}
-              />
-            </div>
-          ));
-        })()}
+              className="h-full bg-card"
+              style={{
+                width: bar.isComplete ? '100%' : 
+                       bar.isCurrent ? `${progress}%` : '0%',
+                transition: bar.isCurrent ? 'width 100ms linear' : 'none',
+              }}
+            />
+          </div>
+        ))}
       </div>
 
       {/* Story actions menu (top-left) */}
