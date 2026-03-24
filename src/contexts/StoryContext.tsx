@@ -46,10 +46,12 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
             if (storiesError) throw storiesError;
 
+            const activeStoryIds = rawStories?.map(s => s.id) || [];
             const { data: viewedData } = await supabase
               .from('story_views')
               .select('story_id')
-              .eq('viewer_id', user.id);
+              .eq('viewer_id', user.id)
+              .in('story_id', activeStoryIds);
 
             const viewedSet = new Set(viewedData?.map(v => v.story_id) || []);
 
