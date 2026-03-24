@@ -120,17 +120,30 @@ export const useStoryActivity = (storyId: string | null) => {
 
   useEffect(() => {
     if (!storyId) return;
-    fetchActivity();
+    let isMounted = true;
+    
+    const fetch = async () => {
+      await fetchActivity();
+    };
+    
+    fetch();
 
     // Realtime subscriptions
     const channel = supabase
       .channel(`story-activity-${storyId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'story_views', filter: `story_id=eq.${storyId}` }, () => fetchActivity())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'story_likes', filter: `story_id=eq.${storyId}` }, () => fetchActivity())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'story_messages', filter: `story_id=eq.${storyId}` }, () => fetchActivity())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'story_views', filter: `story_id=eq.${storyId}` }, () => {
+        if (isMounted) fetchActivity();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'story_likes', filter: `story_id=eq.${storyId}` }, () => {
+        if (isMounted) fetchActivity();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'story_messages', filter: `story_id=eq.${storyId}` }, () => {
+        if (isMounted) fetchActivity();
+      })
       .subscribe();
 
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
     };
   }, [storyId, fetchActivity]);

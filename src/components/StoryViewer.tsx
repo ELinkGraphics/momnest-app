@@ -108,12 +108,19 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   // Check if user already liked this story
   useEffect(() => {
     if (!currentStoryDbId || !user?.id) return;
+    const controller = new AbortController();
+    
     supabase.from('story_likes')
       .select('id')
       .eq('story_id', currentStoryDbId)
       .eq('user_id', user.id)
       .maybeSingle()
-      .then(({ data }) => setIsLiked(!!data));
+      .then(({ data }) => {
+        if (controller.signal.aborted) return;
+        setIsLiked(!!data);
+      });
+      
+    return () => controller.abort();
   }, [currentStoryDbId, user?.id]);
 
   // Check if user is mentioned in this story & fetch all mentions
@@ -124,14 +131,18 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       return;
     }
     
+    const controller = new AbortController();
+    
     // Fetch all mentions for this story with joined profiles (UX-5)
     supabase.from('story_mentions')
       .select(`
         mentioned_user_id,
-        profiles:mentioned_user_id (id, name, username)
+        profiles!mentioned_user_id (id, name, username)
       `)
       .eq('story_id', currentStoryDbId)
       .then(({ data }) => {
+        if (controller.signal.aborted) return;
+        
         if (!data || data.length === 0) {
           setStoryMentions([]);
           setIsMentionedInStory(false);
@@ -149,6 +160,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           name: m.profiles?.name || 'User',
         })));
       });
+      
+    return () => controller.abort();
   }, [currentStoryDbId, user?.id, isOwnStory]);
 
   // Reshare story to own stories
@@ -859,7 +872,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
               </p>
               <p className="text-sm text-white/80">
                 {(() => {
-                  const { storyIndex, userStories } = getCurrentUserContext();
+                  const { storyIndex, userStories } = currentUserContext;
                   return `${storyIndex + 1} of ${userStories.length}`;
                 })()}
               </p>

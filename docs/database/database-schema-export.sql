@@ -1776,7 +1776,11 @@ CREATE INDEX idx_live_viewers_stream_id ON live_viewers USING btree (stream_id);
 CREATE INDEX idx_messages_conversation_id ON messages USING btree (conversation_id);
 CREATE INDEX idx_messages_created_at ON messages USING btree (created_at DESC);
 CREATE INDEX idx_notification_prefs_user ON notification_preferences USING btree (user_id) WHERE (enabled = true);
-CREATE INDEX idx_push_subscriptions_user_id ON push_subscriptions USING btree (user_id);
+CREATE INDEX idx_push_subscriptions_user_id ON public.push_subscriptions USING btree (user_id);
+CREATE INDEX idx_stories_expires_at ON public.stories USING btree (expires_at);
+CREATE INDEX idx_stories_user_id_expires_at ON public.stories USING btree (user_id, expires_at);
+CREATE INDEX idx_story_views_story_id_viewed_at ON public.story_views USING btree (story_id, viewed_at);
+CREATE INDEX idx_story_views_viewer_id_story_id ON public.story_views USING btree (viewer_id, story_id);
 
 -- ============================================================================
 -- SECTION 4: TRIGGERS
