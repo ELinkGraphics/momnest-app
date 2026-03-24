@@ -109,26 +109,12 @@ export class ChatDatabase extends Dexie {
     // The keys listed here are the indexed fields. Everything else is unindexed payload.
     // @ts-ignore - TS sometimes fails to resolve the Dexie base class methods properly
     this.version(1).stores({
-      messages: 'id, conversation_id, [conversation_id+created_at], sync_status',
+      messages: 'id, conversation_id, created_at, [conversation_id+created_at], sync_status',
       conversations: 'id',
       conversations_meta: 'conversation_id',
       read_receipts: '++id, [conversation_id+user_id], conversation_id',
       sync_queue: 'id, type, created_at',
-      message_reactions: 'id, message_id, [message_id+user_id+emoji]'
-    });
-
-    // Schema version 2: add created_at as an index for eviction queries
-    this.version(2).stores({
-      messages: 'id, conversation_id, created_at, [conversation_id+created_at], sync_status'
-    });
-
-    // Schema version 3: sync_status expansion and reaction naming cleanup
-    this.version(3).stores({
-      message_reactions: 'id, message_id, [message_id+user_id+emoji]'
-    });
-
-    // Schema version 4: add pinned_conversations table
-    this.version(4).stores({
+      message_reactions: 'id, message_id, [message_id+user_id+emoji]',
       pinned_conversations: 'conversation_id'
     });
 
