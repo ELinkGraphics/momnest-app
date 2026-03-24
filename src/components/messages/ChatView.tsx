@@ -1074,7 +1074,6 @@ const ChatView: React.FC<ChatViewProps> = ({
               conversationId: conversation.conversation_id,
             });
           }
-          window.history.back();
         }}
         onDeleteForEveryone={() => {
           if (deleteDialog.message) {
@@ -1083,7 +1082,6 @@ const ChatView: React.FC<ChatViewProps> = ({
               conversationId: conversation.conversation_id,
             });
           }
-          window.history.back();
         }}
       />
 
@@ -1103,14 +1101,14 @@ const ChatView: React.FC<ChatViewProps> = ({
               senderId: currentUserId,
             }, {
               onSuccess: () => {
-                window.history.back();
                 if (convIds.length === 1) {
+                  // If single forward, we need to wait for the modal to close (pop history)
+                  // then navigate to the new chat.
+                  // onClose is already called by the modal component.
                   navigate(`/messages/${convIds[0]}`);
                 }
               }
             });
-          } else {
-            window.history.back();
           }
         }}
       />
