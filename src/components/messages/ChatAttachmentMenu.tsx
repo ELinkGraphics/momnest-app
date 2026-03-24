@@ -90,6 +90,7 @@ const ChatAttachmentMenu: React.FC<ChatAttachmentMenuProps> = ({
     const item = cameraManager.files[0];
     if (item) {
       const process = async () => {
+        setOpen(false);
         setUploading(true);
         try {
           const url = await uploadFile(item.file as File, 'photos');
