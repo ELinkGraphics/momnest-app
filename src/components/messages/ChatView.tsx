@@ -110,8 +110,18 @@ const ChatView: React.FC<ChatViewProps> = ({
   // Search state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [currentSearchIndex, setCurrentSearchIndex] = useState(-1);
+  const searchCache = useRef<Map<string, string[]>>(new Map());
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   
   // Unique Scroll State
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
@@ -435,23 +445,72 @@ const ChatView: React.FC<ChatViewProps> = ({
 
   // Search functionality
   useEffect(() => {
-    if (!searchQuery.trim() || !isSearchOpen) {
+    const query = debouncedSearchQuery.trim().toLowerCase();
+    if (!query || query.length < 2 || !isSearchOpen) {
       setSearchResults([]);
       setCurrentSearchIndex(-1);
       return;
     }
-    const query = searchQuery.toLowerCase();
-    const results = messages
-      .filter((m: any) => m.content?.toLowerCase().includes(query))
-      .map((m: any) => m.id);
-    
-    setSearchResults(results);
-    if (results.length > 0) {
-      setCurrentSearchIndex(results.length - 1); // Start at the newest match
-    } else {
-      setCurrentSearchIndex(-1);
+
+    // Check cache first
+    if (searchCache.current.has(query)) {
+      const cached = searchCache.current.get(query)!;
+      setSearchResults(cached);
+      if (cached.length > 0 && currentSearchIndex === -1) {
+        setCurrentSearchIndex(cached.length - 1);
+      }
+      // Note: we still might want to re-run if 'messages' changed significantly, 
+      // but for performance we can keep the cache.
+      return;
     }
-  }, [searchQuery, messages, isSearchOpen]);
+
+    const performSearch = async () => {
+      // 1. Local filter on loaded messages for immediate feedback
+      const localResults = messages
+        .filter((m: any) => m.content?.toLowerCase().includes(query))
+        .map((m: any) => m.id);
+
+      // 2. Server-side search for deeper history (if query is specific enough)
+      if (query.length > 3) {
+        try {
+          const { data, error } = await supabase
+            .from('messages')
+            .select('id')
+            .eq('conversation_id', conversation.conversation_id)
+            .ilike('content', `%${query}%`)
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+          if (data && !error) {
+            const serverIds = data.map(m => m.id);
+            // Merge results
+            const combined = [...new Set([...localResults, ...serverIds])];
+            setSearchResults(combined);
+            searchCache.current.set(query, combined);
+            if (combined.length > 0 && currentSearchIndex === -1) {
+              setCurrentSearchIndex(combined.length - 1);
+            }
+          } else {
+            setSearchResults(localResults);
+          }
+        } catch (e) {
+          console.error('[Search] Server fallback failed:', e);
+          setSearchResults(localResults);
+        }
+      } else {
+        setSearchResults(localResults);
+      }
+    };
+
+    performSearch();
+  }, [debouncedSearchQuery, isSearchOpen, conversation.conversation_id, messages]);
+
+  // Clear cache when search is closed or conversation changes
+  useEffect(() => {
+    if (!isSearchOpen) {
+      searchCache.current.clear();
+    }
+  }, [isSearchOpen, conversation.conversation_id]);
 
   useEffect(() => {
     if (currentSearchIndex >= 0 && searchResults[currentSearchIndex]) {
