@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Story } from '@/data/mock';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +9,13 @@ export const useStoryPersistence = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch stories from Supabase
-  const fetchStories = async (silent = false) => {
+  const fetchVersion = useRef(0);
+  const fetchTimer = useRef<any>(null);
+
+  // Internal fetch implementation
+  const performFetch = async (silent = false) => {
+    const version = ++fetchVersion.current;
+    
     try {
       if (!silent) setIsLoading(true);
       
@@ -41,12 +47,11 @@ export const useStoryPersistence = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      if (fetchVersion.current !== version) return;
 
       // Filter out live stories where the stream is no longer live
       const activeData = data?.filter(story => {
-        // If it's not a live story, keep it
         if (!story.live_stream_id) return true;
-        // If it's a live story, only keep it if the stream is still live
         return story.live_streams?.status === 'live';
       }) || [];
 
@@ -58,9 +63,8 @@ export const useStoryPersistence = () => {
           .select('story_id')
           .eq('viewer_id', user.id);
         
-        if (viewsError) {
-          console.error('[useStoryPersistence] Failed to fetch story views:', viewsError);
-        }
+        if (viewsError) console.error('[useStoryPersistence] Failed to fetch story views:', viewsError);
+        if (fetchVersion.current !== version) return;
 
         if (viewedData) {
           viewedStoryIds = new Set(viewedData.map(v => v.story_id));
@@ -108,11 +112,11 @@ export const useStoryPersistence = () => {
         };
       }) || [];
 
+      if (fetchVersion.current !== version) return;
+
       // Group stories by user
       const groupedStories: Story[] = [];
       const userStoriesMap = new Map<string, Story[]>();
-
-      // Separate own stories and others' stories
       const ownStories: Story[] = [];
 
       transformedStories.forEach(story => {
@@ -121,15 +125,12 @@ export const useStoryPersistence = () => {
         } else {
           const userId = story.user.id;
           if (userId) {
-            if (!userStoriesMap.has(userId)) {
-              userStoriesMap.set(userId, []);
-            }
+            if (!userStoriesMap.has(userId)) userStoriesMap.set(userId, []);
             userStoriesMap.get(userId)?.push(story);
           }
         }
       });
 
-      // Add user's own story circle at the beginning if user is logged in
       if (user) {
         groupedStories.push({
           id: ownStories.length > 0 ? ownStories[0].id : -1,
@@ -147,13 +148,12 @@ export const useStoryPersistence = () => {
         });
       }
 
-      // Add other users' story circles
-      userStoriesMap.forEach((stories) => {
-        if (stories.length > 0) {
+      userStoriesMap.forEach((userStories) => {
+        if (userStories.length > 0) {
           groupedStories.push({
-            ...stories[0],
-            isViewed: stories.every(s => s.isViewed),
-            allStories: stories,
+            ...userStories[0],
+            isViewed: userStories.every(s => s.isViewed),
+            allStories: userStories,
           });
         }
       });
@@ -161,6 +161,7 @@ export const useStoryPersistence = () => {
       setStories(groupedStories);
     } catch (error) {
       console.error('Failed to fetch stories:', error);
+      if (fetchVersion.current !== version) return;
       if (user) {
         setStories([{
           id: -1,
@@ -176,9 +177,20 @@ export const useStoryPersistence = () => {
         }]);
       }
     } finally {
-      if (!silent) setIsLoading(false);
+      if (fetchVersion.current === version && !silent) {
+        setIsLoading(false);
+      }
     }
   };
+
+  // ✅ FIX — debounced fetch with version guard (SYNC-1)
+  const fetchStories = useCallback((silent = false) => {
+    if (fetchTimer.current) clearTimeout(fetchTimer.current);
+    
+    fetchTimer.current = setTimeout(() => {
+      performFetch(silent);
+    }, 300);
+  }, [user?.id]);
 
   // Fetch stories on mount and when user changes
   useEffect(() => {
