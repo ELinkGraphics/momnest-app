@@ -76,7 +76,13 @@ export interface LocalReadReceipt {
   updated_at: string;
 }
 
-export interface SyncQueueItem {
+export interface LocalPinnedConversation {
+  conversation_id: string;
+  user_id: string;
+  pinned_at: string;
+}
+
+export interface LocalSyncQueueItem {
   id: string;
   type: 'message_insert' | 'message_update' | 'message_delete' | 'read_receipt';
   payload: any;
@@ -91,7 +97,8 @@ export class ChatDatabase extends Dexie {
   conversations!: Table<{ id: string; last_seen_seq: number }, string>;
   conversations_meta!: Table<LocalConversationMeta, string>;
   read_receipts!: Table<LocalReadReceipt, number>; // Changed to LocalReadReceipt and number for ++id
-  sync_queue!: Table<SyncQueueItem, string>;
+  sync_queue!: Table<LocalSyncQueueItem, string>;
+  pinned_conversations!: Table<LocalPinnedConversation, string>;
 
   private resolveEncryptionKey!: (key: Uint8Array) => void;
 
@@ -107,7 +114,8 @@ export class ChatDatabase extends Dexie {
       conversations_meta: 'conversation_id',
       read_receipts: '++id, [conversation_id+user_id], conversation_id',
       sync_queue: 'id, type, created_at',
-      message_reactions: 'id, message_id, [message_id+user_id+emoji]'
+      message_reactions: 'id, message_id, [message_id+user_id+emoji]',
+      pinned_conversations: 'conversation_id'
     });
 
     // Schema version 2: add created_at as an index for eviction queries
@@ -118,6 +126,11 @@ export class ChatDatabase extends Dexie {
     // Schema version 3: sync_status expansion and reaction naming cleanup
     this.version(3).stores({
       message_reactions: 'id, message_id, [message_id+user_id+emoji]'
+    });
+
+    // Schema version 4: add pinned_conversations table
+    this.version(4).stores({
+      pinned_conversations: 'conversation_id'
     });
 
     // Defer the encryption key so Dexie blocks queries until we provide it from UserContext

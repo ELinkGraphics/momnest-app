@@ -168,6 +168,65 @@ export const syncConversations = async (userId: string) => {
   return syncPromise;
 };
 
+/**
+ * Synchronizes pinned conversations for a user.
+ */
+export const syncPinnedConversations = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('pinned_conversations' as any)
+      .select('*')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    if (data) {
+      await chatDb.pinned_conversations.clear();
+      await chatDb.pinned_conversations.bulkPut(data as any[]);
+    }
+  } catch (err) {
+    console.error('[Sync] Failed to sync pinned conversations:', err);
+  }
+};
+
+/**
+ * Toggles the pinned state of a conversation on both local DB and server.
+ */
+export const togglePinnedConversation = async (userId: string, conversationId: string, isPinned: boolean) => {
+  // 1. Optimistic Update (Local DB)
+  if (isPinned) {
+    await chatDb.pinned_conversations.put({
+      conversation_id: conversationId,
+      user_id: userId,
+      pinned_at: new Date().toISOString()
+    });
+  } else {
+    await chatDb.pinned_conversations.delete(conversationId);
+  }
+
+  // 2. Background Server Update
+  (async () => {
+    try {
+      if (isPinned) {
+        const { error } = await supabase
+          .from('pinned_conversations' as any)
+          .upsert({ user_id: userId, conversation_id: conversationId });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('pinned_conversations' as any)
+          .delete()
+          .match({ user_id: userId, conversation_id: conversationId });
+        if (error) throw error;
+      }
+    } catch (err) {
+      console.error('[Sync] Failed to toggle pin on server:', err);
+      // Re-sync on failure to ensure consistency
+      syncPinnedConversations(userId).catch(() => {});
+    }
+  })();
+};
+
 export async function processSyncQueue() {
   const queue = await chatDb.sync_queue.toArray();
   if (queue.length === 0) return;

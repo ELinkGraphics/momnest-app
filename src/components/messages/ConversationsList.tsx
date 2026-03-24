@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Users, Pin, PinOff, MessageCircle, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { Conversation } from '@/hooks/useConversations';
+import { Conversation, usePinnedConversations, useTogglePin } from '@/hooks/useConversations';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePresence } from '@/hooks/usePresence';
 
@@ -51,32 +51,16 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
 }) => {
   const { isUserOnline } = usePresence(currentUserId);
 
-  // --- Pin state (persisted in localStorage) ---
-  const storageKey = `pinnedConversations_${currentUserId}`;
-  const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      return saved ? new Set(JSON.parse(saved)) : new Set();
-    } catch {
-      return new Set();
-    }
-  });
+  const pinnedIds = usePinnedConversations(currentUserId);
+  const { togglePin: togglePinAction } = useTogglePin();
 
   const [contextPopup, setContextPopup] = useState<ContextPopup | null>(null);
 
-  const togglePin = useCallback((id: string) => {
-    setPinnedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      localStorage.setItem(storageKey, JSON.stringify([...next]));
-      return next;
-    });
+  const togglePin = useCallback(async (id: string) => {
+    const isCurrentlyPinned = pinnedIds.has(id);
+    await togglePinAction(currentUserId, id, !isCurrentlyPinned);
     setContextPopup(null);
-  }, [storageKey]);
+  }, [currentUserId, pinnedIds, togglePinAction]);
 
   // --- Long-press handling ---
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

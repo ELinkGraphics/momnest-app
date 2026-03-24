@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { supabase } from '@/integrations/supabase/client';
 import { chatDb } from '@/lib/db';
-import { syncConversations } from '@/lib/sync';
+import { syncConversations, syncPinnedConversations, togglePinnedConversation } from '@/lib/sync';
 import { useEffect, useCallback } from 'react';
 
 export interface Conversation {
@@ -37,6 +37,7 @@ export const useConversations = (userId: string | undefined) => {
   useEffect(() => {
     if (userId) {
       syncConversations(userId).catch(console.error);
+      syncPinnedConversations(userId).catch(console.error);
     }
   }, [userId]);
 
@@ -74,4 +75,28 @@ export const useCreateConversation = () => {
   };
 
   return { createConversation };
+};
+
+/**
+ * Hook to access pinned conversation IDs from Dexie.
+ */
+export const usePinnedConversations = (userId: string | undefined) => {
+  const pinnedIds = useLiveQuery(async () => {
+    if (!userId) return new Set<string>();
+    const pins = await chatDb.pinned_conversations.toArray();
+    return new Set(pins.map(p => p.conversation_id));
+  }, [userId]);
+
+  return pinnedIds || new Set<string>();
+};
+
+/**
+ * Hook to toggle pinned state.
+ */
+export const useTogglePin = () => {
+  const togglePin = useCallback(async (userId: string, conversationId: string, isPinned: boolean) => {
+    await togglePinnedConversation(userId, conversationId, isPinned);
+  }, []);
+
+  return { togglePin };
 };
