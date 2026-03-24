@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Send, ArrowLeft, Loader2, Plus, X, Pencil, Reply, Pin, Check, CheckCheck, Users, Search, ChevronUp, ChevronDown, Clock, AlertCircle } from 'lucide-react';
@@ -8,6 +8,7 @@ import { useConversations, Conversation } from '@/hooks/useConversations';
 import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePresence } from '@/hooks/usePresence';
+import { supabase } from '@/integrations/supabase/client';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
@@ -578,45 +579,52 @@ const ChatView: React.FC<ChatViewProps> = ({
   };
 
   // Filter out deleted messages
-  const visibleMessages = messages.filter((msg: any) => !msg.deleted_for_everyone);
+  const visibleMessages = useMemo(() => 
+    messages.filter((msg: any) => !msg.deleted_for_everyone),
+    [messages]
+  );
 
   // Group consecutive media messages from same sender
   type MessageGroup = { type: 'single'; message: any } | { type: 'media_group'; messages: any[]; senderId: string };
-  const groupedMessages: MessageGroup[] = [];
+  
+  const groupedMessages = useMemo(() => {
+    const groups: MessageGroup[] = [];
 
-  for (let i = 0; i < visibleMessages.length; i++) {
-    const msg = visibleMessages[i];
-    const msgType = (msg as any).message_type || 'text';
-    const isMedia = (msgType === 'photo' || msgType === 'video') && (msg as any).attachment_url;
+    for (let i = 0; i < visibleMessages.length; i++) {
+      const msg = visibleMessages[i];
+      const msgType = (msg as any).message_type || 'text';
+      const isMedia = (msgType === 'photo' || msgType === 'video') && (msg as any).attachment_url;
 
-    if (isMedia) {
-      // Look ahead for consecutive media from same sender
-      const mediaGroup = [msg];
-      let j = i + 1;
-      while (j < visibleMessages.length) {
-        const nextMsg = visibleMessages[j];
-        const nextType = (nextMsg as any).message_type || 'text';
-        const nextIsMedia = (nextType === 'photo' || nextType === 'video') && (nextMsg as any).attachment_url;
-        if (nextIsMedia && nextMsg.sender_id === msg.sender_id) {
-          // Check if sent within 60 seconds of previous
-          const timeDiff = Math.abs(new Date(nextMsg.created_at).getTime() - new Date(mediaGroup[mediaGroup.length - 1].created_at).getTime());
-          if (timeDiff < 60000) {
-            mediaGroup.push(nextMsg);
-            j++;
+      if (isMedia) {
+        // Look ahead for consecutive media from same sender
+        const mediaGroup = [msg];
+        let j = i + 1;
+        while (j < visibleMessages.length) {
+          const nextMsg = visibleMessages[j];
+          const nextType = (nextMsg as any).message_type || 'text';
+          const nextIsMedia = (nextType === 'photo' || nextType === 'video') && (nextMsg as any).attachment_url;
+          if (nextIsMedia && nextMsg.sender_id === msg.sender_id) {
+            // Check if sent within 60 seconds of previous
+            const timeDiff = Math.abs(new Date(nextMsg.created_at).getTime() - new Date(mediaGroup[mediaGroup.length - 1].created_at).getTime());
+            if (timeDiff < 60000) {
+              mediaGroup.push(nextMsg);
+              j++;
+            } else break;
           } else break;
-        } else break;
-      }
+        }
 
-      if (mediaGroup.length > 1) {
-        groupedMessages.push({ type: 'media_group', messages: mediaGroup, senderId: msg.sender_id });
-        i = j - 1; // Skip grouped messages
+        if (mediaGroup.length > 1) {
+          groups.push({ type: 'media_group', messages: mediaGroup, senderId: msg.sender_id });
+          i = j - 1; // Skip grouped messages
+        } else {
+          groups.push({ type: 'single', message: msg });
+        }
       } else {
-        groupedMessages.push({ type: 'single', message: msg });
+        groups.push({ type: 'single', message: msg });
       }
-    } else {
-      groupedMessages.push({ type: 'single', message: msg });
     }
-  }
+    return groups;
+  }, [visibleMessages]);
 
   const hasText = messageText.trim().length > 0;
 
