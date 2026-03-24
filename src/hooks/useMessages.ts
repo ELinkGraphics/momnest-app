@@ -29,11 +29,11 @@ export interface Message {
 
 export const useMessages = (conversationId: string | null, userId: string | undefined) => {
   const queryClient = useQueryClient();
-  const [profileCache, setProfileCache] = useState<Record<string, any>>({});
   const [isSyncing, setIsSyncing] = useState(false);
   const [limit, setLimit] = useState(50);
   const [hasMore, setHasMore] = useState(true);
   const lastSyncedSeq = useRef(0);
+  const fetchingIdsRef = useRef<Set<string>>(new Set());
   const syncInFlight = useRef(false);
   const syncPending = useRef(false);
 
@@ -56,25 +56,52 @@ export const useMessages = (conversationId: string | null, userId: string | unde
     [conversationId, limit]
   );
 
-  // 2. Resolve missing sender profiles
+  // 2. Resolve missing sender profiles via Dexie Cache
+  const profileCache = useLiveQuery(
+    async () => {
+      if (!localMessages || localMessages.length === 0) return {};
+      const senderIds = [...new Set(localMessages.map(m => m.sender_id))];
+      const profiles = await chatDb.profiles.bulkGet(senderIds);
+      const cache: Record<string, any> = {};
+      profiles.forEach((p, idx) => {
+        if (p) cache[senderIds[idx]] = p;
+      });
+      return cache;
+    },
+    [localMessages]
+  );
+
   useEffect(() => {
-    if (!localMessages || localMessages.length === 0) return;
+    if (!localMessages || localMessages.length === 0 || !profileCache) return;
     
     const missingSenderIds = [...new Set(localMessages.map(m => m.sender_id))]
-      .filter(id => !profileCache[id]);
+      .filter(id => !profileCache[id] && !fetchingIdsRef.current.has(id));
       
     if (missingSenderIds.length > 0) {
-      supabase.from('profiles')
+      missingSenderIds.forEach(id => fetchingIdsRef.current.add(id));
+      
+      Promise.resolve(supabase.from('profiles')
         .select('id, name, username, avatar_url, initials')
-        .in('id', missingSenderIds)
+        .in('id', missingSenderIds))
         .then(({ data }) => {
           if (data && data.length > 0) {
-            setProfileCache(prev => {
-              const newCache = { ...prev };
-              data.forEach(p => { newCache[p.id] = p; });
-              return newCache;
-            });
+            chatDb.profiles.bulkPut(data.map(p => ({
+              id: p.id,
+              name: p.name,
+              username: p.username,
+              avatar_url: p.avatar_url,
+              initials: p.initials
+            }))).catch(err => console.error('[Sync] Profile cache update failed:', err));
           }
+          
+          // Clear from fetching list after a short delay
+          setTimeout(() => {
+            missingSenderIds.forEach(id => fetchingIdsRef.current.delete(id));
+          }, 1000);
+        })
+        .catch(err => {
+          console.error('[Sync] Profile fetch error:', err);
+          missingSenderIds.forEach(id => fetchingIdsRef.current.delete(id));
         });
     }
   }, [localMessages, profileCache]);
@@ -90,14 +117,19 @@ export const useMessages = (conversationId: string | null, userId: string | unde
     syncInFlight.current = true;
     setIsSyncing(true);
 
-    syncConversation(conversationId)
-      .finally(() => {
+    Promise.resolve(syncConversation(conversationId))
+      .then(() => {
         syncInFlight.current = false;
         setIsSyncing(false);
         if (syncPending.current) {
           syncPending.current = false;
           triggerSync();
         }
+      })
+      .catch((err) => {
+        console.error('[Sync] Conversation sync error:', err);
+        syncInFlight.current = false;
+        setIsSyncing(false);
       });
   }, [conversationId]);
 
@@ -195,7 +227,7 @@ export const useMessages = (conversationId: string | null, userId: string | unde
   const messagesWithSenders = useMemo(() => {
     return localMessages?.map((msg: any) => ({
       ...msg,
-      sender: profileCache[msg.sender_id] ? {
+      sender: profileCache?.[msg.sender_id] ? {
         name: profileCache[msg.sender_id].name,
         username: profileCache[msg.sender_id].username,
         avatar_url: profileCache[msg.sender_id].avatar_url,

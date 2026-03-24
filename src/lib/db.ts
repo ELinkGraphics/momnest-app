@@ -36,6 +36,14 @@ export interface LocalConversationMeta {
   member_count: number;
 }
 
+export interface LocalProfile {
+  id: string;
+  name: string;
+  username: string;
+  avatar_url: string | null;
+  initials: string;
+}
+
 export interface LocalReaction {
   id: string;
   message_id: string;
@@ -105,23 +113,25 @@ export class ChatDatabase extends Dexie {
   read_receipts!: Table<LocalReadReceipt, number>; // Changed to LocalReadReceipt and number for ++id
   sync_queue!: Table<LocalSyncQueueItem, string>;
   pinned_conversations!: Table<LocalPinnedConversation, string>;
+  profiles!: Table<LocalProfile, string>;
 
   private resolveEncryptionKey!: (key: Uint8Array) => void;
 
   constructor() {
     super('MomNestChatDB_v3');
     
-    // Schema version 1
+    // Schema version 2 - Added profiles table
     // The keys listed here are the indexed fields. Everything else is unindexed payload.
     // @ts-ignore - TS sometimes fails to resolve the Dexie base class methods properly
-    this.version(1).stores({
+    this.version(2).stores({
       messages: 'id, conversation_id, created_at, [conversation_id+created_at], sync_status',
       conversations: 'id',
       conversations_meta: 'conversation_id',
       read_receipts: '++id, [conversation_id+user_id], conversation_id',
       sync_queue: 'id, type, created_at',
       message_reactions: 'id, message_id, [message_id+user_id+emoji]',
-      pinned_conversations: 'conversation_id'
+      pinned_conversations: 'conversation_id',
+      profiles: 'id, username'
     });
 
     // Defer the encryption key so Dexie blocks queries until we provide it from UserContext
@@ -173,7 +183,7 @@ export class ChatDatabase extends Dexie {
       const encryptionKey = new Uint8Array(hashBuffer);
 
       // Self-Healing Clear: Wipe corrupted legacy data if version mismatch
-      const ENCRYPTION_VERSION = 'v4_final_schema';
+      const ENCRYPTION_VERSION = 'v5_profile_cache';
       const storedVersion = localStorage.getItem('MOMNEST_DB_ENCRYPTION_VERSION');
       if (storedVersion !== ENCRYPTION_VERSION) {
         console.warn(`[Dexie] Encryption version mismatch (${storedVersion} -> ${ENCRYPTION_VERSION}). Nuclear reset...`);
