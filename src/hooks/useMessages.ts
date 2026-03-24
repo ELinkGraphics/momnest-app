@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { chatDb, sanitizeMessage } from '@/lib/db';
 import { syncConversation, processSyncQueue } from '@/lib/sync';
 import { useNotifications } from './useNotifications';
+import { debounce } from '@/lib/utils';
 
 export interface Message {
   id: string;
@@ -30,6 +31,8 @@ export const useMessages = (conversationId: string | null, userId: string | unde
   const [profileCache, setProfileCache] = useState<Record<string, any>>({});
   const [isSyncing, setIsSyncing] = useState(false);
   const lastSyncedSeq = useRef(0);
+  const syncInFlight = useRef(false);
+  const syncPending = useRef(false);
 
   // 1. Local data stream via Dexie (Replaces network fetch)
   const localMessages = useLiveQuery(
@@ -66,23 +69,36 @@ export const useMessages = (conversationId: string | null, userId: string | unde
     }
   }, [localMessages, profileCache]);
 
-  // 3. Background Sync & Realtime Trigger
+  // 3. Protected Sync Logic
+  const triggerSync = useCallback(() => {
+    if (!conversationId) return;
+    if (syncInFlight.current) {
+      syncPending.current = true;
+      return;
+    }
+
+    syncInFlight.current = true;
+    setIsSyncing(true);
+
+    syncConversation(conversationId)
+      .finally(() => {
+        syncInFlight.current = false;
+        setIsSyncing(false);
+        if (syncPending.current) {
+          syncPending.current = false;
+          triggerSync();
+        }
+      });
+  }, [conversationId]);
+
+  const debouncedSync = useMemo(() => debounce(triggerSync, 150), [triggerSync]);
+
+  // 4. Background Sync & Realtime Trigger
   useEffect(() => {
     if (!conversationId) return;
 
-    let isMounted = true;
-
-    const doSync = async () => {
-      try {
-        setIsSyncing(true);
-        await syncConversation(conversationId);
-      } finally {
-        if (isMounted) setIsSyncing(false);
-      }
-    };
-
     // Initial background sync
-    doSync();
+    triggerSync();
 
     // Listen for server changes to trigger delta syncs instead of pulling full payloads
     const channel = supabase
@@ -91,7 +107,7 @@ export const useMessages = (conversationId: string | null, userId: string | unde
         'postgres_changes',
         { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
         () => {
-          doSync();
+          debouncedSync();
           queryClient.invalidateQueries({ queryKey: ['conversations'] });
         }
       )
@@ -105,10 +121,9 @@ export const useMessages = (conversationId: string | null, userId: string | unde
       .subscribe();
 
     return () => {
-      isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, [conversationId, queryClient]);
+  }, [conversationId, queryClient, triggerSync, debouncedSync]);
 
   const { markConversationNotificationsAsRead } = useNotifications();
   
