@@ -534,7 +534,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
           } else {
             handleOpenSheet();
           }
-        }} className="cursor-pointer">
+        }} className="cursor-pointer w-fit mx-auto">
           {children}
         </div>
       ) : (
