@@ -174,6 +174,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   // Long press handling
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggered = useRef(false);
+  const lastTypingSignal = useRef<number>(0);
 
   const handleProfileClick = () => {
     if (conversation.is_group) {
@@ -313,6 +314,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   const handleSendMessage = () => {
     if (!messageText.trim() || isSending) return;
     stopTyping();
+    lastTypingSignal.current = 0;
 
     if (editingMessage) {
       editMessage.mutate({
@@ -360,8 +362,17 @@ const ChatView: React.FC<ChatViewProps> = ({
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessageText(e.target.value);
-    if (e.target.value.trim()) startTyping();
-    else stopTyping();
+    const trimmed = e.target.value.trim();
+    if (trimmed) {
+      const now = Date.now();
+      if (now - lastTypingSignal.current > 1000) {
+        startTyping();
+        lastTypingSignal.current = now;
+      }
+    } else {
+      stopTyping();
+      lastTypingSignal.current = 0;
+    }
   };
 
   // Action handlers
