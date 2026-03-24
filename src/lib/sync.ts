@@ -262,7 +262,7 @@ export async function processSyncQueue() {
  
       // Atomic local cleanup for the whole batch
       await chatDb.transaction('rw', chatDb.messages, chatDb.sync_queue, async () => {
-        await chatDb.messages.where('id').anyOf(messageIds).modify({ sync_status: 'sent' });
+        await chatDb.messages.where('id').anyOf(messageIds).modify({ sync_status: 'delivered' });
         await chatDb.sync_queue.bulkDelete(batchIds);
       });
  

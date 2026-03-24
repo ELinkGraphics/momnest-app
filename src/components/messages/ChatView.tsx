@@ -1044,9 +1044,11 @@ const ChatView: React.FC<ChatViewProps> = ({
                                 <AlertCircle className="h-3.5 w-3.5 text-destructive" />
                                 <span className="text-[10px] text-destructive font-medium hidden group-hover:inline">Retry</span>
                               </div>
-                            : otherUserLastRead && message.seq && otherUserLastRead >= message.seq
-                              ? <CheckCheck className="h-3.5 w-3.5 text-green-500" />
-                              : <Check className="h-3.5 w-3.5 text-muted-foreground/60" />
+                            : (otherUserLastRead && message.seq && otherUserLastRead >= message.seq)
+                              ? <CheckCheck className="h-3.5 w-3.5 text-primary" /> // Colored = READ
+                              : (message.sync_status === 'delivered' || message.seq)
+                                ? <CheckCheck className="h-3.5 w-3.5 text-muted-foreground/40" /> // Grey = DELIVERED
+                                : <Check className="h-3.5 w-3.5 text-muted-foreground/60" /> // Single = SENT
                     )}
                   </span>
                 </div>

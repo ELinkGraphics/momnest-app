@@ -160,6 +160,15 @@ export const useMessages = (conversationId: string | null, userId: string | unde
           queryClient.invalidateQueries({ queryKey: ['conversations'] });
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'read_receipts', filter: `conversation_id=eq.${conversationId}` },
+        async (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            await chatDb.read_receipts.put(payload.new as any);
+          }
+        }
+      )
       .subscribe();
 
     return () => {
