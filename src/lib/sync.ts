@@ -4,6 +4,25 @@ import { chatDb, LocalMessage, sanitizeMessage } from './db';
 // Concurrency guards for synchronization
 const syncRegistry = new Map<string, Promise<any>>();
 const listSyncRegistry = new Map<string, Promise<void>>();
+ 
+/**
+ * Generic helper to enqueue a story-related action for background synchronization.
+ */
+export const enqueueStoryAction = async (
+  type: 'story_view' | 'story_like' | 'story_unlike' | 'story_message',
+  payload: any
+) => {
+  const id = crypto.randomUUID();
+  await chatDb.sync_queue.put({
+    id,
+    type,
+    payload,
+    created_at: new Date().toISOString(),
+    retry_count: 0,
+    status: 'pending'
+  });
+  processSyncQueue().catch(console.error);
+};
 
 export const syncConversation = async (conversationId: string) => {
   if (syncRegistry.has(conversationId)) {
@@ -315,6 +334,22 @@ export async function processSyncQueue() {
           .from('read_receipts' as any)
           .upsert(receiptPayload, { onConflict: 'conversation_id,user_id' });
  
+        if (error) throw error;
+        await chatDb.sync_queue.delete(item.id);
+      } else if (item.type === 'story_view') {
+        const { error } = await supabase.from('story_views').insert(item.payload);
+        if (error && error.code !== '23505') throw error; // Ignore duplicate views
+        await chatDb.sync_queue.delete(item.id);
+      } else if (item.type === 'story_like') {
+        const { error } = await supabase.from('story_likes').insert(item.payload);
+        if (error && error.code !== '23505') throw error; // Ignore duplicate likes
+        await chatDb.sync_queue.delete(item.id);
+      } else if (item.type === 'story_unlike') {
+        const { error } = await supabase.from('story_likes').delete().match(item.payload);
+        if (error) throw error;
+        await chatDb.sync_queue.delete(item.id);
+      } else if (item.type === 'story_message') {
+        const { error } = await supabase.from('story_messages').insert(item.payload);
         if (error) throw error;
         await chatDb.sync_queue.delete(item.id);
       }

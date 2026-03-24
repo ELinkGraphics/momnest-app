@@ -98,7 +98,7 @@ export interface LocalPinnedConversation {
 
 export interface LocalSyncQueueItem {
   id: string;
-  type: 'message_insert' | 'message_update' | 'message_delete' | 'read_receipt';
+  type: 'message_insert' | 'message_update' | 'message_delete' | 'read_receipt' | 'story_view' | 'story_like' | 'story_unlike' | 'story_message';
   payload: any;
   created_at: string;
   retry_count: number;

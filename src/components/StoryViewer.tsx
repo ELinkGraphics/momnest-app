@@ -11,6 +11,7 @@ import StoryActivityModal from '@/components/StoryActivityModal';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { enqueueStoryAction } from '@/lib/sync';
 
 interface StoryViewerProps {
   stories: Story[];
@@ -82,28 +83,17 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       try {
         console.log(`[StoryViewer] Recording view for story: ${storyId} by user: ${user.id}`);
         
-        const { error } = await supabase
-          .from('story_views')
-          .insert({ 
-            story_id: storyId, 
-            viewer_id: user.id
-          });
+        // Use the offline-safe enqueue helper instead of direct supabase call
+        await enqueueStoryAction('story_view', { 
+          story_id: storyId, 
+          viewer_id: user.id
+        });
 
         if (controller.signal.aborted) return;
 
-        if (error) {
-          if (error.code === '23505') {
-            console.log('[StoryViewer] Story already viewed by this user.');
-            viewedStoryIds.current.add(storyId);
-            onStoryViewed?.(storyId);
-          } else {
-            console.error('[StoryViewer] Failed to record story view:', error);
-          }
-        } else {
-          console.log('[StoryViewer] Successfully recorded view.');
-          viewedStoryIds.current.add(storyId);
-          onStoryViewed?.(storyId);
-        }
+        // We still update local state immediately for UX
+        viewedStoryIds.current.add(storyId);
+        onStoryViewed?.(storyId);
       } catch (err) {
         console.error('[StoryViewer] Unexpected error recording view:', err);
       }
@@ -193,15 +183,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
     try {
       if (willLike) {
-        const { error } = await supabase
-          .from("story_likes")
-          .insert({ story_id: currentStoryDbId, user_id: user.id });
-        if (error && error.code !== "23505") throw error; // ignore duplicate
+        await enqueueStoryAction('story_like', { story_id: currentStoryDbId, user_id: user.id });
       } else {
-        await supabase.from("story_likes")
-          .delete()
-          .eq("story_id", currentStoryDbId)
-          .eq("user_id", user.id);
+        await enqueueStoryAction('story_unlike', { story_id: currentStoryDbId, user_id: user.id });
       }
     } catch (err) {
       console.error('Like toggle error:', err);
@@ -217,7 +201,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     if (!message.trim() || !currentStoryDbId || !user?.id || !currentStory?.user?.id) return;
     const msgText = message.trim();
     setMessage('');
-    await supabase.from('story_messages').insert({
+    
+    await enqueueStoryAction('story_message', {
       story_id: currentStoryDbId,
       sender_id: user.id,
       receiver_id: currentStory.user.id,
