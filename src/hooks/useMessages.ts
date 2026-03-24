@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { chatDb, sanitizeMessage } from '@/lib/db';
@@ -29,6 +29,7 @@ export const useMessages = (conversationId: string | null, userId: string | unde
   const queryClient = useQueryClient();
   const [profileCache, setProfileCache] = useState<Record<string, any>>({});
   const [isSyncing, setIsSyncing] = useState(false);
+  const lastSyncedSeq = useRef(0);
 
   // 1. Local data stream via Dexie (Replaces network fetch)
   const localMessages = useLiveQuery(
@@ -113,11 +114,12 @@ export const useMessages = (conversationId: string | null, userId: string | unde
   
   // Mark conversation as read when viewing (Local-First)
   useEffect(() => {
-    if (!conversationId || !userId || !localMessages || localMessages.length === 0) return;
+    const lastMsg = localMessages?.[localMessages.length - 1];
+    if (!conversationId || !userId || !lastMsg?.seq || lastMsg.seq <= lastSyncedSeq.current) return;
 
-    const markAsRead = async () => {
-      const lastMsg = localMessages[localMessages.length - 1];
-      if (!lastMsg.seq) return;
+    const timer = setTimeout(async () => {
+      // Update the ref immediately to prevent concurrent timeouts from firing
+      lastSyncedSeq.current = lastMsg.seq;
 
       const receipt = {
         user_id: userId,
@@ -126,40 +128,44 @@ export const useMessages = (conversationId: string | null, userId: string | unde
         updated_at: new Date().toISOString()
       };
 
-      // 1. Update local DB
-      await chatDb.read_receipts.put(receipt);
+      try {
+        // 1. Update local DB
+        await chatDb.read_receipts.put(receipt);
 
-      // 2. Queue for server sync
-      await chatDb.sync_queue.put({
-        id: `read_${conversationId}_${userId}`,
-        type: 'read_receipt',
-        payload: receipt,
-        created_at: new Date().toISOString(),
-        retry_count: 0
-      });
+        // 2. Queue for server sync
+        await chatDb.sync_queue.put({
+          id: `read_${conversationId}_${userId}`,
+          type: 'read_receipt',
+          payload: receipt,
+          created_at: new Date().toISOString(),
+          retry_count: 0
+        });
 
-      // 3. Trigger queue processing
-      processSyncQueue().catch(console.error);
+        // 3. Trigger queue processing
+        processSyncQueue().catch(console.error);
 
-      // 4. Mark related notifications as read on server
-      markConversationNotificationsAsRead.mutate(conversationId);
-      
-      // 5. Optimistic update for conversations list (immediate feedback)
-      queryClient.setQueryData(['conversations', userId], (oldData: any) => {
-        if (!oldData) return oldData;
-        return oldData.map((conv: any) => 
-          conv.conversation_id === conversationId 
-            ? { ...conv, unread_count: 0 } 
-            : conv
-        );
-      });
-      
-      // 6. Still invalidate to ensure eventual consistency
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-    };
+        // 4. Mark related notifications as read on server
+        markConversationNotificationsAsRead.mutate(conversationId);
+        
+        // 5. Optimistic update for conversations list (immediate feedback)
+        queryClient.setQueryData(['conversations', userId], (oldData: any) => {
+          if (!oldData) return oldData;
+          return oldData.map((conv: any) => 
+            conv.conversation_id === conversationId 
+              ? { ...conv, unread_count: 0 } 
+              : conv
+          );
+        });
+        
+        // 6. Still invalidate occasionally for consistency, but not unconditionally inside the effect
+        // queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      } catch (err) {
+        console.error('Failed to mark as read:', err);
+      }
+    }, 2000);
 
-    markAsRead();
-  }, [conversationId, userId, localMessages, queryClient]);
+    return () => clearTimeout(timer);
+  }, [conversationId, userId, localMessages?.length, queryClient]);
 
   const messagesWithSenders = useMemo(() => {
     return localMessages?.map((msg: any) => ({
