@@ -133,20 +133,20 @@ export class ChatDatabase extends Dexie {
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const encryptionKey = new Uint8Array(hashBuffer);
 
-      // Release the promise, allowing Dexie to process deferred queries
-      this.resolveEncryptionKey(encryptionKey);
-      
-      console.log('Chat local database encryption initialized with deferred key.');
-
       // Self-Healing Clear: Wipe corrupted legacy data if version mismatch
       const ENCRYPTION_VERSION = 'v2_zeronull';
       const storedVersion = localStorage.getItem('MOMNEST_DB_ENCRYPTION_VERSION');
       if (storedVersion !== ENCRYPTION_VERSION) {
-        console.warn(`[Dexie] Encryption version mismatch (${storedVersion} -> ${ENCRYPTION_VERSION}). Clearing tables...`);
+        console.warn(`[Dexie] Encryption version mismatch (${storedVersion} -> ${ENCRYPTION_VERSION}). Clearing tables BEFORE unblocking queries...`);
         await clearAllTables(this);
         localStorage.setItem('MOMNEST_DB_ENCRYPTION_VERSION', ENCRYPTION_VERSION);
         console.log('[Dexie] Local tables cleared for new encryption schema.');
       }
+
+      // Release the promise, allowing Dexie to process deferred queries ONLY after version check
+      this.resolveEncryptionKey(encryptionKey);
+      
+      console.log('Chat local database encryption initialized and unblocked.');
     } catch (err) {
       console.error('Failed to initialize local DB encryption key', err);
     }
