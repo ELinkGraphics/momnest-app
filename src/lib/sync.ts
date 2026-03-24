@@ -246,7 +246,14 @@ export async function processSyncQueue() {
   // 2. Process message_insert in batches
   for (let i = 0; i < messageInserts.length; i += BATCH_SIZE) {
     const batch = messageInserts.slice(i, i + BATCH_SIZE);
-    const payloads = batch.map(item => item.payload);
+    
+    // SANITIZATION: Ensure UUID fields are null instead of "" for Supabase
+    const payloads = batch.map(item => ({
+      ...item.payload,
+      reply_to_id: item.payload.reply_to_id || null,
+      attachment_url: item.payload.attachment_url || null,
+    }));
+    
     const batchIds = batch.map(item => item.id);
     const messageIds = batch.map(item => item.payload.id);
  

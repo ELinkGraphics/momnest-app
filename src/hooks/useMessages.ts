@@ -402,9 +402,16 @@ export const useSendMessage = () => {
         // Mark as sending
         await chatDb.messages.update(messageId, { sync_status: 'sending' });
 
+        // SANITIZATION: Replace empty strings with null for Supabase to avoid UUID error
+        const supabaseData = {
+          ...insertData,
+          attachment_url: insertData.attachment_url || null,
+          reply_to_id: insertData.reply_to_id || null,
+        };
+
         const { error } = await supabase
           .from('messages')
-          .insert(insertData);
+          .insert(supabaseData);
 
         if (error) {
           console.warn('Server push failed, queuing locally:', error);
