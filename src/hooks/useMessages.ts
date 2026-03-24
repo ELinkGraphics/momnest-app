@@ -215,6 +215,49 @@ export const useOtherUserLastRead = (conversationId: string | null, currentUserI
   return otherReceipt?.last_read_seq || 0;
 };
 
+export const useRetryMessage = () => {
+  return useMutation({
+    mutationFn: async (messageId: string) => {
+      const msg = await chatDb.messages.get(messageId);
+      if (!msg) throw new Error('Message not found');
+
+      // Add to sync queue if not already there
+      const existingQueueItem = await chatDb.sync_queue.get(messageId);
+      if (!existingQueueItem) {
+        await chatDb.sync_queue.put({
+          id: messageId,
+          type: 'message_insert',
+          payload: {
+            id: msg.id,
+            conversation_id: msg.conversation_id,
+            sender_id: msg.sender_id,
+            content: msg.content,
+            message_type: msg.message_type,
+            attachment_url: msg.attachment_url,
+            reply_to_id: msg.reply_to_id,
+            created_at: msg.created_at,
+            updated_at: msg.updated_at
+          },
+          created_at: new Date().toISOString(),
+          retry_count: 0,
+          status: 'pending'
+        });
+      } else {
+        await chatDb.sync_queue.update(messageId, {
+          status: 'pending',
+          retry_count: 0
+        });
+      }
+
+      // Update status to pending
+      await chatDb.messages.update(messageId, { sync_status: 'pending' });
+
+      // Trigger sync
+      processSyncQueue().catch(console.error);
+    }
+  });
+};
+
 export const useSendMessage = () => {
   const queryClient = useQueryClient();
 
@@ -260,12 +303,16 @@ export const useSendMessage = () => {
 
       // 2. Try pushing to server (if online)
       if (navigator.onLine) {
+        // Mark as sending
+        await chatDb.messages.update(messageId, { sync_status: 'sending' });
+
         const { error } = await supabase
           .from('messages')
           .insert(insertData);
 
         if (error) {
           console.warn('Server push failed, queuing locally:', error);
+          await chatDb.messages.update(messageId, { sync_status: 'failed' }); // Mark as failed
           await chatDb.sync_queue.put({
             id: messageId,
             type: 'message_insert',
@@ -274,8 +321,8 @@ export const useSendMessage = () => {
             retry_count: 0
           });
         } else {
-          // Success, upgrade to synced
-          await chatDb.messages.update(messageId, { sync_status: 'synced' });
+          // Success, upgrade to sent
+          await chatDb.messages.update(messageId, { sync_status: 'sent' });
         }
       } else {
         // Offline: enqueue silently

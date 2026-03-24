@@ -12,7 +12,7 @@ export interface LocalMessage {
   created_at: string;
   updated_at: string;
   seq?: number;
-  sync_status: 'synced' | 'pending' | 'failed';
+  sync_status: 'pending' | 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 }
 
 export interface LocalReaction {

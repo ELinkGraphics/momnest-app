@@ -42,7 +42,7 @@ export async function syncConversation(conversationId: string) {
         created_at: msg.created_at,
         updated_at: msg.updated_at,
         seq: Number(msg.seq),
-        sync_status: 'synced'
+        sync_status: 'sent'
       });
 
       // Diagnostic check for dexie-encrypted fields (must not be undefined)
@@ -150,7 +150,7 @@ export async function processSyncQueue() {
 
         // Phase 2: Atomic local cleanup
         await chatDb.transaction('rw', chatDb.messages, chatDb.sync_queue, async () => {
-          await chatDb.messages.update(item.payload.id, { sync_status: 'synced' });
+          await chatDb.messages.update(item.payload.id, { sync_status: 'sent' });
           await chatDb.sync_queue.delete(item.id);
         });
       } else if (item.type === 'read_receipt') {
@@ -189,7 +189,7 @@ export async function cleanupOldData() {
     // Delete messages older than 90 days that are fully synced
     const oldMessages = await chatDb.messages
       .where('created_at').below(cutoffDate)
-      .and(msg => msg.sync_status === 'synced')
+      .and(msg => msg.sync_status === 'sent')
       .primaryKeys();
 
     if (oldMessages.length > 0) {

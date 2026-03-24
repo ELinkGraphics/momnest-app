@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Send, ArrowLeft, Loader2, Plus, X, Pencil, Reply, Pin, Check, CheckCheck, Users, Search, ChevronUp, ChevronDown, Clock } from 'lucide-react';
-import { useMessages, useSendMessage, useOtherUserLastRead } from '@/hooks/useMessages';
+import { Send, ArrowLeft, Loader2, Plus, X, Pencil, Reply, Pin, Check, CheckCheck, Users, Search, ChevronUp, ChevronDown, Clock, AlertCircle } from 'lucide-react';
+import { useMessages, useSendMessage, useOtherUserLastRead, useRetryMessage } from '@/hooks/useMessages';
 import { useMessageReactions, useEditMessage, useDeleteMessage, useForwardMessage, usePinnedMessage } from '@/hooks/useMessageActions';
 import { useConversations, Conversation } from '@/hooks/useConversations';
 import { formatDistanceToNow } from 'date-fns';
@@ -121,6 +121,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   const { messages, isLoading, isSyncing } = useMessages(conversation.conversation_id, currentUserId);
   const otherUserLastRead = useOtherUserLastRead(conversation.conversation_id, currentUserId);
   const { sendMessage, isSending } = useSendMessage();
+  const retryMessage = useRetryMessage();
   const { reactions, toggleReaction } = useMessageReactions(conversation.conversation_id);
   const editMessage = useEditMessage();
   const { deleteForMe, deleteForEveryone } = useDeleteMessage();
@@ -940,11 +941,16 @@ const ChatView: React.FC<ChatViewProps> = ({
                     {isOwn && (
                       message.sync_status === 'pending'
                         ? <Clock className="h-3.5 w-3.5 text-muted-foreground/50" />
-                        : message.sync_status === 'failed'
-                          ? <X className="h-3.5 w-3.5 text-destructive" />
-                          : otherUserLastRead && message.seq && otherUserLastRead >= message.seq
-                            ? <CheckCheck className="h-3.5 w-3.5 text-green-500" />
-                            : <Check className="h-3.5 w-3.5 text-muted-foreground/60" />
+                        : message.sync_status === 'sending'
+                          ? <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                          : message.sync_status === 'failed'
+                            ? <div className="flex items-center gap-1 group cursor-pointer" onClick={(e) => { e.stopPropagation(); retryMessage.mutate(message.id); }}>
+                                <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                                <span className="text-[10px] text-destructive font-medium hidden group-hover:inline">Retry</span>
+                              </div>
+                            : otherUserLastRead && message.seq && otherUserLastRead >= message.seq
+                              ? <CheckCheck className="h-3.5 w-3.5 text-green-500" />
+                              : <Check className="h-3.5 w-3.5 text-muted-foreground/60" />
                     )}
                   </span>
                 </div>
