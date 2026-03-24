@@ -9,9 +9,9 @@ export const useStoryPersistence = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch stories from Supabase
-  const fetchStories = async () => {
+  const fetchStories = async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       
       // Fetch active stories (not expired) with user profile data
       const { data, error } = await supabase
@@ -53,7 +53,6 @@ export const useStoryPersistence = () => {
       // Fetch viewed stories for the current user
       let viewedStoryIds: Set<string> = new Set();
       if (user) {
-        console.log(`[useStoryPersistence] Fetching views for user: ${user.id}`);
         const { data: viewedData, error: viewsError } = await supabase
           .from('story_views')
           .select('story_id')
@@ -64,7 +63,6 @@ export const useStoryPersistence = () => {
         }
 
         if (viewedData) {
-          console.log(`[useStoryPersistence] Found ${viewedData.length} viewed stories.`);
           viewedStoryIds = new Set(viewedData.map(v => v.story_id));
         }
       }
@@ -72,7 +70,6 @@ export const useStoryPersistence = () => {
       // Transform Supabase data to Story format
       const transformedStories: Story[] = activeData?.map((story: any) => {
         const stickerData = story.sticker_data || [];
-        // Extract metadata entries from sticker_data
         const overlayEntry = Array.isArray(stickerData) ? stickerData.find((s: any) => s.type === 'overlay') : null;
         const videoTransformEntry = Array.isArray(stickerData) ? stickerData.find((s: any) => s.type === 'video_transform') : null;
         const bgGradientEntry = Array.isArray(stickerData) ? stickerData.find((s: any) => s.type === 'background_gradient') : null;
@@ -117,7 +114,6 @@ export const useStoryPersistence = () => {
 
       // Separate own stories and others' stories
       const ownStories: Story[] = [];
-      const othersStories: Story[] = [];
 
       transformedStories.forEach(story => {
         if (story.isOwn) {
@@ -135,7 +131,7 @@ export const useStoryPersistence = () => {
 
       // Add user's own story circle at the beginning if user is logged in
       if (user) {
-        const yourStoryCircle: Story = {
+        groupedStories.push({
           id: ownStories.length > 0 ? ownStories[0].id : -1,
           user: {
             id: user.id,
@@ -147,20 +143,16 @@ export const useStoryPersistence = () => {
           image: ownStories.length > 0 ? ownStories[0].image : '',
           isOwn: true,
           isViewed: ownStories.length > 0 ? ownStories.every(s => s.isViewed) : true,
-          // Store all user's stories in a custom property
           allStories: ownStories.length > 0 ? ownStories : undefined,
-        };
-        groupedStories.push(yourStoryCircle);
+        });
       }
 
-      // Add other users' story circles (first story of each user)
-      userStoriesMap.forEach((stories, userId) => {
+      // Add other users' story circles
+      userStoriesMap.forEach((stories) => {
         if (stories.length > 0) {
-          const allViewed = stories.every(s => s.isViewed);
-          console.log(`[useStoryPersistence] User ${userId} has ${stories.length} stories. All viewed: ${allViewed}`);
           groupedStories.push({
             ...stories[0],
-            isViewed: allViewed,
+            isViewed: stories.every(s => s.isViewed),
             allStories: stories,
           });
         }
@@ -169,7 +161,6 @@ export const useStoryPersistence = () => {
       setStories(groupedStories);
     } catch (error) {
       console.error('Failed to fetch stories:', error);
-      // Set "Your story" button even on error if user exists
       if (user) {
         setStories([{
           id: -1,
@@ -183,11 +174,9 @@ export const useStoryPersistence = () => {
           image: '',
           isOwn: true,
         }]);
-      } else {
-        setStories([]);
       }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -196,49 +185,30 @@ export const useStoryPersistence = () => {
     fetchStories();
   }, [user]);
 
-  // Real-time subscription for story and live stream changes
+  // Real-time subscription
   useEffect(() => {
     const channel = supabase
       .channel('stories-realtime')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'stories'
-        },
-        () => {
-          console.log('[useStoryPersistence] Realtime: stories table changed, refreshing...');
-          fetchStories();
-        }
+        { event: '*', schema: 'public', table: 'stories' },
+        () => fetchStories(true)
       )
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'story_views'
-        },
+        { event: '*', schema: 'public', table: 'story_views' },
         (payload) => {
-          // Only refresh if the view belongs to the current user
           if (user && (payload.new as any)?.viewer_id === user.id) {
-            console.log('[useStoryPersistence] Realtime: current user viewed a story, refreshing...');
-            fetchStories();
+            fetchStories(true);
           }
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'live_streams'
-        },
+        { event: 'UPDATE', schema: 'public', table: 'live_streams' },
         (payload) => {
-          // Refresh stories when a live stream ends to remove its story
           if ((payload.new as any).status === 'ended') {
-            console.log('[useStoryPersistence] Realtime: live stream ended, refreshing...');
-            fetchStories();
+            fetchStories(true);
           }
         }
       )
@@ -249,7 +219,6 @@ export const useStoryPersistence = () => {
     };
   }, [user]);
 
-  // Refresh stories function
   const refreshStories = () => {
     fetchStories();
   };

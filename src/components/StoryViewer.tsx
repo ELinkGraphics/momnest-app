@@ -259,7 +259,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   const getCurrentUserContext = useCallback(() => {
     for (let userIndex = 0; userIndex < userGroups.length; userIndex++) {
       const userStories = userGroups[userIndex];
-      const storyIndex = userStories.findIndex(story => story.originalIndex === currentIndex);
+      const storyIndex = userStories.findIndex(story => (story as any).originalIndex === currentIndex);
       if (storyIndex !== -1) {
         return { userIndex, storyIndex, userStories };
       }
@@ -272,14 +272,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     
     // If there's a next story in the current user's stories
     if (storyIndex < userStories.length - 1) {
-      const nextStoryIndex = userStories[storyIndex + 1].originalIndex;
+      const nextStoryIndex = (userStories[storyIndex + 1] as any).originalIndex;
       setCurrentIndex(nextStoryIndex);
       setProgress(0);
       triggerHaptic('light');
     } 
     // If this is the last story for current user, move to next user
     else if (userIndex < userGroups.length - 1) {
-      const nextUserFirstStoryIndex = userGroups[userIndex + 1][0].originalIndex;
+      const nextUserFirstStoryIndex = (userGroups[userIndex + 1][0] as any).originalIndex;
       const nextStoryImage = stories[nextUserFirstStoryIndex].image;
       
       setIsTransitioning(true);
@@ -330,7 +330,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     
     // If there's a previous story in the current user's stories
     if (storyIndex > 0) {
-      const prevStoryIndex = userStories[storyIndex - 1].originalIndex;
+      const prevStoryIndex = (userStories[storyIndex - 1] as any).originalIndex;
       setCurrentIndex(prevStoryIndex);
       setProgress(0);
       triggerHaptic('light');
@@ -338,7 +338,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     // If this is the first story for current user, move to previous user's last story
     else if (userIndex > 0) {
       const prevUserStories = userGroups[userIndex - 1];
-      const prevUserLastStoryIndex = prevUserStories[prevUserStories.length - 1].originalIndex;
+      const prevUserLastStoryIndex = (prevUserStories[prevUserStories.length - 1] as any).originalIndex;
       const prevStoryImage = stories[prevUserLastStoryIndex].image;
       
       setIsTransitioning(true);
