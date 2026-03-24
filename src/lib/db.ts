@@ -56,6 +56,7 @@ export interface SyncQueueItem {
   payload: any;
   created_at: string;
   retry_count: number;
+  status?: 'pending' | 'processing' | 'failed';
 }
 
 export class ChatDatabase extends Dexie {

@@ -115,15 +115,31 @@ export async function processSyncQueue() {
   const queue = await chatDb.sync_queue.toArray();
   if (queue.length === 0) return;
 
+  const MAX_RETRIES = 5;
   console.log(`[Sync] Processing sync queue (${queue.length} items)...`);
 
   for (const item of queue) {
+    // Skip if already failed too many times
+    if (item.retry_count >= MAX_RETRIES) {
+      console.warn(`[Sync] Skipping item ${item.id} (type: ${item.type}) due to max retries (${MAX_RETRIES}).`);
+      // Optional: Move to dead_letter or just delete to unblock
+      await chatDb.sync_queue.delete(item.id);
+      continue;
+    }
+
     try {
+      // Phase 1: Mark as processing
+      await chatDb.sync_queue.update(item.id, { status: 'processing' });
+
       if (item.type === 'message_insert') {
-        const { error } = await supabase.from('messages').insert(item.payload);
+        // Use upsert with ignoreDuplicates for idempotency
+        const { error } = await supabase
+          .from('messages')
+          .upsert(item.payload, { onConflict: 'id', ignoreDuplicates: true } as any);
+
         if (error) throw error;
 
-        // On success, update the local message to 'synced' and remove from queue
+        // Phase 2: Atomic local cleanup
         await chatDb.transaction('rw', chatDb.messages, chatDb.sync_queue, async () => {
           await chatDb.messages.update(item.payload.id, { sync_status: 'synced' });
           await chatDb.sync_queue.delete(item.id);
@@ -135,19 +151,19 @@ export async function processSyncQueue() {
 
         if (error) throw error;
 
-        // On success, remove from queue
+        // Phase 2: Atomic local cleanup
         await chatDb.sync_queue.delete(item.id);
       }
-      // Future: handle message_update, message_delete, read_receipt
     } catch (err: any) {
       console.error(`[Sync] Failed to process queue item ${item.id}:`, err);
 
-      // Increment retry count
+      // Restore status to pending and increment retry count
       await chatDb.sync_queue.update(item.id, {
+        status: 'pending',
         retry_count: item.retry_count + 1
       });
 
-      // Simple backoff or abort if it's a fatal error (e.g., auth)
+      // Abort processing on fatal auth errors
       if (err.code === 'PGRST301') {
         console.error('Fatal auth error, stopping queue processing.');
         break;
