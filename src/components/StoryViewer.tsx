@@ -728,6 +728,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                     autoPlay
                     loop
                     playsInline
+                    preload="auto"
                     muted={false}
                     onLoadedMetadata={(e) => {
                       const vid = e.currentTarget;
@@ -752,6 +753,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                   autoPlay
                   loop
                   playsInline
+                  preload="auto"
                   muted={false}
                   onLoadedMetadata={(e) => {
                     const vid = e.currentTarget;
@@ -792,7 +794,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
               : (transitionDirection === 'next' ? 'translate-x-full opacity-0' : '-translate-x-full opacity-0')
           }`}>
             {nextStory.mediaType === 'video' ? (
-              <video src={nextStory.image} className="w-full h-full object-contain" playsInline muted />
+              <video src={nextStory.image} className="w-full h-full object-contain" playsInline muted preload="auto" />
             ) : (
               <img src={nextStory.image} alt={`${nextStory.user.name}'s story`} className="w-full h-full object-contain" draggable={false} />
             )}
@@ -800,6 +802,19 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         )}
 
         </div> {/* End of Aspect Ratio Container */}
+
+        {/* ✅ BACKGROUND VIDEO PRE-BUFFER (UX-4) */}
+        {!isTransitioning && nextStory?.mediaType === 'video' && (
+          <video
+            key={`buffer-${nextStory.id}`}
+            src={nextStory.image}
+            preload="auto"
+            className="hidden"
+            playsInline
+            muted
+            aria-hidden="true"
+          />
+        )}
 
         {/* Clickable link stickers overlay */}
         {currentStory.stickerData && currentStory.stickerData.length > 0 && (
