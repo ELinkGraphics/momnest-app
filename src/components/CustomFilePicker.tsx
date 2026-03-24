@@ -482,7 +482,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="w-full flex flex-col gap-4 relative">
+    <div className="w-full flex flex-col gap-4 relative pointer-events-none">
 
       {/* Hidden inputs */}
       <input
@@ -528,25 +528,28 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
 
       {/* Trigger button */}
       {children ? (
-        <div onClick={() => {
+        <div onClick={(e) => {
+          e.stopPropagation();
           if (useCameraImmediate) {
             handleCamera();
           } else {
             handleOpenSheet();
           }
-        }} className="cursor-pointer w-fit mx-auto">
+        }} className="cursor-pointer w-fit mx-auto pointer-events-auto">
           {children}
         </div>
       ) : (
         <button
-          onClick={() => {
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
             if (useCameraImmediate) {
               handleCamera();
             } else {
               handleOpenSheet();
             }
           }}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground font-semibold rounded-xl shadow-sm hover:opacity-90 active:scale-95 transition-all w-full"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground font-semibold rounded-xl shadow-sm hover:opacity-90 active:scale-95 transition-all w-full pointer-events-auto"
           aria-label="Open file picker"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -558,7 +561,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
 
       {/* ── File preview list ─────────────────────────────────────────────── */}
       {!hidePreviewList && files.length > 0 && (
-        <div className="flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto">
           <div className="max-h-[55vh] overflow-y-auto flex flex-col gap-3 pr-1">
             {files.map((f) => (
               <FileRow
@@ -573,6 +576,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
           {!hideUploadButton && (
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={clearAll}
                 disabled={isUploading}
                 className="flex items-center justify-center gap-1.5 px-4 py-3 bg-muted text-muted-foreground font-medium rounded-xl hover:bg-muted/80 disabled:opacity-40 transition-colors text-sm"
@@ -585,6 +589,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
               </button>
 
               <button
+                type="button"
                 onClick={handleUploadAll}
                 disabled={isUploading || allDone || pendingCount === 0 || !onUpload}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
@@ -623,7 +628,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
       {/* ── Backdrop ─────────────────────────────────────────────────────── */}
       {sheetOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 pointer-events-auto"
           onClick={() => setSheetOpen(false)}
           aria-hidden="true"
         />
@@ -634,7 +639,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="File source picker"
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-[2rem] shadow-2xl flex flex-col transition-transform duration-300 ease-out ${sheetOpen ? 'translate-y-0' : 'translate-y-full'
+        className={`fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-[2rem] shadow-2xl flex flex-col transition-transform duration-300 ease-out pointer-events-auto ${sheetOpen ? 'translate-y-0' : 'translate-y-full'
           }`}
       >
         {/* Drag handle */}
@@ -701,6 +706,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
         {/* Cancel */}
         <div className="px-4 pb-10 pt-2">
           <button
+            type="button"
             onClick={() => setSheetOpen(false)}
             className="w-full py-4 bg-muted hover:bg-muted/70 text-foreground font-bold rounded-2xl active:scale-[0.98] transition-all"
             aria-label="Cancel"
@@ -727,6 +733,7 @@ const FileRow: React.FC<FileRowProps> = ({ item, onRemove }) => {
     <div className="relative flex items-center gap-3 p-3 bg-card border border-border rounded-xl shadow-sm">
       {/* Remove button */}
       <button
+        type="button"
         onClick={() => onRemove(item.id)}
         disabled={isRemoving}
         className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center shadow hover:scale-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all z-10"
@@ -817,6 +824,7 @@ const colorMap: Record<SheetColor, string> = {
 
 const SheetOption: React.FC<SheetOptionProps> = ({ icon, label, color, onClick }) => (
   <button
+    type="button"
     onClick={onClick}
     className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 active:bg-muted rounded-2xl transition-colors text-left"
     aria-label={label}
