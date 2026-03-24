@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { UserProvider, useUser } from "@/contexts/UserContext";
+import { StoryProvider } from "@/contexts/StoryContext";
 import { PresenceProvider } from "@/contexts/PresenceContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CartProvider } from "@/contexts/CartContext";
@@ -247,27 +248,29 @@ const App = () => {
         }}
       >
         <UserProvider>
-          <PresenceWrapper>
-            <UploadProvider>
-              <CartProvider>
-                <TooltipProvider>
-                  <NavigationProvider>
-                    <Toaster />
-                    <Sonner />
-                    <UpdateNotifier />
-                    <GlobalRealtimeListener />
-                    <InstallPrompt />
-                    <UploadProgressOverlay />
-                    <NotificationPermissionPrompt />
-                    <IncomingHelperRequestAlert />
-                    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                      <AppRoutes />
-                    </BrowserRouter>
-                  </NavigationProvider>
-                </TooltipProvider>
-              </CartProvider>
-            </UploadProvider>
-          </PresenceWrapper>
+          <StoryProvider>
+            <PresenceWrapper>
+              <UploadProvider>
+                <CartProvider>
+                  <TooltipProvider>
+                    <NavigationProvider>
+                      <Toaster />
+                      <Sonner />
+                      <UpdateNotifier />
+                      <GlobalRealtimeListener />
+                      <InstallPrompt />
+                      <UploadProgressOverlay />
+                      <NotificationPermissionPrompt />
+                      <IncomingHelperRequestAlert />
+                      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                        <AppRoutes />
+                      </BrowserRouter>
+                    </NavigationProvider>
+                  </TooltipProvider>
+                </CartProvider>
+              </UploadProvider>
+            </PresenceWrapper>
+          </StoryProvider>
         </UserProvider>
       </PersistQueryClientProvider>
     </ThemeProvider>
