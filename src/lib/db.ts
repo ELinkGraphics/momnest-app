@@ -103,7 +103,7 @@ export class ChatDatabase extends Dexie {
   private resolveEncryptionKey!: (key: Uint8Array) => void;
 
   constructor() {
-    super('MomNestChatDB');
+    super('MomNestChatDB_v2');
     
     // Schema version 1
     // The keys listed here are the indexed fields. Everything else is unindexed payload.
