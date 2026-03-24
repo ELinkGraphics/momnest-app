@@ -261,9 +261,11 @@ export async function processSyncQueue() {
           await chatDb.sync_queue.delete(item.id);
         });
       } else if (item.type === 'read_receipt') {
+        // Strip the local Dexie 'id' before sending to Supabase
+        const { id, ...receiptPayload } = item.payload;
         const { error } = await supabase
           .from('read_receipts' as any)
-          .upsert(item.payload);
+          .upsert(receiptPayload, { onConflict: 'conversation_id,user_id' });
 
         if (error) throw error;
 
