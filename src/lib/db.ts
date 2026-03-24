@@ -114,8 +114,7 @@ export class ChatDatabase extends Dexie {
       conversations_meta: 'conversation_id',
       read_receipts: '++id, [conversation_id+user_id], conversation_id',
       sync_queue: 'id, type, created_at',
-      message_reactions: 'id, message_id, [message_id+user_id+emoji]',
-      pinned_conversations: 'conversation_id'
+      message_reactions: 'id, message_id, [message_id+user_id+emoji]'
     });
 
     // Schema version 2: add created_at as an index for eviction queries
@@ -182,7 +181,7 @@ export class ChatDatabase extends Dexie {
       const encryptionKey = new Uint8Array(hashBuffer);
 
       // Self-Healing Clear: Wipe corrupted legacy data if version mismatch
-      const ENCRYPTION_VERSION = 'v2_zeronull';
+      const ENCRYPTION_VERSION = 'v3_pinned_fix';
       const storedVersion = localStorage.getItem('MOMNEST_DB_ENCRYPTION_VERSION');
       if (storedVersion !== ENCRYPTION_VERSION) {
         console.warn(`[Dexie] Encryption version mismatch (${storedVersion} -> ${ENCRYPTION_VERSION}). Clearing tables BEFORE unblocking queries...`);
