@@ -342,13 +342,14 @@ const ChatView: React.FC<ChatViewProps> = ({
     setReplyTo(null);
   };
 
-  const handleSendAttachment = (type: string, url: string, label: string) => {
+  const handleSendAttachment = (type: string, url: string, label: string, id?: string) => {
     sendMessage({
       conversationId: conversation.conversation_id,
       senderId: currentUserId,
       content: label,
       messageType: type,
       attachmentUrl: url,
+      id: id,
     });
   };
 

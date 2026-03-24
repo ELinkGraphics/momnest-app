@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Download, MapPin, Play, Pause, ExternalLink } from 'lucide-react';
+import { Download, MapPin, Play, Pause, ExternalLink, Loader2, Image as ImageIcon, Film } from 'lucide-react';
 import { useNavigation } from '@/contexts/NavigationContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const URL_REGEX = /(https?:\/\/[^\s<]+[^\s<.,;:!?)"'\]])/g;
 
@@ -100,20 +101,32 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ content, messageType, att
 // ---- Photo Bubble ----
 const PhotoBubble: React.FC<{ url: string; caption: string; isOwn: boolean }> = ({ url, caption, isOwn }) => {
   const [fullscreen, setFullscreen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { pushModalState } = useNavigation();
   const isCaption = caption && caption !== '📷 Photo';
+  const isOptimistic = url.startsWith('blob:');
 
   return (
     <>
       <div className="cursor-pointer">
-        <div className="max-w-[260px] max-h-[320px] overflow-hidden rounded-lg">
+        <div className="relative max-w-[260px] max-h-[320px] overflow-hidden rounded-lg bg-muted/20">
+          {(isLoading || isOptimistic) && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-muted/30 backdrop-blur-[2px]">
+              <Loader2 className="h-6 w-6 animate-spin text-primary opacity-60" />
+              <span className="mt-2 text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
+                {isOptimistic ? 'Sending...' : 'Downloading...'}
+              </span>
+            </div>
+          )}
           <img
             src={url}
             alt="Photo"
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover transition-all duration-500 ${isLoading && !isOptimistic ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
             style={{ maxHeight: '320px', minHeight: '120px', minWidth: '160px' }}
             loading="lazy"
+            onLoad={() => setIsLoading(false)}
             onClick={(e) => { 
+              if (isOptimistic) return;
               e.stopPropagation(); 
               pushModalState('photo-fullscreen', () => setFullscreen(false));
               setFullscreen(true); 
@@ -139,10 +152,13 @@ const PhotoBubble: React.FC<{ url: string; caption: string; isOwn: boolean }> = 
 // ---- Video Bubble ----
 const VideoBubble: React.FC<{ url: string; caption: string; isOwn: boolean }> = ({ url, caption, isOwn }) => {
   const [playing, setPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const isCaption = caption && caption !== '🎥 Video';
+  const isOptimistic = url.startsWith('blob:');
 
   const togglePlay = () => {
+    if (isLoading || isOptimistic) return;
     if (videoRef.current) {
       if (playing) {
         videoRef.current.pause();
@@ -155,16 +171,25 @@ const VideoBubble: React.FC<{ url: string; caption: string; isOwn: boolean }> = 
 
   return (
     <div className="-mx-4 -mt-2.5 -mb-2.5">
-      <div className="relative cursor-pointer overflow-hidden rounded-2xl border border-border/50 shadow-sm max-w-[260px] max-h-[320px]" onClick={togglePlay}>
+      <div className="relative cursor-pointer overflow-hidden rounded-2xl border border-border/50 shadow-sm max-w-[260px] max-h-[320px] bg-muted/20" onClick={togglePlay}>
+        {(isLoading || isOptimistic) && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-muted/40 backdrop-blur-[2px]">
+            <Loader2 className="h-6 w-6 animate-spin text-primary opacity-60" />
+            <span className="mt-2 text-[10px] font-medium text-muted-foreground uppercase tracking-widest text-center px-4">
+              {isOptimistic ? 'Sending Video...' : 'Downloading Video...'}
+            </span>
+          </div>
+        )}
         <video
           ref={videoRef}
           src={url}
-          className="w-full object-cover"
+          className={`w-full object-cover transition-opacity duration-500 ${isLoading && !isOptimistic ? 'opacity-0' : 'opacity-100'}`}
           preload="metadata"
           playsInline
+          onLoadedData={() => setIsLoading(false)}
           onEnded={() => setPlaying(false)}
         />
-        {!playing && (
+        {!playing && !isLoading && !isOptimistic && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-14 h-14 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm">
               <Play className="h-7 w-7 text-white fill-white ml-1" />
@@ -184,6 +209,7 @@ const VoiceBubble: React.FC<{ url: string; content: string; isOwn: boolean }> = 
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const audioRef = useRef<HTMLAudioElement>(null);
   const animFrameRef = useRef<number>(0);
 
@@ -195,7 +221,7 @@ const VoiceBubble: React.FC<{ url: string; content: string; isOwn: boolean }> = 
   }, []);
 
   const togglePlay = () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || isLoading) return;
     if (playing) {
       audioRef.current.pause();
       setPlaying(false);
@@ -226,7 +252,10 @@ const VoiceBubble: React.FC<{ url: string; content: string; isOwn: boolean }> = 
         src={url}
         preload="metadata"
         onLoadedMetadata={() => {
-          if (audioRef.current) setDuration(audioRef.current.duration);
+          if (audioRef.current) {
+            setDuration(audioRef.current.duration);
+            setIsLoading(false);
+          }
         }}
         onEnded={() => {
           setPlaying(false);
@@ -235,11 +264,14 @@ const VoiceBubble: React.FC<{ url: string; content: string; isOwn: boolean }> = 
       />
       <button
         onClick={togglePlay}
+        disabled={isLoading}
         className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
           isOwn ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30' : 'bg-primary/15 hover:bg-primary/25'
-        }`}
+        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
-        {playing ? (
+        {isLoading ? (
+          <Loader2 className={`h-4 w-4 animate-spin ${isOwn ? 'text-primary-foreground' : 'text-primary'}`} />
+        ) : playing ? (
           <Pause className={`h-5 w-5 ${isOwn ? 'text-primary-foreground' : 'text-primary'}`} />
         ) : (
           <Play className={`h-5 w-5 ml-0.5 ${isOwn ? 'text-primary-foreground' : 'text-primary'} fill-current`} />
@@ -264,7 +296,7 @@ const VoiceBubble: React.FC<{ url: string; content: string; isOwn: boolean }> = 
           })}
         </div>
         <span className={`text-[11px] ${isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-          {playing ? formatTime(currentTime) : formatTime(displayDuration || duration)}
+          {isLoading ? 'Loading audio...' : playing ? formatTime(currentTime) : formatTime(displayDuration || duration)}
         </span>
       </div>
     </div>
@@ -279,7 +311,7 @@ const LocationBubble: React.FC<{ url: string; content: string; isOwn: boolean }>
 
   return (
     <div className="-mx-4 -mt-2.5 -mb-2.5">
-      <div className="bg-muted/30 rounded-xl overflow-hidden">
+      <div className="bg-muted/30 rounded-xl overflow-hidden shadow-sm border border-border/50">
         <div className="h-32 bg-gradient-to-br from-green-200/30 to-blue-200/30 flex items-center justify-center relative">
           <MapPin className={`h-10 w-10 ${isOwn ? 'text-primary-foreground/70' : 'text-primary'}`} />
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/30 to-transparent h-12" />
@@ -312,7 +344,7 @@ const FileBubble: React.FC<{ url: string; content: string; isOwn: boolean }> = (
       rel="noopener noreferrer"
       className={`flex items-center gap-2 text-sm ${
         isOwn ? 'text-primary-foreground/90 hover:text-primary-foreground' : 'text-primary hover:text-primary/80'
-      } transition-colors`}
+      } transition-colors p-1`}
     >
       <Download className="h-4 w-4 shrink-0" />
       <span className="truncate">{content}</span>

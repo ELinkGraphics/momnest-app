@@ -350,17 +350,19 @@ export const useSendMessage = () => {
       senderId,
       content,
       messageType = 'text',
-      attachmentUrl,
-      replyToId,
+      attachmentUrl = null,
+      replyToId = null,
+      id: providedId
     }: {
       conversationId: string;
       senderId: string;
       content: string;
       messageType?: string;
-      attachmentUrl?: string;
-      replyToId?: string;
+      attachmentUrl?: string | null;
+      replyToId?: string | null;
+      id?: string;
     }) => {
-      const messageId = crypto.randomUUID();
+      const messageId = providedId || crypto.randomUUID();
       const now = new Date().toISOString();
 
       const insertData = {
@@ -463,4 +465,56 @@ export const useSendMessage = () => {
     sendMessage: sendMessageMutation.mutate,
     isSending: sendMessageMutation.isPending,
   };
+};
+
+export const useUpdateMessage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      messageId, 
+      attachmentUrl, 
+      syncStatus = 'sent' 
+    }: { 
+      messageId: string; 
+      attachmentUrl: string; 
+      syncStatus?: 'sent' | 'pending' | 'failed' 
+    }) => {
+      // 1. Update local DB
+      await chatDb.messages.update(messageId, { 
+        attachment_url: attachmentUrl,
+        sync_status: syncStatus
+      });
+
+      // 2. Fetch the updated message to queue it
+      const msg = await chatDb.messages.get(messageId);
+      if (msg) {
+        await chatDb.sync_queue.put({
+          id: messageId,
+          type: 'message_insert',
+          payload: {
+            id: msg.id,
+            conversation_id: msg.conversation_id,
+            sender_id: msg.sender_id,
+            content: msg.content,
+            message_type: msg.message_type,
+            attachment_url: msg.attachment_url,
+            reply_to_id: msg.reply_to_id,
+            forwarded_from_name: msg.forwarded_from_name,
+            created_at: msg.created_at,
+            updated_at: new Date().toISOString()
+          },
+          created_at: new Date().toISOString(),
+          retry_count: 0,
+          status: 'pending'
+        });
+        
+        // 3. Trigger sync
+        processSyncQueue().catch(console.error);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    }
+  });
 };

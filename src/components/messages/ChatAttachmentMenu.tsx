@@ -1,16 +1,14 @@
-import React, { useRef, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Paperclip, Camera, Image, Video, Mic, MapPin, X, Loader2 } from 'lucide-react';
-import { setFilePickerActive } from '@/utils/cacheManager';
-import InlineCamera from './InlineCamera';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
-import { useEffect } from 'react';
+import { useUpdateMessage } from '@/hooks/useMessages';
 
 interface ChatAttachmentMenuProps {
   conversationId: string;
   senderId: string;
-  onSendAttachment: (type: string, url: string, label: string) => void;
+  onSendAttachment: (type: string, url: string, label: string, id?: string) => void;
 }
 
 const ChatAttachmentMenu: React.FC<ChatAttachmentMenuProps> = ({
@@ -19,10 +17,10 @@ const ChatAttachmentMenu: React.FC<ChatAttachmentMenuProps> = ({
   onSendAttachment,
 }) => {
   const [open, setOpen] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const { mutate: updateMessage } = useUpdateMessage();
   
   const photoManager = useFileManager();
   const videoManager = useFileManager();
@@ -32,8 +30,8 @@ const ChatAttachmentMenu: React.FC<ChatAttachmentMenuProps> = ({
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const uploadFile = async (file: File, folder: string): Promise<string> => {
-    const ext = file.name.split('.').pop();
+  const uploadFile = async (file: File | Blob, folder: string): Promise<string> => {
+    const ext = folder === 'voice' ? 'webm' : (file as File).name?.split('.').pop() || 'tmp';
     const path = `${conversationId}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from('post-media').upload(path, file);
     if (error) throw error;
@@ -41,72 +39,83 @@ const ChatAttachmentMenu: React.FC<ChatAttachmentMenuProps> = ({
     return data.publicUrl;
   };
 
+  // Photo processing
   useEffect(() => {
     const item = photoManager.files[0];
     if (item) {
       const process = async () => {
         setOpen(false);
-        setUploading(true);
+        const localUrl = item.url;
+        const messageId = crypto.randomUUID();
+
+        // Optimistic send
+        onSendAttachment('photo', localUrl, '📷 Photo', messageId);
+
         try {
-          const url = await uploadFile(item.file as File, 'photos');
-          onSendAttachment('photo', url, '📷 Photo');
-        } catch {
+          const url = await uploadFile(item.file, 'photos');
+          updateMessage({ messageId, attachmentUrl: url });
+        } catch (error) {
+          console.error('[Upload] Photo failed:', error);
           toast.error('Failed to upload photo');
         } finally {
-          setUploading(false);
           photoManager.clearAll();
         }
       };
       process();
     }
-  }, [photoManager.files]);
+  }, [photoManager.files, onSendAttachment, updateMessage]);
 
+  // Video processing
   useEffect(() => {
     const item = videoManager.files[0];
     if (item) {
       const process = async () => {
-        if (item.file.size > 50 * 1024 * 1024) {
-          toast.error('Video must be under 50MB');
-          videoManager.clearAll();
-          return;
-        }
         setOpen(false);
-        setUploading(true);
+        const localUrl = item.url;
+        const messageId = crypto.randomUUID();
+
+        // Optimistic send
+        onSendAttachment('video', localUrl, '🎥 Video', messageId);
+
         try {
-          const url = await uploadFile(item.file as File, 'videos');
-          onSendAttachment('video', url, '🎥 Video');
-        } catch {
+          const url = await uploadFile(item.file, 'videos');
+          updateMessage({ messageId, attachmentUrl: url });
+        } catch (error) {
+          console.error('[Upload] Video failed:', error);
           toast.error('Failed to upload video');
         } finally {
-          setUploading(false);
           videoManager.clearAll();
         }
       };
       process();
     }
-  }, [videoManager.files]);
+  }, [videoManager.files, onSendAttachment, updateMessage]);
 
+  // Camera processing
   useEffect(() => {
     const item = cameraManager.files[0];
     if (item) {
       const process = async () => {
         setOpen(false);
-        setUploading(true);
+        const localUrl = item.url;
+        const messageId = crypto.randomUUID();
+
+        // Optimistic send
+        onSendAttachment('photo', localUrl, '📷 Photo', messageId);
+
         try {
-          const url = await uploadFile(item.file as File, 'photos');
-          onSendAttachment('photo', url, '📷 Photo');
-        } catch {
+          const url = await uploadFile(item.file, 'photos');
+          updateMessage({ messageId, attachmentUrl: url });
+        } catch (error) {
+          console.error('[Upload] Camera failed:', error);
           toast.error('Failed to upload photo');
         } finally {
-          setUploading(false);
           cameraManager.clearAll();
         }
       };
       process();
     }
-  }, [cameraManager.files]);
-
-  // handlePhotoSelect and handleVideoSelect removed in favor of effects
+  }, [cameraManager.files, onSendAttachment, updateMessage]);
 
   const startRecording = async () => {
     try {
@@ -123,15 +132,18 @@ const ChatAttachmentMenu: React.FC<ChatAttachmentMenuProps> = ({
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        setUploading(true);
+        
+        // Optimistic Voice
+        const localUrl = URL.createObjectURL(blob);
+        const messageId = crypto.randomUUID();
+        onSendAttachment('voice', localUrl, '🎤 Voice message', messageId);
+
         try {
-          const file = new File([blob], `voice_${Date.now()}.webm`, { type: 'audio/webm' });
-          const url = await uploadFile(file, 'voice');
-          onSendAttachment('voice', url, '🎤 Voice message');
+          const url = await uploadFile(blob, 'voice');
+          updateMessage({ messageId, attachmentUrl: url });
         } catch (err) {
+          console.error('[Upload] Voice failed:', err);
           toast.error('Failed to upload voice message');
-        } finally {
-          setUploading(false);
         }
       };
 
@@ -171,7 +183,7 @@ const ChatAttachmentMenu: React.FC<ChatAttachmentMenuProps> = ({
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        const locationText = `📍 Location: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+        const locationText = `📍 My location: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
         const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
         onSendAttachment('location', mapsUrl, locationText);
       },
@@ -244,8 +256,6 @@ const ChatAttachmentMenu: React.FC<ChatAttachmentMenuProps> = ({
           </button>
         </div>
       )}
-
-      {/* Hidden inputs and InlineCamera removed in favor of CustomFilePicker */}
     </div>
   );
 };
