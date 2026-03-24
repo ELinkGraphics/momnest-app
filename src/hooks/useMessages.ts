@@ -32,7 +32,7 @@ export const useMessages = (conversationId: string | null, userId: string | unde
   const [isSyncing, setIsSyncing] = useState(false);
   const [limit, setLimit] = useState(50);
   const [hasMore, setHasMore] = useState(true);
-  const lastSyncedSeq = useRef(0);
+  const lastSyncedReadSeq = useRef(0);
   const fetchingIdsRef = useRef<Set<string>>(new Set());
   const syncInFlight = useRef(false);
   const syncPending = useRef(false);
@@ -106,8 +106,8 @@ export const useMessages = (conversationId: string | null, userId: string | unde
     }
   }, [localMessages, profileCache]);
 
-  // 3. Protected Sync Logic
-  const triggerSync = useCallback(() => {
+  // 3. Protected Sync Logic - Fixes Sync Storm
+  const runSync = useCallback(async () => {
     if (!conversationId) return;
     if (syncInFlight.current) {
       syncPending.current = true;
@@ -117,34 +117,50 @@ export const useMessages = (conversationId: string | null, userId: string | unde
     syncInFlight.current = true;
     setIsSyncing(true);
 
-    Promise.resolve(syncConversation(conversationId))
-      .then(() => {
-        syncInFlight.current = false;
-        setIsSyncing(false);
-        if (syncPending.current) {
-          syncPending.current = false;
-          triggerSync();
-        }
-      })
-      .catch((err) => {
-        console.error('[Sync] Conversation sync error:', err);
-        syncInFlight.current = false;
-        setIsSyncing(false);
-      });
+    try {
+      await syncConversation(conversationId);
+    } catch (err) {
+      console.error('[Sync] Conversation sync error:', err);
+    } finally {
+      syncInFlight.current = false;
+      setIsSyncing(false);
+      if (syncPending.current) {
+        syncPending.current = false;
+        runSync();
+      }
+    }
   }, [conversationId]);
 
-  const debouncedSync = useMemo(() => debounce(triggerSync, 150), [triggerSync]);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
+  const debouncedSync = useCallback(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(runSync, 150);
+  }, [runSync]);
 
-  // 4. Background Sync & Realtime Trigger
+  // 4. Dual-Channel Realtime Setup
   useEffect(() => {
     if (!conversationId) return;
 
     // Initial background sync
-    triggerSync();
+    runSync();
 
-    // Listen for server changes to trigger delta syncs instead of pulling full payloads
-    const channel = supabase
-      .channel(`messages:${conversationId}`)
+    // Fast Path: Broadcast Channel (delivered in ~50ms)
+    const broadcastChannel = supabase
+      .channel(`chat:${conversationId}`)
+      .on('broadcast', { event: 'new_message' }, async ({ payload }) => {
+        if (payload.sender_id === userId) return; // Skip own broadcasts
+
+        // Instant insert into Dexie - triggers useLiveQuery immediately
+        await chatDb.messages.put(sanitizeMessage({
+          ...payload,
+          sync_status: 'sent' // Treat broadcast messages as delivered/sent
+        }));
+      })
+      .subscribe();
+
+    // Reliability Fallback: Postgres Changes Channel (delivered in ~300-800ms)
+    const pgChannel = supabase
+      .channel(`pg:messages:${conversationId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
@@ -172,25 +188,28 @@ export const useMessages = (conversationId: string | null, userId: string | unde
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(broadcastChannel);
+      supabase.removeChannel(pgChannel);
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [conversationId, queryClient, triggerSync, debouncedSync]);
+  }, [conversationId, userId, queryClient, runSync, debouncedSync]);
 
   const { markConversationNotificationsAsRead } = useNotifications();
   
-  // Mark conversation as read when viewing (Local-First)
+  // 5. Optimized Read-Receipt Loop - Fixes redundant sync triggers
   useEffect(() => {
     const lastMsg = localMessages?.[localMessages.length - 1];
-    if (!conversationId || !userId || !lastMsg?.seq || lastMsg.seq <= lastSyncedSeq.current) return;
+    if (!conversationId || !userId || !lastMsg?.seq || lastMsg.seq <= lastSyncedReadSeq.current) return;
 
+    // Debounce read-receipt write by 1500ms
     const timer = setTimeout(async () => {
-      // Update the ref immediately to prevent concurrent timeouts from firing
-      lastSyncedSeq.current = lastMsg.seq;
+      // Update ref immediately to prevent race conditions
+      lastSyncedReadSeq.current = lastMsg.seq!;
 
       const receipt = {
         user_id: userId,
         conversation_id: conversationId,
-        last_read_seq: lastMsg.seq,
+        last_read_seq: lastMsg.seq!,
         updated_at: new Date().toISOString()
       };
 
@@ -214,7 +233,7 @@ export const useMessages = (conversationId: string | null, userId: string | unde
         // 4. Mark related notifications as read on server
         markConversationNotificationsAsRead.mutate(conversationId);
         
-        // 5. Optimistic update for conversations list (redundant but safe)
+        // 5. Optimistic update for conversations list (safely handles badge clearing)
         queryClient.setQueryData(['conversations', userId], (oldData: any) => {
           if (!oldData) return oldData;
           return oldData.map((conv: any) => 
@@ -223,16 +242,13 @@ export const useMessages = (conversationId: string | null, userId: string | unde
               : conv
           );
         });
-        
-        // 6. Still invalidate occasionally for consistency, but not unconditionally inside the effect
-        // queryClient.invalidateQueries({ queryKey: ['conversations'] });
       } catch (err) {
         console.error('Failed to mark as read:', err);
       }
-    }, 2000);
+    }, 1500);
 
     return () => clearTimeout(timer);
-  }, [conversationId, userId, localMessages?.length, queryClient]);
+  }, [localMessages?.length, conversationId, userId]);
 
   const messagesWithSenders = useMemo(() => {
     return localMessages?.map((msg: any) => ({
@@ -326,6 +342,7 @@ export const useRetryMessage = () => {
 
 export const useSendMessage = () => {
   const queryClient = useQueryClient();
+  const broadcastRef = useRef<any>(null);
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({
@@ -346,28 +363,41 @@ export const useSendMessage = () => {
       const messageId = crypto.randomUUID();
       const now = new Date().toISOString();
 
-      const insertData: any = {
+      const insertData = {
         id: messageId,
         conversation_id: conversationId,
         sender_id: senderId,
         content,
         message_type: messageType,
+        attachment_url: attachmentUrl || '',
+        reply_to_id: replyToId || '',
         created_at: now,
         updated_at: now,
       };
-      if (attachmentUrl) insertData.attachment_url = attachmentUrl;
-      if (replyToId) insertData.reply_to_id = replyToId;
 
       // 1. Instantly write to local UI db
       await chatDb.messages.put(sanitizeMessage({
         ...insertData,
-        attachment_url: attachmentUrl,
-        reply_to_id: replyToId,
-        message_type: messageType,
         sync_status: 'pending'
       }));
 
-      // 2. Try pushing to server (if online)
+      // 2. Fast Path: Broadcast Directly to Active Peer
+      if (navigator.onLine) {
+        if (!broadcastRef.current || broadcastRef.current.topic !== `chat:${conversationId}`) {
+          // If we changed conversations or haven't subscribed yet
+          if (broadcastRef.current) supabase.removeChannel(broadcastRef.current);
+          broadcastRef.current = supabase.channel(`chat:${conversationId}`);
+          broadcastRef.current.subscribe();
+        }
+
+        broadcastRef.current.send({
+          type: 'broadcast',
+          event: 'new_message',
+          payload: insertData
+        });
+      }
+
+      // 3. Reliable Path: Push to Supabase Database
       if (navigator.onLine) {
         // Mark as sending
         await chatDb.messages.update(messageId, { sync_status: 'sending' });
@@ -378,7 +408,7 @@ export const useSendMessage = () => {
 
         if (error) {
           console.warn('Server push failed, queuing locally:', error);
-          await chatDb.messages.update(messageId, { sync_status: 'failed' }); // Mark as failed
+          await chatDb.messages.update(messageId, { sync_status: 'failed' }); 
           await chatDb.sync_queue.put({
             id: messageId,
             type: 'message_insert',
@@ -414,6 +444,13 @@ export const useSendMessage = () => {
       toast.error('Failed to send message');
     },
   });
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (broadcastRef.current) supabase.removeChannel(broadcastRef.current);
+    };
+  }, []);
 
   return {
     sendMessage: sendMessageMutation.mutate,
