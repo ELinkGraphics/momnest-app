@@ -242,6 +242,23 @@ const ChatView: React.FC<ChatViewProps> = ({
     return senderId === currentUserId ? currentUserName : conversation.other_user_name;
   };
 
+  const openActionMenu = (x: number, y: number, msg: any) => {
+    const msgData = {
+      id: msg.id,
+      content: msg.content,
+      senderId: msg.sender_id,
+      senderName: getSenderName(msg.sender_id),
+      messageType: (msg as any).message_type || 'text',
+      attachmentUrl: (msg as any).attachment_url,
+    };
+    pushModalState('chat-action-menu', () => setActionMenu({ isOpen: false, position: { x: 0, y: 0 }, message: null }));
+    setActionMenu({
+      isOpen: true,
+      position: { x, y },
+      message: msgData,
+    });
+  };
+
   const handleLongPressStart = (e: React.TouchEvent | React.MouseEvent, msg: any) => {
     longPressTriggered.current = false;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -249,20 +266,7 @@ const ChatView: React.FC<ChatViewProps> = ({
 
     longPressTimer.current = setTimeout(() => {
       longPressTriggered.current = true;
-      const msgData = {
-        id: msg.id,
-        content: msg.content,
-        senderId: msg.sender_id,
-        senderName: getSenderName(msg.sender_id),
-        messageType: (msg as any).message_type || 'text',
-        attachmentUrl: (msg as any).attachment_url,
-      };
-      pushModalState('chat-action-menu', () => setActionMenu({ isOpen: false, position: { x: 0, y: 0 }, message: null }));
-      setActionMenu({
-        isOpen: true,
-        position: { x: clientX, y: clientY },
-        message: msgData,
-      });
+      openActionMenu(clientX, clientY, msg);
     }, 500);
   };
 
@@ -747,18 +751,7 @@ const ChatView: React.FC<ChatViewProps> = ({
                   onTouchMove={handleLongPressEnd}
                   onContextMenu={(e) => {
                     e.preventDefault();
-                    setActionMenu({
-                      isOpen: true,
-                      message: {
-                        id: lastMsg.id,
-                        content: lastMsg.content || `${msgs.length} media`,
-                        senderId: lastMsg.sender_id,
-                        senderName: getSenderName(lastMsg.sender_id),
-                        messageType: (lastMsg as any).message_type || 'photo',
-                        attachmentUrl: (lastMsg as any).attachment_url,
-                      },
-                      position: { x: e.clientX, y: e.clientY },
-                    });
+                    openActionMenu(e.clientX, e.clientY, lastMsg);
                   }}
                 >
                   {!isOwn && (
@@ -828,22 +821,7 @@ const ChatView: React.FC<ChatViewProps> = ({
                 onTouchMove={handleLongPressEnd}
                 onContextMenu={(e) => {
                   e.preventDefault();
-                  handleLongPressStart(e as any, message);
-                  if (longPressTimer.current) clearTimeout(longPressTimer.current);
-                  const msgData = {
-                    id: message.id,
-                    content: message.content,
-                    senderId: message.sender_id,
-                    senderName: getSenderName(message.sender_id),
-                    messageType: msgType,
-                    attachmentUrl: (message as any).attachment_url,
-                  };
-                  pushModalState('chat-action-menu', () => setActionMenu({ isOpen: false, position: { x: 0, y: 0 }, message: null }));
-                  setActionMenu({
-                    isOpen: true,
-                    position: { x: e.clientX, y: e.clientY },
-                    message: msgData,
-                  });
+                  openActionMenu(e.clientX, e.clientY, message);
                 }}
               >
                 {!isOwn && (
