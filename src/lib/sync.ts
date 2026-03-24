@@ -26,7 +26,7 @@ export async function syncConversation(conversationId: string) {
       return 0; // Up to date
     }
 
-    let maxSeq = lastSeq;
+    let safeMaxSeq = lastSeq;
     const messagesToInsert: any[] = [];
 
     // 3. Process the messages
@@ -53,41 +53,41 @@ export async function syncConversation(conversationId: string) {
       }
 
       messagesToInsert.push(sanitized);
-      if (msg.seq > maxSeq) maxSeq = msg.seq;
     }
 
-    // 5. Fetch read receipts for this conversation BEFORE opening the transaction
+    // 4. Fetch read receipts for this conversation BEFORE opening the transaction
     const { data: receipts } = await supabase
       .from('read_receipts' as any)
       .select('*')
       .eq('conversation_id', conversationId) as { data: any[] | null };
 
-    // 6. Batch write messages and high-water mark to Dexie
+    // 5. Batch write messages and high-water mark to Dexie
     await chatDb.transaction('rw', chatDb.messages, chatDb.conversations, chatDb.read_receipts, async () => {
       if (messagesToInsert.length > 0) {
         try {
           await chatDb.messages.bulkPut(messagesToInsert);
+          // If bulkPut succeeds, advance safeMaxSeq to the highest seq in the batch
+          const batchMax = Math.max(...messagesToInsert.map(m => m.seq || 0));
+          if (batchMax > safeMaxSeq) safeMaxSeq = batchMax;
         } catch (bulkErr) {
           console.warn('[Sync] Bulk insert failed, falling back to individual inserts:', bulkErr);
           for (const m of messagesToInsert) {
             try {
               await chatDb.messages.put(m);
+              // Only advance cursor if this specific message was saved
+              if ((m.seq ?? 0) > safeMaxSeq) safeMaxSeq = m.seq!;
             } catch (singleErr) {
-              console.error(`[Sync] Failed to insert potentially corrupt message ${m.id}:`, singleErr);
-              // Diagnostic: Check if any fields are null/undefined despite sanitization
-              const badFields = Object.entries(m).filter(([_, v]) => v === null || v === undefined);
-              if (badFields.length > 0) {
-                console.error(`[Sync] Corrupt fields found: ${badFields.map(([k]) => k).join(', ')}`);
-              }
+              console.error(`[Sync] Failed to insert potentially corrupt message ${m.id} (seq: ${m.seq}):`, singleErr);
+              // Cursor does NOT advance past this failed message
             }
           }
         }
       }
 
-      // Update the high-water mark
+      // Update the high-water mark (ONLY up to the last successful message)
       await chatDb.conversations.put({
         id: conversationId,
-        last_seen_seq: maxSeq
+        last_seen_seq: safeMaxSeq
       });
 
       if (receipts && receipts.length > 0) {
@@ -100,7 +100,7 @@ export async function syncConversation(conversationId: string) {
       }
     });
 
-    console.log(`[Sync] Conversation ${conversationId} synced ${messagesToInsert.length} messages. Cursor at ${maxSeq}`);
+    console.log(`[Sync] Conversation ${conversationId} synced. Cursor advanced to ${safeMaxSeq}`);
 
     // Attempt to process queue after a successful sync
     processSyncQueue().catch(console.error);
