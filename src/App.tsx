@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { UserProvider, useUser } from "@/contexts/UserContext";
+import { PresenceProvider } from "@/contexts/PresenceContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { UploadProvider } from "@/contexts/UploadContext";
@@ -114,6 +115,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   return <>{children}</>;
+};
+
+const PresenceWrapper = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useUser();
+  return <PresenceProvider userId={user?.id}>{children}</PresenceProvider>;
 };
 
 const AppRoutes = () => {
@@ -241,25 +247,27 @@ const App = () => {
         }}
       >
         <UserProvider>
-          <UploadProvider>
-            <CartProvider>
-              <TooltipProvider>
-                <NavigationProvider>
-                  <Toaster />
-                  <Sonner />
-                  <UpdateNotifier />
-                  <GlobalRealtimeListener />
-                  <InstallPrompt />
-                  <UploadProgressOverlay />
-                  <NotificationPermissionPrompt />
-                  <IncomingHelperRequestAlert />
-                  <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                    <AppRoutes />
-                  </BrowserRouter>
-                </NavigationProvider>
-              </TooltipProvider>
-            </CartProvider>
-          </UploadProvider>
+          <PresenceWrapper>
+            <UploadProvider>
+              <CartProvider>
+                <TooltipProvider>
+                  <NavigationProvider>
+                    <Toaster />
+                    <Sonner />
+                    <UpdateNotifier />
+                    <GlobalRealtimeListener />
+                    <InstallPrompt />
+                    <UploadProgressOverlay />
+                    <NotificationPermissionPrompt />
+                    <IncomingHelperRequestAlert />
+                    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                      <AppRoutes />
+                    </BrowserRouter>
+                  </NavigationProvider>
+                </TooltipProvider>
+              </CartProvider>
+            </UploadProvider>
+          </PresenceWrapper>
         </UserProvider>
       </PersistQueryClientProvider>
     </ThemeProvider>
