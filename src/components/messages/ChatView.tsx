@@ -67,7 +67,9 @@ const ChatView: React.FC<ChatViewProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollContentRef = useRef<HTMLDivElement>(null);
   const prevScrollHeightRef = useRef<number>(0);
+  const initialLoadRef = useRef(true);
 
   // Wrapper for state setters that should push history state
   const handleOpenSearch = () => {
@@ -217,13 +219,11 @@ const ChatView: React.FC<ChatViewProps> = ({
   }, [hasMore, isLoading, isSyncing, loadMore]);
 
   // Scroll control: only scroll to bottom if near bottom or it's our own new message
-  const initialLoadRef = useRef(true);
+  // Initial scroll and pagination stability
   useEffect(() => {
     if (messages.length > 0) {
       if (initialLoadRef.current) {
-        // First load: scroll instantly to bottom
-        setTimeout(() => scrollToBottom(true), 50);
-        initialLoadRef.current = false;
+        // We'll let the ResizeObserver handle the first scroll to be more accurate
       } else if (prevScrollHeightRef.current > 0 && scrollContainerRef.current) {
         // Pagination load: maintain scroll position
         const newScrollHeight = scrollContainerRef.current.scrollHeight;
@@ -626,6 +626,26 @@ const ChatView: React.FC<ChatViewProps> = ({
     return groups;
   }, [visibleMessages]);
 
+  // ResizeObserver for stable initial scroll (Wait for layout/images)
+  useEffect(() => {
+    if (!scrollContentRef.current) return;
+
+    const observer = new ResizeObserver(() => {
+      if (initialLoadRef.current && messages.length > 0) {
+        scrollToBottom(true);
+        // We set initialLoadRef to false after some time to allow images to pop in
+        // or once the user manually scrolls. For now, let's give it a small grace period.
+        const timer = setTimeout(() => {
+          initialLoadRef.current = false;
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    });
+
+    observer.observe(scrollContentRef.current);
+    return () => observer.disconnect();
+  }, [messages.length]);
+
   const hasText = messageText.trim().length > 0;
 
   return (
@@ -775,8 +795,9 @@ const ChatView: React.FC<ChatViewProps> = ({
       <div 
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-3 py-4 pb-20 space-y-3 overscroll-contain relative"
+        className="flex-1 overflow-y-auto overscroll-contain relative min-h-0"
       >
+        <div ref={scrollContentRef} className="px-3 py-4 pb-20 space-y-3 min-h-full flex flex-col justify-end">
         {hasMore && (
           <div className="flex justify-center pt-2 pb-4">
             <Button 
@@ -1067,6 +1088,7 @@ const ChatView: React.FC<ChatViewProps> = ({
         )}
         <div ref={messagesEndRef} />
       </div>
+    </div>
 
       {/* Typing Indicator */}
       {typingUsers.length > 0 && (
