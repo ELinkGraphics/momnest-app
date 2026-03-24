@@ -30,9 +30,10 @@ export const syncConversation = async (conversationId: string) => {
           .from('read_receipts' as any)
           .select('*')
           .eq('conversation_id', conversationId) as any,
-        (supabase.rpc as any)('get_conversation_reactions', {
-          p_conversation_id: conversationId
-        })
+        supabase
+          .from('message_reactions' as any)
+          .select('id, message_id, user_id, emoji, created_at, messages!inner(conversation_id)')
+          .eq('messages.conversation_id', conversationId) as any
       ]);
  
       if (msgError) {
@@ -40,13 +41,19 @@ export const syncConversation = async (conversationId: string) => {
         return;
       }
  
-      if ((!logData || logData.length === 0) && (!receipts || receipts.length === 0) && (!reactions || reactions.length === 0)) {
+      // 2. Process Reactions (Strip join metadata)
+      const reactionsToInsert = (reactions as any[])?.map(r => {
+        const { messages, ...reactionData } = r;
+        return reactionData;
+      }) || [];
+ 
+      if ((!logData || logData.length === 0) && (!receipts || receipts.length === 0) && (reactionsToInsert.length === 0)) {
         return 0; // Up to date
       }
  
       const messagesToInsert: LocalMessage[] = [];
  
-      // 2. Process the messages
+      // 3. Process the messages
       if (logData) {
         for (const msg of logData) {
           const sanitized = sanitizeMessage({
@@ -75,7 +82,7 @@ export const syncConversation = async (conversationId: string) => {
         }
       }
  
-      // 3. Batch write everything to Dexie in ONE atomic transaction
+      // 4. Batch write everything to Dexie in ONE atomic transaction
       await chatDb.transaction('rw', chatDb.messages, chatDb.conversations, chatDb.read_receipts, chatDb.message_reactions, async () => {
         if (messagesToInsert.length > 0) {
           try {
@@ -110,8 +117,8 @@ export const syncConversation = async (conversationId: string) => {
           })));
         }
  
-        if (reactions && reactions.length > 0) {
-          await chatDb.message_reactions.bulkPut(reactions);
+        if (reactionsToInsert.length > 0) {
+          await chatDb.message_reactions.bulkPut(reactionsToInsert);
         }
       });
 
