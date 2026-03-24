@@ -81,11 +81,23 @@ export const useEditMessage = () => {
 
   return useMutation({
     mutationFn: async ({ messageId, content, conversationId }: { messageId: string; content: string; conversationId: string }) => {
+      // 1. Optimistic local update
+      await chatDb.messages.update(messageId, { 
+        content, 
+        is_edited: true, 
+        updated_at: new Date().toISOString() 
+      });
+
+      // 2. Server update
       const { error } = await supabase
         .from('messages')
         .update({ content, is_edited: true, updated_at: new Date().toISOString() })
         .eq('id', messageId);
-      if (error) throw error;
+      if (error) {
+        // Optional: rollback on error? For now, we rely on the next sync to fix it
+        console.error('Failed to update server, local state might be inconsistent:', error);
+        throw error;
+      }
       return conversationId;
     },
     onSuccess: (conversationId) => {
@@ -101,6 +113,10 @@ export const useDeleteMessage = () => {
 
   const deleteForMe = useMutation({
     mutationFn: async ({ messageId, userId, conversationId }: { messageId: string; userId: string; conversationId: string }) => {
+      // 1. Optimistic local delete
+      await chatDb.messages.delete(messageId);
+
+      // 2. Server persistence
       const { error } = await supabase.from('message_deletions').insert({
         message_id: messageId,
         user_id: userId,
@@ -116,6 +132,13 @@ export const useDeleteMessage = () => {
 
   const deleteForEveryone = useMutation({
     mutationFn: async ({ messageId, conversationId }: { messageId: string; conversationId: string }) => {
+      // 1. Optimistic local update
+      await chatDb.messages.update(messageId, { 
+        deleted_for_everyone: true, 
+        content: 'This message was deleted' 
+      });
+
+      // 2. Server update
       const { error } = await supabase
         .from('messages')
         .update({ deleted_for_everyone: true, content: 'This message was deleted' })

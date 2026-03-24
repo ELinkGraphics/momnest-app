@@ -10,6 +10,8 @@ export interface LocalMessage {
   attachment_url: string;
   reply_to_id: string;
   forwarded_from_name?: string;
+  is_edited?: boolean;
+  deleted_for_everyone?: boolean;
   created_at: string;
   updated_at: string;
   seq?: number;
@@ -59,6 +61,8 @@ export function sanitizeMessage(msg: Partial<LocalMessage>): LocalMessage {
     attachment_url: ensureString(msg.attachment_url),
     reply_to_id:    ensureString(msg.reply_to_id),
     forwarded_from_name: ensureString(msg.forwarded_from_name),
+    is_edited:      !!msg.is_edited,
+    deleted_for_everyone: !!msg.deleted_for_everyone,
     created_at:     msg.created_at!,
     updated_at:     msg.updated_at!,
     seq:            msg.seq,
