@@ -249,12 +249,37 @@ export const useStoryPersistence = () => {
     };
   }, [user]);
 
+  // ✅ CROSS-DEVICE SYNC (ENHANCE-3)
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Initialize broadcast channel for this user
+    const channel = supabase.channel(`user-story-state-${user.id}`);
+    channelRef.current = channel;
+
+    channel
+      .on('broadcast', { event: 'story_viewed' }, ({ payload }) => {
+        // Apply view status from other device without re-broadcasting
+        if (payload?.storyId) {
+          markStoryViewed(payload.storyId, false);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+      channelRef.current = null;
+    };
+  }, [user?.id]);
+
   const refreshStories = () => {
     fetchStories();
   };
 
   // ✅ FIX — optimistic local viewed state (SYNC-3)
-  const markStoryViewed = useCallback((storyId: string) => {
+  const markStoryViewed = useCallback((storyId: string, shouldBroadcast: boolean = true) => {
     setStories(prev => prev.map(group => {
       // 1. Direct match (individual story)
       if (String(group.id) === String(storyId)) {
@@ -278,6 +303,15 @@ export const useStoryPersistence = () => {
       }
       return group;
     }));
+
+    // Broadcast to other sessions (ENHANCE-3)
+    if (shouldBroadcast && channelRef.current) {
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'story_viewed',
+        payload: { storyId },
+      });
+    }
   }, []);
 
   return [stories, refreshStories, isLoading, markStoryViewed] as const;
