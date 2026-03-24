@@ -133,11 +133,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       return;
     }
     
-    // Fetch all mentions for this story
+    // Fetch all mentions for this story with joined profiles (UX-5)
     supabase.from('story_mentions')
-      .select('mentioned_user_id')
+      .select(`
+        mentioned_user_id,
+        profiles:mentioned_user_id (id, name, username)
+      `)
       .eq('story_id', currentStoryDbId)
-      .then(async ({ data }) => {
+      .then(({ data }) => {
         if (!data || data.length === 0) {
           setStoryMentions([]);
           setIsMentionedInStory(false);
@@ -146,21 +149,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         
         // Check if current user is mentioned
         if (user?.id) {
-          setIsMentionedInStory(data.some(m => m.mentioned_user_id === user.id) && !isOwnStory);
+          setIsMentionedInStory(data.some((m: any) => m.mentioned_user_id === user.id) && !isOwnStory);
         }
         
-        // Fetch profiles for mentioned users
-        const userIds = data.map(m => m.mentioned_user_id);
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, name, username')
-          .in('id', userIds);
-        
-        setStoryMentions(profiles?.map(p => ({
-          user_id: p.id,
-          username: p.username || p.name || 'User',
-          name: p.name || 'User',
-        })) || []);
+        setStoryMentions(data.map((m: any) => ({
+          user_id: m.mentioned_user_id,
+          username: m.profiles?.username || m.profiles?.name || 'User',
+          name: m.profiles?.name || 'User',
+        })));
       });
   }, [currentStoryDbId, user?.id, isOwnStory]);
 
