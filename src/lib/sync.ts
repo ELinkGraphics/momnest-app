@@ -227,62 +227,79 @@ export const togglePinnedConversation = async (userId: string, conversationId: s
 export async function processSyncQueue() {
   const queue = await chatDb.sync_queue.toArray();
   if (queue.length === 0) return;
-
+ 
   const MAX_RETRIES = 5;
+  const BATCH_SIZE = 50;
   console.log(`[Sync] Processing sync queue (${queue.length} items)...`);
-
-  for (const item of queue) {
-    // Skip if already failed too many times
+ 
+  // 1. Group items by type for batching
+  const messageInserts = queue.filter(item => item.type === 'message_insert' && item.retry_count < MAX_RETRIES);
+  const otherItems = queue.filter(item => item.type !== 'message_insert');
+ 
+  // 2. Process message_insert in batches
+  for (let i = 0; i < messageInserts.length; i += BATCH_SIZE) {
+    const batch = messageInserts.slice(i, i + BATCH_SIZE);
+    const payloads = batch.map(item => item.payload);
+    const batchIds = batch.map(item => item.id);
+    const messageIds = batch.map(item => item.payload.id);
+ 
+    try {
+      // Mark batch as processing
+      await chatDb.sync_queue.where('id').anyOf(batchIds).modify({ status: 'processing' });
+ 
+      const { error } = await supabase
+        .from('messages')
+        .upsert(payloads, { onConflict: 'id', ignoreDuplicates: true } as any);
+ 
+      if (error) throw error;
+ 
+      // Atomic local cleanup for the whole batch
+      await chatDb.transaction('rw', chatDb.messages, chatDb.sync_queue, async () => {
+        await chatDb.messages.where('id').anyOf(messageIds).modify({ sync_status: 'sent' });
+        await chatDb.sync_queue.bulkDelete(batchIds);
+      });
+ 
+      console.log(`[Sync] Successfully batched ${batch.length} messages.`);
+    } catch (err: any) {
+      console.error(`[Sync] Failed to process message batch starting with ${batch[0].id}:`, err);
+      
+      // Bulk update retry counts
+      await chatDb.sync_queue.where('id').anyOf(batchIds).modify(item => {
+        item.status = 'pending';
+        item.retry_count = (item.retry_count || 0) + 1;
+      });
+ 
+      if (err.code === 'PGRST301') break; // Fatal auth
+    }
+  }
+ 
+  // 3. Process other items individually (like read_receipts which are usually unique per heartbeat)
+  for (const item of otherItems) {
     if (item.retry_count >= MAX_RETRIES) {
-      console.warn(`[Sync] Skipping item ${item.id} (type: ${item.type}) due to max retries (${MAX_RETRIES}).`);
-      // Optional: Move to dead_letter or just delete to unblock
       await chatDb.sync_queue.delete(item.id);
       continue;
     }
-
+ 
     try {
-      // Phase 1: Mark as processing
       await chatDb.sync_queue.update(item.id, { status: 'processing' });
-
-      if (item.type === 'message_insert') {
-        // Use upsert with ignoreDuplicates for idempotency
-        const { error } = await supabase
-          .from('messages')
-          .upsert(item.payload, { onConflict: 'id', ignoreDuplicates: true } as any);
-
-        if (error) throw error;
-
-        // Phase 2: Atomic local cleanup
-        await chatDb.transaction('rw', chatDb.messages, chatDb.sync_queue, async () => {
-          await chatDb.messages.update(item.payload.id, { sync_status: 'sent' });
-          await chatDb.sync_queue.delete(item.id);
-        });
-      } else if (item.type === 'read_receipt') {
-        // Strip the local Dexie 'id' before sending to Supabase
+ 
+      if (item.type === 'read_receipt') {
         const { id, ...receiptPayload } = item.payload;
         const { error } = await supabase
           .from('read_receipts' as any)
           .upsert(receiptPayload, { onConflict: 'conversation_id,user_id' });
-
+ 
         if (error) throw error;
-
-        // Phase 2: Atomic local cleanup
         await chatDb.sync_queue.delete(item.id);
       }
+      // Add other types here if needed (message_update, etc.)
     } catch (err: any) {
       console.error(`[Sync] Failed to process queue item ${item.id}:`, err);
-
-      // Restore status to pending and increment retry count
       await chatDb.sync_queue.update(item.id, {
         status: 'pending',
         retry_count: item.retry_count + 1
       });
-
-      // Abort processing on fatal auth errors
-      if (err.code === 'PGRST301') {
-        console.error('Fatal auth error, stopping queue processing.');
-        break;
-      }
+      if (err.code === 'PGRST301') break;
     }
   }
 }
