@@ -1,124 +1,172 @@
 import { supabase } from '@/integrations/supabase/client';
-import { chatDb, sanitizeMessage } from '@/lib/db';
+import { chatDb, LocalMessage, sanitizeMessage } from './db';
 
-export async function syncConversation(conversationId: string) {
-  if (!conversationId) return;
+// Concurrency guards for synchronization
+const syncRegistry = new Map<string, Promise<any>>();
+const listSyncRegistry = new Map<string, Promise<void>>();
 
-  try {
-    // 1. Get the last known sequence ID for this conversation
-    const conv = await chatDb.conversations.get(conversationId);
-    const lastSeq = conv?.last_seen_seq || 0;
+export const syncConversation = async (conversationId: string) => {
+  if (syncRegistry.has(conversationId)) {
+    console.log(`[Sync] Sync already in-flight for ${conversationId}, joining existing promise.`);
+    return syncRegistry.get(conversationId);
+  }
 
-    // 2. Fetch deltas from the server
-    // @ts-ignore
-    const { data, error } = await (supabase.rpc as any)('sync_messages', {
-      p_conversation_id: conversationId,
-      p_after_seq: lastSeq
-    });
+  const syncPromise = (async () => {
+    try {
+      console.log(`[Sync] Starting delta sync for conversation: ${conversationId}`);
 
-    if (error) {
-      console.error('Delta sync failed:', error);
-      return;
-    }
+      const conv = await chatDb.conversations.get(conversationId);
+      const lastSeq = conv?.last_seen_seq || 0;
+      let safeMaxSeq = lastSeq;
 
-    const logData = data as any[];
-    if (!logData || logData.length === 0) {
-      return 0; // Up to date
-    }
-
-    let safeMaxSeq = lastSeq;
-    const messagesToInsert: any[] = [];
-
-    // 3. Process the messages
-    for (const msg of logData) {
-      const sanitized = sanitizeMessage({
-        id: msg.id,
-        conversation_id: msg.conversation_id,
-        sender_id: String(msg.sender_id),
-        content: msg.content,
-        message_type: msg.message_type,
-        attachment_url: msg.attachment_url,
-        reply_to_id: msg.reply_to_id,
-        created_at: msg.created_at,
-        updated_at: msg.updated_at,
-        seq: Number(msg.seq),
-        sync_status: 'sent'
+      // 1. Fetch encrypted delta from RPC
+      // @ts-ignore
+      const { data, error } = await (supabase.rpc as any)('sync_messages', {
+        p_conversation_id: conversationId,
+        p_after_seq: lastSeq
       });
 
-      // Diagnostic check for dexie-encrypted fields (must not be undefined)
-      for (const field of ['content', 'attachment_url', 'sender_id', 'message_type', 'reply_to_id']) {
-        if ((sanitized as any)[field] === undefined) {
-          console.error(`[Sync] CRITICAL: field "${field}" is undefined for message ${sanitized.id}. This will crash local DB.`);
-        }
+      if (error) {
+        console.error('Delta sync failed:', error);
+        return;
       }
 
-      messagesToInsert.push(sanitized);
-    }
+      const logData = data as any[];
+      if (!logData || logData.length === 0) {
+        return 0; // Up to date
+      }
 
-    // 4. Fetch read receipts for this conversation BEFORE opening the transaction
-    const { data: receipts } = await supabase
-      .from('read_receipts' as any)
-      .select('*')
-      .eq('conversation_id', conversationId) as { data: any[] | null };
+      const messagesToInsert: LocalMessage[] = [];
 
-    // 5. Fetch reactions for this conversation
-    const { data: reactions } = await (supabase.rpc as any)('get_conversation_reactions', {
-      p_conversation_id: conversationId
-    });
+      // 3. Process the messages
+      for (const msg of logData) {
+        const sanitized = sanitizeMessage({
+          id: msg.id,
+          conversation_id: msg.conversation_id,
+          sender_id: String(msg.sender_id),
+          content: msg.content,
+          message_type: msg.message_type,
+          attachment_url: msg.attachment_url,
+          reply_to_id: msg.reply_to_id,
+          created_at: msg.created_at,
+          updated_at: msg.updated_at,
+          seq: Number(msg.seq),
+          sync_status: 'sent'
+        });
 
-    // 6. Batch write messages, high-water mark, read receipts, and reactions to Dexie
-    await chatDb.transaction('rw', chatDb.messages, chatDb.conversations, chatDb.read_receipts, chatDb.reactions, async () => {
-      if (messagesToInsert.length > 0) {
-        try {
-          await chatDb.messages.bulkPut(messagesToInsert);
-          // If bulkPut succeeds, advance safeMaxSeq to the highest seq in the batch
-          const batchMax = Math.max(...messagesToInsert.map(m => m.seq || 0));
-          if (batchMax > safeMaxSeq) safeMaxSeq = batchMax;
-        } catch (bulkErr) {
-          console.warn('[Sync] Bulk insert failed, falling back to individual inserts:', bulkErr);
-          for (const m of messagesToInsert) {
-            try {
-              await chatDb.messages.put(m);
-              // Only advance cursor if this specific message was saved
-              if ((m.seq ?? 0) > safeMaxSeq) safeMaxSeq = m.seq!;
-            } catch (singleErr) {
-              console.error(`[Sync] Failed to insert potentially corrupt message ${m.id} (seq: ${m.seq}):`, singleErr);
-              // Cursor does NOT advance past this failed message
+        // Diagnostic check for dexie-encrypted fields (must not be undefined)
+        for (const field of ['content', 'attachment_url', 'sender_id', 'message_type', 'reply_to_id']) {
+          if ((sanitized as any)[field] === undefined) {
+            console.error(`[Sync] CRITICAL: field "${field}" is undefined for message ${sanitized.id}. This will crash local DB.`);
+          }
+        }
+
+        messagesToInsert.push(sanitized);
+      }
+
+      // 4. Fetch read receipts for this conversation BEFORE opening the transaction
+      const { data: receipts } = await supabase
+        .from('read_receipts' as any)
+        .select('*')
+        .eq('conversation_id', conversationId) as { data: any[] | null };
+
+      // 5. Fetch reactions for this conversation
+      const { data: reactions } = await (supabase.rpc as any)('get_conversation_reactions', {
+        p_conversation_id: conversationId
+      });
+
+      // 6. Batch write messages, high-water mark, read receipts, and reactions to Dexie
+      await chatDb.transaction('rw', chatDb.messages, chatDb.conversations, chatDb.read_receipts, chatDb.message_reactions, async () => {
+        if (messagesToInsert.length > 0) {
+          try {
+            await chatDb.messages.bulkPut(messagesToInsert);
+            // If bulkPut succeeds, advance safeMaxSeq to the highest seq in the batch
+            const batchMax = Math.max(...messagesToInsert.map(m => m.seq || 0));
+            if (batchMax > safeMaxSeq) safeMaxSeq = batchMax;
+          } catch (bulkErr) {
+            console.warn('[Sync] Bulk insert failed, falling back to individual inserts:', bulkErr);
+            for (const m of messagesToInsert) {
+              try {
+                await chatDb.messages.put(m);
+                // Only advance cursor if this specific message was saved
+                if ((m.seq ?? 0) > safeMaxSeq) safeMaxSeq = m.seq!;
+              } catch (singleErr) {
+                console.error(`[Sync] Failed to insert potentially corrupt message ${m.id} (seq: ${m.seq}):`, singleErr);
+                // Cursor does NOT advance past this failed message
+              }
             }
           }
         }
-      }
 
-      // Update the high-water mark (ONLY up to the last successful message)
-      await chatDb.conversations.put({
-        id: conversationId,
-        last_seen_seq: safeMaxSeq
+        // Update the high-water mark (ONLY up to the last successful message)
+        await chatDb.conversations.put({
+          id: conversationId,
+          last_seen_seq: safeMaxSeq
+        });
+
+        if (receipts && receipts.length > 0) {
+          await chatDb.read_receipts.bulkPut(receipts.map(r => ({
+            user_id: r.user_id,
+            conversation_id: r.conversation_id,
+            last_read_seq: r.last_read_seq,
+            updated_at: r.updated_at
+          })));
+        }
+
+        if (reactions && reactions.length > 0) {
+          await chatDb.message_reactions.bulkPut(reactions);
+        }
       });
 
-      if (receipts && receipts.length > 0) {
-        await chatDb.read_receipts.bulkPut(receipts.map(r => ({
-          user_id: r.user_id,
-          conversation_id: r.conversation_id,
-          last_read_seq: r.last_read_seq,
-          updated_at: r.updated_at
-        })));
-      }
+      console.log(`[Sync] Conversation ${conversationId} synced. Cursor advanced to ${safeMaxSeq}`);
 
-      if (reactions && reactions.length > 0) {
-        await chatDb.reactions.bulkPut(reactions);
-      }
-    });
+      // Attempt to process queue after a successful sync
+      processSyncQueue().catch(console.error);
 
-    console.log(`[Sync] Conversation ${conversationId} synced. Cursor advanced to ${safeMaxSeq}`);
+      return messagesToInsert.length;
+    } catch (err) {
+      console.error('Error during chat sync:', err);
+    } finally {
+      syncRegistry.delete(conversationId);
+    }
+  })();
 
-    // Attempt to process queue after a successful sync
-    processSyncQueue().catch(console.error);
+  syncRegistry.set(conversationId, syncPromise);
+  return syncPromise;
+};
 
-    return logData.length;
-  } catch (err) {
-    console.error('Error during chat sync:', err);
+/**
+ * Synchronizes the conversation list metadata to Dexie for offline-first access.
+ */
+export const syncConversations = async (userId: string) => {
+  if (listSyncRegistry.has(userId)) {
+    return listSyncRegistry.get(userId);
   }
-}
+
+  const syncPromise = (async () => {
+    try {
+      console.log(`[Sync] Syncing conversation list for user: ${userId}`);
+      const { data, error } = await supabase
+        .rpc('get_user_conversations', { _user_id: userId });
+
+      if (error) {
+        console.error('[Sync] Failed to fetch conversation list:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        await chatDb.conversations_meta.bulkPut(data);
+      }
+    } catch (err) {
+      console.error('[Sync] Unexpected error during list sync:', err);
+    } finally {
+      listSyncRegistry.delete(userId);
+    }
+  })();
+
+  listSyncRegistry.set(userId, syncPromise);
+  return syncPromise;
+};
 
 export async function processSyncQueue() {
   const queue = await chatDb.sync_queue.toArray();

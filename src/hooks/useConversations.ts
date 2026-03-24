@@ -1,5 +1,9 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { supabase } from '@/integrations/supabase/client';
+import { chatDb } from '@/lib/db';
+import { syncConversations } from '@/lib/sync';
+import { useEffect, useCallback } from 'react';
 
 export interface Conversation {
   conversation_id: string;
@@ -20,36 +24,32 @@ export interface Conversation {
 }
 
 export const useConversations = (userId: string | undefined) => {
-  const { data: conversations, isLoading, error, refetch } = useQuery({
-    queryKey: ['conversations', userId],
-    queryFn: async () => {
-      if (!userId) return [];
+  const conversations = useLiveQuery(async () => {
+    if (!userId) return [];
+    const list = await chatDb.conversations_meta.toArray();
+    return list.sort((a, b) => {
+      const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+      const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+      return timeB - timeA;
+    });
+  }, [userId]);
 
-      const { data, error } = await supabase
-        .rpc('get_user_conversations', { _user_id: userId });
+  useEffect(() => {
+    if (userId) {
+      syncConversations(userId).catch(console.error);
+    }
+  }, [userId]);
 
-      if (error) throw error;
-      
-      const sorted = (data || []).sort((a: Conversation, b: Conversation) => {
-        const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
-        const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
-        return timeB - timeA;
-      });
-      
-      return sorted as Conversation[];
-    },
-    enabled: !!userId,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchInterval: 30000,
-  });
-
-  // Realtime is handled globally by GlobalRealtimeListener
+  const refetch = useCallback(async () => {
+    if (userId) {
+      await syncConversations(userId);
+    }
+  }, [userId]);
 
   return {
     conversations: conversations || [],
-    isLoading,
-    error,
+    isLoading: conversations === undefined,
+    error: null,
     refetch,
   };
 };
@@ -65,8 +65,10 @@ export const useCreateConversation = () => {
 
     if (error) throw error;
 
-    // Invalidate conversations query to refresh the list
-    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    // Trigger background sync instead of just invalidating
+    if (currentUserId) {
+      syncConversations(currentUserId).catch(console.error);
+    }
 
     return data as string;
   };
