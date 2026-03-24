@@ -19,69 +19,67 @@ export const syncConversation = async (conversationId: string) => {
       const lastSeq = conv?.last_seen_seq || 0;
       let safeMaxSeq = lastSeq;
 
-      // 1. Fetch encrypted delta from RPC
-      // @ts-ignore
-      const { data, error } = await (supabase.rpc as any)('sync_messages', {
-        p_conversation_id: conversationId,
-        p_after_seq: lastSeq
-      });
-
-      if (error) {
-        console.error('Delta sync failed:', error);
+      // 1. Parallelize all remote fetches
+      const [{ data: logData, error: msgError }, { data: receipts }, { data: reactions }] = await Promise.all([
+        // @ts-ignore
+        (supabase.rpc as any)('sync_messages', {
+          p_conversation_id: conversationId,
+          p_after_seq: lastSeq
+        }),
+        supabase
+          .from('read_receipts' as any)
+          .select('*')
+          .eq('conversation_id', conversationId) as any,
+        (supabase.rpc as any)('get_conversation_reactions', {
+          p_conversation_id: conversationId
+        })
+      ]);
+ 
+      if (msgError) {
+        console.error('Delta sync failed:', msgError);
         return;
       }
-
-      const logData = data as any[];
-      if (!logData || logData.length === 0) {
+ 
+      if ((!logData || logData.length === 0) && (!receipts || receipts.length === 0) && (!reactions || reactions.length === 0)) {
         return 0; // Up to date
       }
-
+ 
       const messagesToInsert: LocalMessage[] = [];
-
-      // 3. Process the messages
-      for (const msg of logData) {
-        const sanitized = sanitizeMessage({
-          id: msg.id,
-          conversation_id: msg.conversation_id,
-          sender_id: String(msg.sender_id),
-          content: msg.content,
-          message_type: msg.message_type,
-          attachment_url: msg.attachment_url,
-          reply_to_id: msg.reply_to_id,
-          forwarded_from_name: msg.forwarded_from_name,
-          created_at: msg.created_at,
-          updated_at: msg.updated_at,
-          seq: Number(msg.seq),
-          sync_status: 'sent'
-        });
-
-        // Diagnostic check for dexie-encrypted fields (must not be undefined)
-        for (const field of ['content', 'attachment_url', 'sender_id', 'message_type', 'reply_to_id', 'forwarded_from_name']) {
-          if ((sanitized as any)[field] === undefined) {
-            console.error(`[Sync] CRITICAL: field "${field}" is undefined for message ${sanitized.id}. This will crash local DB.`);
+ 
+      // 2. Process the messages
+      if (logData) {
+        for (const msg of logData) {
+          const sanitized = sanitizeMessage({
+            id: msg.id,
+            conversation_id: msg.conversation_id,
+            sender_id: String(msg.sender_id),
+            content: msg.content,
+            message_type: msg.message_type,
+            attachment_url: msg.attachment_url,
+            reply_to_id: msg.reply_to_id,
+            forwarded_from_name: msg.forwarded_from_name,
+            created_at: msg.created_at,
+            updated_at: msg.updated_at,
+            seq: Number(msg.seq),
+            sync_status: 'sent'
+          });
+ 
+          // Diagnostic check for dexie-encrypted fields (must not be undefined)
+          for (const field of ['content', 'attachment_url', 'sender_id', 'message_type', 'reply_to_id', 'forwarded_from_name']) {
+            if ((sanitized as any)[field] === undefined) {
+              console.error(`[Sync] CRITICAL: field "${field}" is undefined for message ${sanitized.id}. This will crash local DB.`);
+            }
           }
+ 
+          messagesToInsert.push(sanitized);
         }
-
-        messagesToInsert.push(sanitized);
       }
-
-      // 4. Fetch read receipts for this conversation BEFORE opening the transaction
-      const { data: receipts } = await supabase
-        .from('read_receipts' as any)
-        .select('*')
-        .eq('conversation_id', conversationId) as { data: any[] | null };
-
-      // 5. Fetch reactions for this conversation
-      const { data: reactions } = await (supabase.rpc as any)('get_conversation_reactions', {
-        p_conversation_id: conversationId
-      });
-
-      // 6. Batch write messages, high-water mark, read receipts, and reactions to Dexie
+ 
+      // 3. Batch write everything to Dexie in ONE atomic transaction
       await chatDb.transaction('rw', chatDb.messages, chatDb.conversations, chatDb.read_receipts, chatDb.message_reactions, async () => {
         if (messagesToInsert.length > 0) {
           try {
             await chatDb.messages.bulkPut(messagesToInsert);
-            // If bulkPut succeeds, advance safeMaxSeq to the highest seq in the batch
             const batchMax = Math.max(...messagesToInsert.map(m => m.seq || 0));
             if (batchMax > safeMaxSeq) safeMaxSeq = batchMax;
           } catch (bulkErr) {
@@ -89,22 +87,20 @@ export const syncConversation = async (conversationId: string) => {
             for (const m of messagesToInsert) {
               try {
                 await chatDb.messages.put(m);
-                // Only advance cursor if this specific message was saved
                 if ((m.seq ?? 0) > safeMaxSeq) safeMaxSeq = m.seq!;
               } catch (singleErr) {
-                console.error(`[Sync] Failed to insert potentially corrupt message ${m.id} (seq: ${m.seq}):`, singleErr);
-                // Cursor does NOT advance past this failed message
+                console.error(`[Sync] Failed to insert message ${m.id}:`, singleErr);
               }
             }
           }
         }
-
-        // Update the high-water mark (ONLY up to the last successful message)
+ 
+        // Update high-water mark
         await chatDb.conversations.put({
           id: conversationId,
           last_seen_seq: safeMaxSeq
         });
-
+ 
         if (receipts && receipts.length > 0) {
           await chatDb.read_receipts.bulkPut(receipts.map(r => ({
             user_id: r.user_id,
@@ -113,7 +109,7 @@ export const syncConversation = async (conversationId: string) => {
             updated_at: r.updated_at
           })));
         }
-
+ 
         if (reactions && reactions.length > 0) {
           await chatDb.message_reactions.bulkPut(reactions);
         }
