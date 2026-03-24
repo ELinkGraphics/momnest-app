@@ -642,7 +642,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="File source picker"
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-[2rem] shadow-2xl flex flex-col transition-transform duration-300 ease-out pointer-events-auto ${sheetOpen ? 'translate-y-0' : 'translate-y-full'
+        className={`fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-[2rem] shadow-2xl flex flex-col transition-transform duration-300 ease-out ${sheetOpen ? 'translate-y-0 pointer-events-auto visible' : 'translate-y-full pointer-events-none invisible'
           }`}
       >
         {/* Drag handle */}
