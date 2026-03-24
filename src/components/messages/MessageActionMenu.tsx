@@ -67,7 +67,7 @@ const MessageActionMenu: React.FC<MessageActionMenuProps> = ({
         {actions.filter(a => a.show).map((item) => (
           <button
             key={item.label}
-            onClick={() => { item.action(); onClose(); }}
+            onClick={() => { item.action(); }}
             className={`flex items-center gap-3 w-full px-4 py-3 text-sm transition-colors active:scale-[0.98] ${
               item.destructive
                 ? 'text-destructive hover:bg-destructive/10'
