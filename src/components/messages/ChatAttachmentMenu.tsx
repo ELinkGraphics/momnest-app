@@ -229,19 +229,28 @@ const ChatAttachmentMenu: React.FC<ChatAttachmentMenuProps> = ({
       {open && (
         <div className="absolute bottom-12 left-0 bg-background border border-border rounded-2xl shadow-lg p-2 flex gap-1 animate-fade-in z-50">
           <CustomFilePicker manager={cameraManager} hideUploadButton hidePreviewList accept="image/*" useCameraImmediate>
-            <button className="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-muted/50 transition-colors w-full">
+            <button 
+              onClick={() => setOpen(false)}
+              className="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-muted/50 transition-colors w-full"
+            >
               <Camera className="h-5 w-5 text-primary" />
               <span className="text-[10px] text-muted-foreground">Camera</span>
             </button>
           </CustomFilePicker>
           <CustomFilePicker manager={photoManager} hideUploadButton hidePreviewList accept="image/*">
-            <button className="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-muted/50 transition-colors w-full">
+            <button 
+              onClick={() => setOpen(false)}
+              className="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-muted/50 transition-colors w-full"
+            >
               <Image className="h-5 w-5 text-primary" />
               <span className="text-[10px] text-muted-foreground">Photo</span>
             </button>
           </CustomFilePicker>
           <CustomFilePicker manager={videoManager} hideUploadButton hidePreviewList accept="video/*">
-            <button className="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-muted/50 transition-colors w-full">
+            <button 
+              onClick={() => setOpen(false)}
+              className="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-muted/50 transition-colors w-full"
+            >
               <Video className="h-5 w-5 text-primary" />
               <span className="text-[10px] text-muted-foreground">Video</span>
             </button>
