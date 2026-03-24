@@ -45,6 +45,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   const [storyMentions, setStoryMentions] = useState<Array<{ user_id: string; username: string; name: string }>>([]);
   const [mentionProfileUserId, setMentionProfileUserId] = useState<string | null>(null);
   const [showStoryMenu, setShowStoryMenu] = useState(false);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
   
 
   const navigate = useNavigate();
@@ -174,13 +175,31 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
   // Toggle like
   const handleLikeToggle = async () => {
-    if (!currentStoryDbId || !user?.id) return;
-    setIsLiked(prev => !prev);
-    triggerHaptic('medium');
-    if (isLiked) {
-      await supabase.from('story_likes').delete().eq('story_id', currentStoryDbId).eq('user_id', user.id);
-    } else {
-      await supabase.from('story_likes').insert({ story_id: currentStoryDbId, user_id: user.id });
+    if (!currentStoryDbId || !user?.id || isLikeLoading) return;
+
+    const willLike = !isLiked;           // capture intent NOW from current closure
+    setIsLiked(willLike);                // optimistic UI
+    setIsLikeLoading(true);
+    triggerHaptic("medium");
+
+    try {
+      if (willLike) {
+        const { error } = await supabase
+          .from("story_likes")
+          .insert({ story_id: currentStoryDbId, user_id: user.id });
+        if (error && error.code !== "23505") throw error; // ignore duplicate
+      } else {
+        await supabase.from("story_likes")
+          .delete()
+          .eq("story_id", currentStoryDbId)
+          .eq("user_id", user.id);
+      }
+    } catch (err) {
+      console.error('Like toggle error:', err);
+      setIsLiked(!willLike);  // rollback on failure
+      toast({ title: "Action failed", variant: "destructive" });
+    } finally {
+      setIsLikeLoading(false);
     }
   };
 
