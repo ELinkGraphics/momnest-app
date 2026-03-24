@@ -78,6 +78,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   };
 
   const handleOpenAttachments = () => {
+    if (attachmentSheetOpen) return;
     pushModalState('chat-attachments', () => setAttachmentSheetOpen(false));
     setAttachmentSheetOpen(true);
   };
@@ -1257,7 +1258,10 @@ const ChatView: React.FC<ChatViewProps> = ({
       {/* Attachment Sheet */}
       <TelegramAttachmentSheet
         open={attachmentSheetOpen}
-        onClose={() => window.history.back()}
+        onClose={() => {
+          setAttachmentSheetOpen(false);
+          window.history.back();
+        }}
         conversationId={conversation.conversation_id}
         senderId={currentUserId}
         onSendAttachment={handleSendAttachment}

@@ -126,7 +126,10 @@ const TelegramAttachmentSheet: React.FC<TelegramAttachmentSheetProps> = ({
 
           <div className="grid grid-cols-3 gap-3 px-6 pb-6 pt-2">
             <CustomFilePicker manager={photoManager} hideUploadButton hidePreviewList accept="image/*" multiple>
-              <button className="flex flex-col items-center gap-2.5 p-4 rounded-2xl hover:bg-muted/60 active:scale-95 transition-all w-full">
+              <button 
+                onClick={onClose}
+                className="flex flex-col items-center gap-2.5 p-4 rounded-2xl hover:bg-muted/60 active:scale-95 transition-all w-full"
+              >
                 <div className="bg-blue-500 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg">
                   <Image className="h-6 w-6 text-white" />
                 </div>
@@ -135,7 +138,10 @@ const TelegramAttachmentSheet: React.FC<TelegramAttachmentSheetProps> = ({
             </CustomFilePicker>
 
             <CustomFilePicker manager={cameraManager} hideUploadButton hidePreviewList accept="image/*" useCameraImmediate>
-              <button className="flex flex-col items-center gap-2.5 p-4 rounded-2xl hover:bg-muted/60 active:scale-95 transition-all w-full">
+              <button 
+                onClick={onClose}
+                className="flex flex-col items-center gap-2.5 p-4 rounded-2xl hover:bg-muted/60 active:scale-95 transition-all w-full"
+              >
                 <div className="bg-orange-500 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg">
                   <Camera className="h-6 w-6 text-white" />
                 </div>
@@ -144,7 +150,10 @@ const TelegramAttachmentSheet: React.FC<TelegramAttachmentSheetProps> = ({
             </CustomFilePicker>
 
             <CustomFilePicker manager={videoManager} hideUploadButton hidePreviewList accept="video/*">
-              <button className="flex flex-col items-center gap-2.5 p-4 rounded-2xl hover:bg-muted/60 active:scale-95 transition-all w-full">
+              <button 
+                onClick={onClose}
+                className="flex flex-col items-center gap-2.5 p-4 rounded-2xl hover:bg-muted/60 active:scale-95 transition-all w-full"
+              >
                 <div className="bg-red-500 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg">
                   <Video className="h-6 w-6 text-white" />
                 </div>
@@ -153,7 +162,10 @@ const TelegramAttachmentSheet: React.FC<TelegramAttachmentSheetProps> = ({
             </CustomFilePicker>
 
             <CustomFilePicker manager={fileManager} hideUploadButton hidePreviewList accept="*/*">
-              <button className="flex flex-col items-center gap-2.5 p-4 rounded-2xl hover:bg-muted/60 active:scale-95 transition-all w-full">
+              <button 
+                onClick={onClose}
+                className="flex flex-col items-center gap-2.5 p-4 rounded-2xl hover:bg-muted/60 active:scale-95 transition-all w-full"
+              >
                 <div className="bg-violet-500 w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg">
                   <FileText className="h-6 w-6 text-white" />
                 </div>
