@@ -267,6 +267,51 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     return { userIndex: 0, storyIndex: 0, userStories: userGroups[0] || [] };
   }, [userGroups, currentIndex]);
 
+  // ✅ PRELOADING LOGIC (UX-2)
+  const preloadedUrls = useRef<Set<string>>(new Set());
+
+  const getContextForIndex = useCallback((fromIndex: number) => {
+    for (let uIdx = 0; uIdx < userGroups.length; uIdx++) {
+      const uStories = userGroups[uIdx];
+      const sIdx = uStories.findIndex((s: any) => s.originalIndex === fromIndex);
+      if (sIdx !== -1) {
+        return { userIndex: uIdx, storyIndex: sIdx, userStories: uStories };
+      }
+    }
+    return { userIndex: -1, storyIndex: -1, userStories: [] as any[] };
+  }, [userGroups]);
+
+  const prefetchAhead = useCallback((fromIndex: number, count = 2) => {
+    const { userIndex, storyIndex, userStories } = getContextForIndex(fromIndex);
+    if (userIndex === -1) return;
+
+    const toPreload: string[] = [];
+
+    // Next stories same user
+    for (let i = storyIndex + 1; i <= storyIndex + count && i < userStories.length; i++) {
+      const url = userStories[i].image;
+      if (url) toPreload.push(url);
+    }
+
+    // First story of next user
+    if (userIndex + 1 < userGroups.length) {
+      const url = userGroups[userIndex + 1][0].image;
+      if (url) toPreload.push(url);
+    }
+
+    toPreload.forEach(url => {
+      if (preloadedUrls.current.has(url)) return;
+      preloadedUrls.current.add(url);
+      const img = new Image();
+      img.src = url; // Preload into browser cache
+    });
+  }, [userGroups, getContextForIndex]);
+
+  // Prefetch whenever index changes
+  useEffect(() => {
+    prefetchAhead(currentIndex);
+  }, [currentIndex, prefetchAhead]);
+
   const goToNext = useCallback(async () => {
     const { userIndex, storyIndex, userStories } = getCurrentUserContext();
     
