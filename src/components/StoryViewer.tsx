@@ -318,8 +318,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     // If there's a next story in the current user's stories
     if (storyIndex < userStories.length - 1) {
       const nextStoryIndex = (userStories[storyIndex + 1] as any).originalIndex;
-      setCurrentIndex(nextStoryIndex);
       setProgress(0);
+      setCurrentIndex(nextStoryIndex);
       triggerHaptic('light');
     } 
     // If this is the last story for current user, move to next user
@@ -340,8 +340,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         
         // Wait a bit for the crossfade to be visible, then complete transition
         setTimeout(() => {
-          setCurrentIndex(nextUserFirstStoryIndex);
           setProgress(0);
+          setCurrentIndex(nextUserFirstStoryIndex);
           
           // Clean up transition state
           setTimeout(() => {
@@ -354,8 +354,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         // Fallback: complete transition even if preload fails
         setIsImagePreloaded(true);
         setTimeout(() => {
-          setCurrentIndex(nextUserFirstStoryIndex);
           setProgress(0);
+          setCurrentIndex(nextUserFirstStoryIndex);
           setTimeout(() => {
             setIsTransitioning(false);
             setNextStoryIndex(null);
@@ -376,8 +376,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     // If there's a previous story in the current user's stories
     if (storyIndex > 0) {
       const prevStoryIndex = (userStories[storyIndex - 1] as any).originalIndex;
-      setCurrentIndex(prevStoryIndex);
       setProgress(0);
+      setCurrentIndex(prevStoryIndex);
       triggerHaptic('light');
     } 
     // If this is the first story for current user, move to previous user's last story
@@ -399,8 +399,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         
         // Wait a bit for the crossfade to be visible, then complete transition
         setTimeout(() => {
-          setCurrentIndex(prevUserLastStoryIndex);
           setProgress(0);
+          setCurrentIndex(prevUserLastStoryIndex);
           
           // Clean up transition state
           setTimeout(() => {
@@ -413,8 +413,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         // Fallback: complete transition even if preload fails
         setIsImagePreloaded(true);
         setTimeout(() => {
-          setCurrentIndex(prevUserLastStoryIndex);
           setProgress(0);
+          setCurrentIndex(prevUserLastStoryIndex);
           setTimeout(() => {
             setIsTransitioning(false);
             setNextStoryIndex(null);
@@ -732,7 +732,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                     onLoadedMetadata={(e) => {
                       const vid = e.currentTarget;
                       setVideoDuration(vid.duration);
-                      if (!isTransitioning) setProgress(0);
                       
                       // Size the video relatively to ensure it fits the safe area
                       const safeW = currentStory.videoTransform!.canvasW - 24;
@@ -778,9 +777,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
               alt={`${currentStory.user.name}'s story`}
               className="w-full h-full object-contain"
               onLoad={() => {
-                if (!isTransitioning) {
-                  setProgress(0);
-                }
+                // Progress is already reset in navigation handlers (UX-3)
               }}
               draggable={false}
             />
