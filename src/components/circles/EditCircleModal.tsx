@@ -224,8 +224,8 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
                       <Camera className="h-6 w-6 text-white" />
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1 text-center font-medium">Click to {coverPreview ? 'change' : 'add'} cover image</p>
                 </CustomFilePicker>
-                <p className="text-xs text-muted-foreground mt-1">Click to {coverPreview ? 'change' : 'add'} cover image</p>
               </div>
 
               {/* Profile Image */}
@@ -246,8 +246,8 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
                       <Camera className="h-6 w-6 text-white" />
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1 text-center font-medium">Click to {avatarPreview ? 'change' : 'add'} profile image</p>
                 </CustomFilePicker>
-                <p className="text-xs text-muted-foreground mt-1 text-center">Click to {avatarPreview ? 'change' : 'add'} profile image</p>
               </div>
 
               {/* Circle Name */}

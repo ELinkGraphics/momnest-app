@@ -482,7 +482,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="w-full flex flex-col gap-4 relative pointer-events-none">
+    <div className="w-full relative pointer-events-none flex flex-col">
 
       {/* Hidden inputs */}
       <input
@@ -528,14 +528,17 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
 
       {/* Trigger button */}
       {children ? (
-        <div onClick={(e) => {
-          e.stopPropagation();
-          if (useCameraImmediate) {
-            handleCamera();
-          } else {
-            handleOpenSheet();
-          }
-        }} className="cursor-pointer w-fit mx-auto pointer-events-auto">
+        <div 
+          onClick={(e) => {
+            e.stopPropagation();
+            if (useCameraImmediate) {
+              handleCamera();
+            } else {
+              handleOpenSheet();
+            }
+          }} 
+          className="cursor-pointer pointer-events-auto"
+        >
           {children}
         </div>
       ) : (
@@ -561,7 +564,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
 
       {/* ── File preview list ─────────────────────────────────────────────── */}
       {!hidePreviewList && files.length > 0 && (
-        <div className="flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto">
+        <div className="flex flex-col gap-3 mt-4 animate-in fade-in zoom-in-95 duration-200 pointer-events-auto">
           <div className="max-h-[55vh] overflow-y-auto flex flex-col gap-3 pr-1">
             {files.map((f) => (
               <FileRow
