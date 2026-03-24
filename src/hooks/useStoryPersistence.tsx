@@ -235,5 +235,32 @@ export const useStoryPersistence = () => {
     fetchStories();
   };
 
-  return [stories, refreshStories, isLoading] as const;
+  // ✅ FIX — optimistic local viewed state (SYNC-3)
+  const markStoryViewed = useCallback((storyId: string) => {
+    setStories(prev => prev.map(group => {
+      // 1. Direct match (individual story)
+      if (String(group.id) === String(storyId)) {
+        return { ...group, isViewed: true };
+      }
+
+      // 2. Sub-story match (grouped stories)
+      if (group.allStories) {
+        const hasStory = group.allStories.some(s => String(s.id) === String(storyId));
+        if (hasStory) {
+          const updatedAllStories = group.allStories.map(s => 
+            String(s.id) === String(storyId) ? { ...s, isViewed: true } : s
+          );
+          const allViewed = updatedAllStories.every(s => s.isViewed);
+          return { 
+            ...group, 
+            isViewed: allViewed, 
+            allStories: updatedAllStories 
+          };
+        }
+      }
+      return group;
+    }));
+  }, []);
+
+  return [stories, refreshStories, isLoading, markStoryViewed] as const;
 };
