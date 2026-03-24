@@ -197,6 +197,7 @@ export const useMessages = (conversationId: string | null, userId: string | unde
       try {
         // 1. Update local DB
         await chatDb.read_receipts.put(receipt);
+        await chatDb.conversations_meta.update(conversationId, { unread_count: 0 });
 
         // 2. Queue for server sync
         await chatDb.sync_queue.put({
@@ -213,7 +214,7 @@ export const useMessages = (conversationId: string | null, userId: string | unde
         // 4. Mark related notifications as read on server
         markConversationNotificationsAsRead.mutate(conversationId);
         
-        // 5. Optimistic update for conversations list (immediate feedback)
+        // 5. Optimistic update for conversations list (redundant but safe)
         queryClient.setQueryData(['conversations', userId], (oldData: any) => {
           if (!oldData) return oldData;
           return oldData.map((conv: any) => 
