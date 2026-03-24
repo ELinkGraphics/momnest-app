@@ -230,7 +230,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   }, []);
 
   // Get unique users and group stories by user
-  const getUniqueUsers = () => {
+  const userGroups = useMemo(() => {
     const userMap = new Map<string, typeof stories>();
     stories.forEach((story, index) => {
       const uid = story.user.id || story.user.name;
@@ -240,12 +240,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       userMap.get(uid)!.push({ ...story, originalIndex: index } as any);
     });
     return Array.from(userMap.values());
-  };
-
-  const userGroups = getUniqueUsers();
+  }, [stories]);
   
   // Find current user group and story index within that group
-  const getCurrentUserContext = () => {
+  const getCurrentUserContext = useCallback(() => {
     for (let userIndex = 0; userIndex < userGroups.length; userIndex++) {
       const userStories = userGroups[userIndex];
       const storyIndex = userStories.findIndex(story => story.originalIndex === currentIndex);
@@ -254,7 +252,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       }
     }
     return { userIndex: 0, storyIndex: 0, userStories: userGroups[0] || [] };
-  };
+  }, [userGroups, currentIndex]);
 
   const goToNext = useCallback(async () => {
     const { userIndex, storyIndex, userStories } = getCurrentUserContext();
