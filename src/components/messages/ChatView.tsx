@@ -330,6 +330,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   // Action handlers
   const handleReply = () => {
     if (actionMenu.message) {
+      window.history.back();
       setReplyTo(actionMenu.message);
       setEditingMessage(null);
     }
@@ -337,6 +338,7 @@ const ChatView: React.FC<ChatViewProps> = ({
 
   const handleCopy = () => {
     if (actionMenu.message) {
+      window.history.back();
       navigator.clipboard.writeText(actionMenu.message.content);
       toast.success('Copied to clipboard');
     }
@@ -344,6 +346,7 @@ const ChatView: React.FC<ChatViewProps> = ({
 
   const handleEdit = () => {
     if (actionMenu.message) {
+      window.history.back();
       setEditingMessage(actionMenu.message);
       setMessageText(actionMenu.message.content);
       setReplyTo(null);
@@ -352,31 +355,41 @@ const ChatView: React.FC<ChatViewProps> = ({
 
   const handleDelete = () => {
     if (actionMenu.message) {
-      pushModalState('chat-delete-dialog', () => setDeleteDialog({ isOpen: false, message: null }));
-      setDeleteDialog({ isOpen: true, message: actionMenu.message });
+      window.history.back();
+      setTimeout(() => {
+        pushModalState('chat-delete-dialog', () => setDeleteDialog({ isOpen: false, message: null }));
+        setDeleteDialog({ isOpen: true, message: actionMenu.message });
+      }, 100);
     }
   };
 
   const handleForward = () => {
     if (actionMenu.message) {
-      pushModalState('chat-forward-modal', () => setForwardModal({ isOpen: false, message: null }));
-      setForwardModal({ isOpen: true, message: actionMenu.message });
+      window.history.back();
+      setTimeout(() => {
+        pushModalState('chat-forward-modal', () => setForwardModal({ isOpen: false, message: null }));
+        setForwardModal({ isOpen: true, message: actionMenu.message });
+      }, 100);
     }
   };
 
   const handleReact = () => {
     if (actionMenu.message) {
-      pushModalState('chat-reaction-bar', () => setReactionBar({ isOpen: false, position: { x: 0, y: 0 }, messageId: '' }));
-      setReactionBar({
-        isOpen: true,
-        position: actionMenu.position,
-        messageId: actionMenu.message.id,
-      });
+      window.history.back();
+      setTimeout(() => {
+        pushModalState('chat-reaction-bar', () => setReactionBar({ isOpen: false, position: { x: 0, y: 0 }, messageId: '' }));
+        setReactionBar({
+          isOpen: true,
+          position: actionMenu.position,
+          messageId: actionMenu.message!.id,
+        });
+      }, 100);
     }
   };
 
   const handlePin = () => {
     if (actionMenu.message) {
+      window.history.back();
       if (pinnedMessage?.id === actionMenu.message.id) {
         unpinMessage();
       } else {
