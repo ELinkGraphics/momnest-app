@@ -48,6 +48,7 @@ export const syncConversation = async (conversationId: string) => {
           message_type: msg.message_type,
           attachment_url: msg.attachment_url,
           reply_to_id: msg.reply_to_id,
+          forwarded_from_name: msg.forwarded_from_name,
           created_at: msg.created_at,
           updated_at: msg.updated_at,
           seq: Number(msg.seq),
@@ -55,7 +56,7 @@ export const syncConversation = async (conversationId: string) => {
         });
 
         // Diagnostic check for dexie-encrypted fields (must not be undefined)
-        for (const field of ['content', 'attachment_url', 'sender_id', 'message_type', 'reply_to_id']) {
+        for (const field of ['content', 'attachment_url', 'sender_id', 'message_type', 'reply_to_id', 'forwarded_from_name']) {
           if ((sanitized as any)[field] === undefined) {
             console.error(`[Sync] CRITICAL: field "${field}" is undefined for message ${sanitized.id}. This will crash local DB.`);
           }

@@ -1101,9 +1101,17 @@ const ChatView: React.FC<ChatViewProps> = ({
               senderName: forwardModal.message.senderName,
               targetConversationIds: convIds,
               senderId: currentUserId,
+            }, {
+              onSuccess: () => {
+                window.history.back();
+                if (convIds.length === 1) {
+                  navigate(`/messages/${convIds[0]}`);
+                }
+              }
             });
+          } else {
+            window.history.back();
           }
-          window.history.back();
         }}
       />
 

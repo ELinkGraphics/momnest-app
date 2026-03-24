@@ -9,6 +9,7 @@ export interface LocalMessage {
   message_type: string;
   attachment_url: string;
   reply_to_id: string;
+  forwarded_from_name?: string;
   created_at: string;
   updated_at: string;
   seq?: number;
@@ -57,6 +58,7 @@ export function sanitizeMessage(msg: Partial<LocalMessage>): LocalMessage {
     message_type:   ensureString(msg.message_type, 'text'),
     attachment_url: ensureString(msg.attachment_url),
     reply_to_id:    ensureString(msg.reply_to_id),
+    forwarded_from_name: ensureString(msg.forwarded_from_name),
     created_at:     msg.created_at!,
     updated_at:     msg.updated_at!,
     seq:            msg.seq,

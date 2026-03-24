@@ -16,6 +16,7 @@ export interface Message {
   message_type: string;
   attachment_url: string;
   reply_to_id: string;
+  forwarded_from_name?: string;
   created_at: string;
   updated_at: string;
   sender?: {
@@ -235,6 +236,7 @@ export const useRetryMessage = () => {
             message_type: msg.message_type,
             attachment_url: msg.attachment_url,
             reply_to_id: msg.reply_to_id,
+            forwarded_from_name: msg.forwarded_from_name,
             created_at: msg.created_at,
             updated_at: msg.updated_at
           },
