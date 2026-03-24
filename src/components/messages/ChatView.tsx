@@ -66,6 +66,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const prevScrollHeightRef = useRef<number>(0);
 
   // Wrapper for state setters that should push history state
   const handleOpenSearch = () => {
@@ -118,7 +119,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   const prevMessagesCount = useRef(0);
 
 
-  const { messages, isLoading, isSyncing } = useMessages(conversation.conversation_id, currentUserId);
+  const { messages, isLoading, isSyncing, hasMore, loadMore } = useMessages(conversation.conversation_id, currentUserId);
   const otherUserLastRead = useOtherUserLastRead(conversation.conversation_id, currentUserId);
   const { sendMessage, isSending } = useSendMessage();
   const retryMessage = useRetryMessage();
@@ -189,7 +190,20 @@ const ChatView: React.FC<ChatViewProps> = ({
     if (isAtBottom) {
       setHasNewMessagesScrolledUp(false);
     }
+
+    // Auto-load more when near top
+    if (container.scrollTop < 100 && hasMore && !isLoading && !isSyncing) {
+      handleLoadMore();
+    }
   };
+
+  const handleLoadMore = useCallback(() => {
+    if (!hasMore || isLoading || isSyncing) return;
+    if (scrollContainerRef.current) {
+      prevScrollHeightRef.current = scrollContainerRef.current.scrollHeight;
+    }
+    loadMore();
+  }, [hasMore, isLoading, isSyncing, loadMore]);
 
   // Scroll control: only scroll to bottom if near bottom or it's our own new message
   const initialLoadRef = useRef(true);
@@ -199,6 +213,14 @@ const ChatView: React.FC<ChatViewProps> = ({
         // First load: scroll instantly to bottom
         setTimeout(() => scrollToBottom(true), 50);
         initialLoadRef.current = false;
+      } else if (prevScrollHeightRef.current > 0 && scrollContainerRef.current) {
+        // Pagination load: maintain scroll position
+        const newScrollHeight = scrollContainerRef.current.scrollHeight;
+        const delta = newScrollHeight - prevScrollHeightRef.current;
+        if (delta > 0) {
+          scrollContainerRef.current.scrollTop += delta;
+        }
+        prevScrollHeightRef.current = 0;
       } else {
         // Only auto-scroll if we are near the bottom OR the last message is from us
         const container = scrollContainerRef.current;
@@ -688,6 +710,22 @@ const ChatView: React.FC<ChatViewProps> = ({
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto px-3 py-4 pb-20 space-y-3 overscroll-contain relative"
       >
+        {hasMore && (
+          <div className="flex justify-center pt-2 pb-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleLoadMore}
+              className="text-xs text-muted-foreground hover:bg-muted font-medium"
+              disabled={isLoading || isSyncing}
+            >
+              {(isLoading || isSyncing) ? (
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              ) : null}
+              Load older messages
+            </Button>
+          </div>
+        )}
         {/* Floating Scroll to Bottom Button */}
         {showScrollToBottom && (
           <div className="fixed bottom-24 right-4 z-20 animate-in fade-in zoom-in duration-200">

@@ -31,20 +31,29 @@ export const useMessages = (conversationId: string | null, userId: string | unde
   const queryClient = useQueryClient();
   const [profileCache, setProfileCache] = useState<Record<string, any>>({});
   const [isSyncing, setIsSyncing] = useState(false);
+  const [limit, setLimit] = useState(50);
+  const [hasMore, setHasMore] = useState(true);
   const lastSyncedSeq = useRef(0);
   const syncInFlight = useRef(false);
   const syncPending = useRef(false);
 
   // 1. Local data stream via Dexie (Replaces network fetch)
   const localMessages = useLiveQuery(
-    () => {
+    async () => {
       if (!conversationId) return [];
-      return chatDb.messages
-        .where('conversation_id')
-        .equals(conversationId)
-        .sortBy('created_at');
+      
+      const msgs = await chatDb.messages
+        .where('[conversation_id+created_at]')
+        .between([conversationId, ''], [conversationId, '\uffff'])
+        .reverse()
+        .limit(limit)
+        .toArray();
+      
+      const sorted = msgs.reverse();
+      setHasMore(msgs.length === limit);
+      return sorted;
     },
-    [conversationId]
+    [conversationId, limit]
   );
 
   // 2. Resolve missing sender profiles
@@ -195,10 +204,18 @@ export const useMessages = (conversationId: string | null, userId: string | unde
     })) || [];
   }, [localMessages, profileCache]);
 
+  const loadMore = useCallback(() => {
+    if (hasMore) {
+      setLimit(prev => prev + 50);
+    }
+  }, [hasMore]);
+
   return {
     messages: (messagesWithSenders as Message[]) || [],
     isLoading: localMessages === undefined,
     isSyncing,
+    hasMore,
+    loadMore,
     error: null,
   };
 };
