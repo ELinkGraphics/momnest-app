@@ -12,6 +12,7 @@ import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { enqueueStoryAction } from '@/lib/sync';
+import { storyPreloader } from '@/lib/storyPreloader';
 
 interface StoryViewerProps {
   stories: Story[];
@@ -248,50 +249,43 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     return { userIndex: 0, storyIndex: 0, userStories: userGroups[0] || [] };
   }, [userGroups, currentIndex]);
 
-  // ✅ PRELOADING LOGIC (UX-2)
-  const preloadedUrls = useRef<Set<string>>(new Set());
+  // ✅ PRELOADING PIPELINE (ENHANCE-1)
+  const getAllStoriesAhead = useCallback((count = 3) => {
+    const { userIndex, storyIndex } = getCurrentUserContext();
+    if (userIndex === -1) return [];
 
-  const getContextForIndex = useCallback((fromIndex: number) => {
-    for (let uIdx = 0; uIdx < userGroups.length; uIdx++) {
+    const ahead: Array<{ image: string; mediaType: 'image' | 'video' }> = [];
+    let uIdx = userIndex;
+    let sIdx = storyIndex + 1;
+
+    while (ahead.length < count && uIdx < userGroups.length) {
       const uStories = userGroups[uIdx];
-      const sIdx = uStories.findIndex((s: any) => s.originalIndex === fromIndex);
-      if (sIdx !== -1) {
-        return { userIndex: uIdx, storyIndex: sIdx, userStories: uStories };
+      if (sIdx < uStories.length) {
+        const s = uStories[sIdx];
+        ahead.push({ image: (s as any).image, mediaType: (s as any).mediaType || 'image' });
+        sIdx++;
+      } else {
+        uIdx++;
+        sIdx = 0;
       }
     }
-    return { userIndex: -1, storyIndex: -1, userStories: [] as any[] };
-  }, [userGroups]);
+    return ahead;
+  }, [userGroups, getCurrentUserContext]);
 
-  const prefetchAhead = useCallback((fromIndex: number, count = 2) => {
-    const { userIndex, storyIndex, userStories } = getContextForIndex(fromIndex);
-    if (userIndex === -1) return;
-
-    const toPreload: string[] = [];
-
-    // Next stories same user
-    for (let i = storyIndex + 1; i <= storyIndex + count && i < userStories.length; i++) {
-      const url = userStories[i].image;
-      if (url) toPreload.push(url);
-    }
-
-    // First story of next user
-    if (userIndex + 1 < userGroups.length) {
-      const url = userGroups[userIndex + 1][0].image;
-      if (url) toPreload.push(url);
-    }
-
-    toPreload.forEach(url => {
-      if (preloadedUrls.current.has(url)) return;
-      preloadedUrls.current.add(url);
-      const img = new Image();
-      img.src = url; // Preload into browser cache
-    });
-  }, [userGroups, getContextForIndex]);
-
-  // Prefetch whenever index changes
+  // Trigger preloading whenever the story or groups change
   useEffect(() => {
-    prefetchAhead(currentIndex);
-  }, [currentIndex, prefetchAhead]);
+    if (!isOpen) return;
+    
+    // Preload next 3 stories in background
+    const ahead = getAllStoriesAhead(3);
+    ahead.forEach(s => storyPreloader.preload(s.image, s.mediaType));
+    
+    // Prune cache to keep it lean (keep current + next 3)
+    const currentUrl = currentStory?.image;
+    const keepUrls = ahead.map(s => s.image);
+    if (currentUrl) keepUrls.push(currentUrl);
+    storyPreloader.prune(keepUrls);
+  }, [currentIndex, stories, userGroups, isOpen, getAllStoriesAhead, currentStory?.image]);
 
   const goToNext = useCallback(async () => {
     const { userIndex, storyIndex, userStories } = getCurrentUserContext();
@@ -311,39 +305,29 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       setIsTransitioning(true);
       setTransitionDirection('next');
       setNextStoryIndex(nextUserFirstStoryIndex);
-      setIsImagePreloaded(false);
       triggerHaptic('medium');
       
-      // Preload the next story image
-      try {
-        await preloadImage(nextStoryImage);
-        setIsImagePreloaded(true);
-        
-        // Wait a bit for the crossfade to be visible, then complete transition
-        setTimeout(() => {
-          setProgress(0);
-          setCurrentIndex(nextUserFirstStoryIndex);
-          
-          // Clean up transition state
-          setTimeout(() => {
-            setIsTransitioning(false);
-            setNextStoryIndex(null);
-            setIsImagePreloaded(false);
-          }, 100);
-        }, 200);
-      } catch (error) {
-        // Fallback: complete transition even if preload fails
-        setIsImagePreloaded(true);
-        setTimeout(() => {
-          setProgress(0);
-          setCurrentIndex(nextUserFirstStoryIndex);
-          setTimeout(() => {
-            setIsTransitioning(false);
-            setNextStoryIndex(null);
-            setIsImagePreloaded(false);
-          }, 100);
-        }, 200);
+      // Check if already ready in preloader (ENHANCE-1)
+      const isReady = storyPreloader.isReady(nextStoryImage);
+      setIsImagePreloaded(isReady);
+      
+      if (!isReady) {
+        // Fallback or wait for it
+        preloadImage(nextStoryImage).then(() => setIsImagePreloaded(true));
       }
+
+      // Wait a bit for the crossfade to be visible, then complete transition
+      setTimeout(() => {
+        setProgress(0);
+        setCurrentIndex(nextUserFirstStoryIndex);
+        
+        // Clean up transition state
+        setTimeout(() => {
+          setIsTransitioning(false);
+          setNextStoryIndex(null);
+          setIsImagePreloaded(false);
+        }, 100);
+      }, 200);
     } 
     // If this is the last story overall, close viewer
     else {
@@ -370,39 +354,29 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       setIsTransitioning(true);
       setTransitionDirection('prev');
       setNextStoryIndex(prevUserLastStoryIndex);
-      setIsImagePreloaded(false);
       triggerHaptic('medium');
       
-      // Preload the previous story image
-      try {
-        await preloadImage(prevStoryImage);
-        setIsImagePreloaded(true);
-        
-        // Wait a bit for the crossfade to be visible, then complete transition
-        setTimeout(() => {
-          setProgress(0);
-          setCurrentIndex(prevUserLastStoryIndex);
-          
-          // Clean up transition state
-          setTimeout(() => {
-            setIsTransitioning(false);
-            setNextStoryIndex(null);
-            setIsImagePreloaded(false);
-          }, 100);
-        }, 200);
-      } catch (error) {
-        // Fallback: complete transition even if preload fails
-        setIsImagePreloaded(true);
-        setTimeout(() => {
-          setProgress(0);
-          setCurrentIndex(prevUserLastStoryIndex);
-          setTimeout(() => {
-            setIsTransitioning(false);
-            setNextStoryIndex(null);
-            setIsImagePreloaded(false);
-          }, 100);
-        }, 200);
+      // Check if already ready in preloader (ENHANCE-1)
+      const isReady = storyPreloader.isReady(prevStoryImage);
+      setIsImagePreloaded(isReady);
+      
+      if (!isReady) {
+        // Fallback or wait for it
+        preloadImage(prevStoryImage).then(() => setIsImagePreloaded(true));
       }
+
+      // Wait a bit for the crossfade to be visible, then complete transition
+      setTimeout(() => {
+        setProgress(0);
+        setCurrentIndex(prevUserLastStoryIndex);
+        
+        // Clean up transition state
+        setTimeout(() => {
+          setIsTransitioning(false);
+          setNextStoryIndex(null);
+          setIsImagePreloaded(false);
+        }, 100);
+      }, 200);
     }
   }, [currentIndex, stories, userGroups, triggerHaptic, preloadImage]);
 
@@ -784,18 +758,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
         </div> {/* End of Aspect Ratio Container */}
 
-        {/* ✅ BACKGROUND VIDEO PRE-BUFFER (UX-4) */}
-        {!isTransitioning && nextStory?.mediaType === 'video' && (
-          <video
-            key={`buffer-${nextStory.id}`}
-            src={nextStory.image}
-            preload="auto"
-            className="hidden"
-            playsInline
-            muted
-            aria-hidden="true"
-          />
-        )}
 
         {/* Clickable link stickers overlay */}
         {currentStory.stickerData && currentStory.stickerData.length > 0 && (
