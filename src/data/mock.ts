@@ -106,6 +106,7 @@ export interface Story {
   allStories?: Story[];
   stickerData?: StoryStickerData[];
   resharedPostId?: string;
+  createdAt?: string;
 }
 
 export const MOCK_POSTS: Post[] = [

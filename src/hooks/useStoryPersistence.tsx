@@ -109,13 +109,13 @@ export const useStoryPersistence = () => {
           liveStreamId: story.live_stream_id,
           stickerData: filteredStickerData.length > 0 ? filteredStickerData : undefined,
           resharedPostId: story.reshared_post_id || undefined,
+          createdAt: story.created_at, // ✅ Added for sorting (ENHANCE-2)
         };
       }) || [];
 
       if (fetchVersion.current !== version) return;
 
       // Group stories by user
-      const groupedStories: Story[] = [];
       const userStoriesMap = new Map<string, Story[]>();
       const ownStories: Story[] = [];
 
@@ -131,6 +131,9 @@ export const useStoryPersistence = () => {
         }
       });
 
+      const groupedStories: Story[] = [];
+
+      // 1. Current user group (always first)
       if (user) {
         groupedStories.push({
           id: ownStories.length > 0 ? ownStories[0].id : -1,
@@ -145,10 +148,25 @@ export const useStoryPersistence = () => {
           isOwn: true,
           isViewed: ownStories.length > 0 ? ownStories.every(s => s.isViewed) : true,
           allStories: ownStories.length > 0 ? ownStories : undefined,
+          createdAt: ownStories.length > 0 ? ownStories[0].createdAt : undefined,
         });
       }
 
-      userStoriesMap.forEach((userStories) => {
+      // 2. Peer groups sorted by unseen status and recency (ENHANCE-2)
+      const sortedPeerGroups = Array.from(userStoriesMap.values()).sort((aStories, bStories) => {
+        const aAllViewed = aStories.every(s => s.isViewed);
+        const bAllViewed = bStories.every(s => s.isViewed);
+        
+        // Unseen first
+        if (aAllViewed !== bAllViewed) return aAllViewed ? 1 : -1;
+
+        // Within same status, most recent story first
+        const aLatest = Math.max(...aStories.map(s => new Date(s.createdAt || 0).getTime()));
+        const bLatest = Math.max(...bStories.map(s => new Date(s.createdAt || 0).getTime()));
+        return bLatest - aLatest;
+      });
+
+      sortedPeerGroups.forEach((userStories) => {
         if (userStories.length > 0) {
           groupedStories.push({
             ...userStories[0],
