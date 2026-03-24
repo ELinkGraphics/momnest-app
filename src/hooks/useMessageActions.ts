@@ -22,7 +22,7 @@ export const useMessageReactions = (conversationId: string | null) => {
       if (msgIds.length === 0) return [];
 
       // Step 2: Fetch reactions for these message IDs from local DB
-      return await chatDb.reactions
+      return await chatDb.message_reactions
         .where('message_id')
         .anyOf(msgIds)
         .toArray();
@@ -34,15 +34,15 @@ export const useMessageReactions = (conversationId: string | null) => {
   const toggleReaction = useMutation({
     mutationFn: async ({ messageId, userId, emoji }: { messageId: string; userId: string; emoji: string }) => {
       // 1. Optimistic update in local Dexie DB for instant feedback
-      const existingInDexie = await chatDb.reactions
+      const existingInDexie = await chatDb.message_reactions
         .where('[message_id+user_id+emoji]')
         .equals([messageId, userId, emoji])
         .first();
 
       if (existingInDexie) {
-        await chatDb.reactions.delete(existingInDexie.id);
+        await chatDb.message_reactions.delete(existingInDexie.id);
       } else {
-        await chatDb.reactions.add({
+        await chatDb.message_reactions.add({
           id: crypto.randomUUID(),
           message_id: messageId,
           user_id: userId,
