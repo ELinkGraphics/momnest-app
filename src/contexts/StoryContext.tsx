@@ -60,7 +60,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               .select(`
                 story_id,
                 mentioned_user_id,
-                profiles:mentioned_user_id (id, name, username)
+                profiles!mentioned_user_id (id, name, username)
               `);
 
             const transformedStories: Story[] = rawStories?.map(story => {
