@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { prepareFileForUpload } from '@/utils/prepareFileForUpload';
 
 export interface CreatePostData {
   content: string;
@@ -27,11 +28,11 @@ export const usePostMutations = () => {
 
       // Handle PDF specifically
       if (data.postType === 'pdf' && data.originalPdf) {
-        const fileExt = 'pdf';
-        const fileName = `${userId}/post-${Date.now()}.${fileExt}`;
+        const file = await prepareFileForUpload(data.originalPdf);
+        const fileName = `${userId}/post-${Date.now()}.pdf`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('post-media')
-          .upload(fileName, data.originalPdf);
+          .upload(fileName, file);
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = supabase.storage
@@ -42,9 +43,13 @@ export const usePostMutations = () => {
 
       // Upload multiple media files (photos, videos, or PDF page images)
       if (data.media && data.media.length > 0) {
-        // Sequential upload to avoid ERR_HTTP2_PROTOCOL_ERROR on many files (e.g., large PDFs)
+        // Sequential upload and conversion
         for (let i = 0; i < data.media.length; i++) {
-          const file = data.media[i];
+          let file = data.media[i];
+          
+          // Pre-process HEIC/HEIF
+          file = await prepareFileForUpload(file);
+          
           const fileExt = file.name?.split('.').pop() || 'webp';
           const fileName = `${userId}/post-${Date.now()}-${i}.${fileExt}`;
           
@@ -64,11 +69,12 @@ export const usePostMutations = () => {
 
       let coverImageUrl: string | undefined;
       if (data.coverImage) {
-        const fileExt = data.coverImage.name.split('.').pop() || 'jpg';
+        const file = await prepareFileForUpload(data.coverImage);
+        const fileExt = file.name.split('.').pop() || 'jpg';
         const fileName = `${userId}/cover-${Date.now()}.${fileExt}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('post-media')
-          .upload(fileName, data.coverImage);
+          .upload(fileName, file);
 
         if (uploadError) throw uploadError;
 
