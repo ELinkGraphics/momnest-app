@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PDFCarousel } from './post/PDFCarousel';
-import { FeedMedia, MediaGuardItem } from './post/MediaGuard';
+import { MediaGuardItem } from './post/MediaGuard';
 import ReactionPicker from './post/ReactionPicker';
 
 interface PostCardProps {
@@ -316,14 +316,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
       {/* ── MEDIA ── */}
       {post.post_type === 'pdf' && post.media?.urls && post.media.urls.length > 0 ? (
-        <div className="px-4 pb-2" onClick={handleOpenPost}>
-          <FeedMedia post={{
-            id: post.id,
-            post_type: post.post_type || 'pdf',
-            media_url: post.media?.url,
-            media_urls: post.media?.urls,
-            content: post.content,
-          }} />
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <PDFCarousel pages={post.media.urls} className="aspect-[4/5]" />
         </div>
       ) : post.media && post.media.urls && post.media.urls.length > 0 ? (
         <div className="relative">
