@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MoreHorizontal, MessageCircle, Heart, Share, Bookmark, Plus, Check, MapPin, Link as LinkIcon, Calendar, Users, Video as VideoIcon, ChevronDown, ChevronUp, Image, X, Pencil, Wallet, Play, Award } from 'lucide-react';
+import { MoreHorizontal, MessageCircle, Heart, Share, Bookmark, Plus, Check, MapPin, Link as LinkIcon, Calendar, Users, Video as VideoIcon, ChevronDown, ChevronUp, Image, X, Pencil, Wallet, Play, Award, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -164,6 +164,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
       (Array.isArray(post.media_urls) && post.media_urls.length > 0 ? post.media_urls[0] : null);
 
     const isVideo = (url: string) => /\.(mp4|webm|mov|ogg|m3u8)(\?|$)/i.test(url);
+    const isPdf = post.post_type === 'pdf';
     const videoUrl = [post.media_url, ...(post.media_urls || [])].find(url => url && isVideo(url));
 
     return (

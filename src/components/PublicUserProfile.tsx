@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Calendar, Link as LinkIcon, Check, MessageCircle, ExternalLink, Lock, X, BadgeCheck, Play } from 'lucide-react';
+import { MapPin, Calendar, Link as LinkIcon, Check, MessageCircle, ExternalLink, Lock, X, BadgeCheck, Play, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
@@ -282,6 +282,7 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
       (Array.isArray(post.media_urls) && post.media_urls.length > 0 ? post.media_urls[0] : null);
 
     const isVideo = (url: string) => /\.(mp4|webm|mov|ogg|m3u8)(\?|$)/i.test(url);
+    const isPdf = post.post_type === 'pdf';
     const videoUrl = [post.media_url, ...(post.media_urls || [])].find(url => url && isVideo(url));
 
     return (
@@ -293,6 +294,12 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
         }}
       >
         <div className="aspect-[4/5] relative overflow-hidden bg-black/5">
+          {isPdf && (
+            <div className="absolute top-2 left-2 bg-black/40 backdrop-blur-md rounded-md px-1.5 py-0.5 border border-white/10 shadow-sm transition-transform group-hover:scale-110 z-10 flex items-center gap-1">
+              <FileText className="w-3 h-3 text-primary" />
+              <span className="text-[9px] font-black text-white uppercase tracking-tighter">PDF</span>
+            </div>
+          )}
           {videoUrl ? (
             <video 
               src={videoUrl} 

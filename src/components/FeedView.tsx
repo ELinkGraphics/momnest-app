@@ -41,6 +41,8 @@ const formatPost = (item: any): Post => ({
   },
   time: new Date(item.created_at).toISOString(),
   content: item.content,
+  post_type: item.post_type || undefined,
+  original_pdf_url: item.original_pdf_url || undefined,
   media: (() => {
     const base = { kind: "image" as const, alt: item.media_alt || '', colorFrom: item.media_color_from || '#4B164C', colorTo: item.media_color_to || '#22194D' };
     // For PDF posts, always use urls array so PostCard's PDF check works
@@ -68,8 +70,6 @@ const formatPost = (item: any): Post => ({
   voiceUrl: item.voice_url || undefined,
   locationText: item.location_text || undefined,
   thumbnailUrl: item.cover_image_url || undefined,
-  post_type: item.post_type || (item.media_urls && item.media_urls.length > 0 ? 'photo' : 'text'),
-  original_pdf_url: item.original_pdf_url || undefined,
   totalMediaCount: item.media_urls ? item.media_urls.length : (item.cover_image_url || item.media_url ? 1 : 0),
 });
 
