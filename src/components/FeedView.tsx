@@ -41,12 +41,11 @@ const formatPost = (item: any): Post => ({
   },
   time: new Date(item.created_at).toISOString(),
   content: item.content,
-  post_type: item.post_type?.toLowerCase() as any || undefined,
-  original_pdf_url: item.original_pdf_url || undefined,
+  post_type: (item.media_url?.toLowerCase().endsWith('.pdf') ? 'pdf' : undefined) as any,
   media: (() => {
     const base = { kind: "image" as const, alt: item.media_alt || '', colorFrom: item.media_color_from || '#4B164C', colorTo: item.media_color_to || '#22194D' };
     // For PDF posts, always use urls array so PostCard's PDF check works
-    const isPdf = item.post_type?.toLowerCase() === 'pdf';
+    const isPdf = item.media_url?.toLowerCase().endsWith('.pdf');
     if (isPdf) {
       return { ...base, urls: item.media_urls && item.media_urls.length > 0 ? item.media_urls : [item.media_url].filter(Boolean) as string[] };
     }
@@ -91,12 +90,43 @@ export const FeedView: React.FC<FeedViewProps> = ({ onRefresh }) => {
 
   const fetchPosts = useCallback(async (pageNum: number) => {
     try {
-      const { data, error } = await supabase.rpc('get_feed_posts', {
-        page_num: pageNum,
-        page_size: PAGE_SIZE,
-      });
+      const { data, error } = await (supabase
+        .from('posts')
+        .select(`
+          post_id:id,
+          content,
+          media_url,
+          media_alt,
+          media_color_from,
+          media_color_to,
+          tags,
+          is_sponsored,
+          created_at,
+          user_id,
+          media_urls,
+          profiles!inner(name, username, avatar_url, initials, avatar_color, is_verified),
+          post_stats(likes_count, comments_count, shares_count, saves_count)
+        `)
+        .order('created_at', { ascending: false })
+        .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1) as any);
+
       if (error) throw error;
-      const formatted = (data || []).map(formatPost);
+      
+      const formatted = (data || []).map((item: any) => formatPost({
+        ...item,
+        name: item.profiles.name,
+        username: item.profiles.username,
+        avatar_url: item.profiles.avatar_url,
+        initials: item.profiles.initials,
+        avatar_color: item.profiles.avatar_color,
+        is_verified: item.profiles.is_verified,
+        likes_count: item.post_stats?.likes_count || 0,
+        comments_count: item.post_stats?.comments_count || 0,
+        shares_count: item.post_stats?.shares_count || 0,
+        saves_count: item.post_stats?.saves_count || 0,
+        user_has_liked: false,
+        user_reaction: undefined
+      }));
       if (pageNum === 0) {
         setPosts(formatted);
       } else {
