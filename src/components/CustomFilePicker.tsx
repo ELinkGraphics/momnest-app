@@ -57,6 +57,8 @@ import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
 import { useNavigation } from '@/contexts/NavigationContext';
 
+import { cn } from '@/lib/utils';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type UploadStatus = 'idle' | 'uploading' | 'done' | 'error';
@@ -107,6 +109,8 @@ export interface CustomFilePickerProps {
   maxFiles?: number;
   /** Skip the action sheet and open the camera immediately. Default: false */
   useCameraImmediate?: boolean;
+  /** Disable the picker interaction. Default: false */
+  disabled?: boolean;
   /** Optional custom trigger children */
   children?: React.ReactNode;
 }
@@ -232,6 +236,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
   multiple = false,
   maxFiles,
   useCameraImmediate = false,
+  disabled = false,
   children,
 }) => {
   const internalManager = useFileManager();
@@ -530,6 +535,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
       {children ? (
         <div 
           onClick={(e) => {
+            if (disabled) return;
             e.stopPropagation();
             if (useCameraImmediate) {
               handleCamera();
@@ -537,13 +543,14 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
               handleOpenSheet();
             }
           }} 
-          className="cursor-pointer pointer-events-auto"
+          className={cn("cursor-pointer pointer-events-auto", disabled && "cursor-not-allowed")}
         >
           {children}
         </div>
       ) : (
         <button
           type="button"
+          disabled={disabled}
           onClick={(e) => {
             e.stopPropagation();
             if (useCameraImmediate) {
@@ -552,7 +559,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
               handleOpenSheet();
             }
           }}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground font-semibold rounded-xl shadow-sm hover:opacity-90 active:scale-95 transition-all w-full pointer-events-auto"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground font-semibold rounded-xl shadow-sm hover:opacity-90 active:scale-95 transition-all w-full pointer-events-auto disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
           aria-label="Open file picker"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

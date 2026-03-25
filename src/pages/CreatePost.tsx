@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import MentionTextarea from '@/components/MentionTextarea';
 import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
+import { PDFPreview } from '@/components/post/PDFPreview';
 
 const CreatePost: React.FC = () => {
   const navigate = useNavigate();
@@ -29,6 +30,14 @@ const CreatePost: React.FC = () => {
   const [editingImage, setEditingImage] = useState<{ id: string; url: string } | null>(null);
   const [editingVideo, setEditingVideo] = useState<{ id: string; url: string; file: File } | null>(null);
   const [videoEdits, setVideoEdits] = useState<Map<string, { thumbnailBlob: Blob; trimStart: number; trimEnd: number }>>(new Map());
+  
+  // PDF Document States
+  const [isProcessingPdf, setIsProcessingPdf] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState({ current: 0, total: 0 });
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfPages, setPdfPages] = useState<{ blob: Blob; url: string }[]>([]);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -141,11 +150,54 @@ const CreatePost: React.FC = () => {
     setRecordingTime(0);
   };
 
+  const handlePdfUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      toast.error('Only PDF files are allowed for this post type');
+      return;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('PDF file size must be less than 50MB');
+      return;
+    }
+
+    setIsProcessingPdf(true);
+    setPdfProgress({ current: 0, total: 0 });
+    setPdfFile(file);
+    fileManager.clear(); // Clear other media as per "PDF-only" requirement
+
+    try {
+      const { renderPDFToImages } = await import('@/lib/pdfUtils');
+      const pages = await renderPDFToImages(file, (current, total) => {
+        setPdfProgress({ current, total });
+      });
+
+      const pagesWithUrls = pages.map(p => ({
+        blob: p.blob,
+        url: URL.createObjectURL(p.blob)
+      }));
+
+      setPdfPages(pagesWithUrls);
+      setIsPreviewMode(true);
+      toast.success('PDF processed successfully!');
+    } catch (err) {
+      console.error('PDF processing failed', err);
+      toast.error('Failed to process PDF. It might be corrupted or protected.');
+      setPdfFile(null);
+    } finally {
+      setIsProcessingPdf(false);
+    }
+  };
+
   const handlePost = async () => {
     if (!user) { navigate('/login'); return; }
 
     try {
       let voiceUrl: string | undefined;
+      // ... (voice upload logic remains same)
       if (voiceBlob) {
         const file = new File([voiceBlob], `voice_${Date.now()}.webm`, { type: 'audio/webm' });
         const path = `${user.id}/${Date.now()}_voice.webm`;
@@ -173,13 +225,23 @@ const CreatePost: React.FC = () => {
         }
       }
 
+      // Convert PDF pages to Files for upload if in PDF mode
+      let mediaFiles: File[] = [];
+      if (pdfFile && pdfPages.length > 0) {
+        mediaFiles = pdfPages.map((p, i) => new File([p.blob], `page-${i + 1}.webp`, { type: 'image/webp' }));
+      } else {
+        mediaFiles = fileManager.files.map(item => item.file as File);
+      }
+
       await createPost(
         {
           content: postText,
-          media: fileManager.files.map(item => item.file as File),
+          media: mediaFiles,
           locationText: locationText || undefined,
           voiceUrl,
           coverImage,
+          postType: pdfFile ? 'pdf' : (fileManager.files.length > 0 ? 'photo' : 'text'),
+          originalPdf: pdfFile || undefined,
         },
         user.id
       );
@@ -254,8 +316,18 @@ const CreatePost: React.FC = () => {
           />
         </div>
 
-        {/* Media Preview List */}
-        {fileManager.files.length > 0 && (
+        {/* Media Preview List / PDF Preview */}
+        {isPreviewMode && pdfPages.length > 0 ? (
+          <PDFPreview 
+            pages={pdfPages} 
+            fileName={pdfFile?.name || 'document.pdf'} 
+            onRemove={() => {
+              setPdfPages([]);
+              setPdfFile(null);
+              setIsPreviewMode(false);
+            }} 
+          />
+        ) : fileManager.files.length > 0 && (
           <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="flex items-center justify-between">
               <h3 className="text-[11px] font-black text-muted-foreground/60 uppercase tracking-widest ml-1">Attached Media</h3>
@@ -339,8 +411,8 @@ const CreatePost: React.FC = () => {
         {/* Additional Options */}
         <div className="space-y-4 pt-4 border-t border-border/50">
           <div className="grid grid-cols-2 gap-3">
-            <CustomFilePicker manager={fileManager} hideUploadButton hidePreviewList accept="image/*" multiple={true}>
-              <button className="w-full flex items-center p-4 rounded-3xl bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-all group active:scale-95 duration-200">
+            <CustomFilePicker manager={fileManager} hideUploadButton hidePreviewList accept="image/*" multiple={true} disabled={!!pdfFile}>
+              <button disabled={!!pdfFile} className="w-full flex items-center p-4 rounded-3xl bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-all group active:scale-95 duration-200 disabled:opacity-50 disabled:grayscale">
                 <div className="p-3 rounded-2xl bg-primary/10 text-primary mr-3 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm shadow-primary/10">
                   <Image className="w-5 h-5" />
                 </div>
@@ -351,8 +423,8 @@ const CreatePost: React.FC = () => {
               </button>
             </CustomFilePicker>
 
-            <CustomFilePicker manager={fileManager} hideUploadButton hidePreviewList accept="video/*" multiple={true}>
-              <button className="w-full flex items-center p-4 rounded-3xl bg-secondary/5 hover:bg-secondary/10 border border-secondary/10 transition-all group active:scale-95 duration-200">
+            <CustomFilePicker manager={fileManager} hideUploadButton hidePreviewList accept="video/*" multiple={true} disabled={!!pdfFile}>
+              <button disabled={!!pdfFile} className="w-full flex items-center p-4 rounded-3xl bg-secondary/5 hover:bg-secondary/10 border border-secondary/10 transition-all group active:scale-95 duration-200 disabled:opacity-50 disabled:grayscale">
                 <div className="p-3 rounded-2xl bg-secondary/10 text-secondary mr-3 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-300 shadow-sm shadow-secondary/10">
                   <Video className="w-5 h-5" />
                 </div>
@@ -365,17 +437,30 @@ const CreatePost: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <CustomFilePicker manager={fileManager} hideUploadButton hidePreviewList multiple={true}>
-              <button className="w-full flex items-center p-4 rounded-3xl bg-orange-500/5 hover:bg-orange-500/10 border border-orange-500/10 transition-all group active:scale-[0.98] duration-200">
-                <div className="p-3 rounded-2xl bg-orange-500/10 text-orange-500 mr-3 group-hover:scale-110 transition-all duration-300 shadow-sm shadow-orange-500/10">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-black text-foreground tracking-tight">Files</p>
-                  <p className="text-[10px] text-muted-foreground/70 font-bold uppercase tracking-tighter">Documents</p>
-                </div>
-              </button>
-            </CustomFilePicker>
+            <input
+              type="file"
+              id="pdf-upload"
+              accept="application/pdf"
+              className="hidden"
+              onChange={handlePdfUpload}
+            />
+            <button 
+              onClick={() => document.getElementById('pdf-upload')?.click()}
+              disabled={fileManager.files.length > 0 || isProcessingPdf}
+              className="w-full flex items-center p-4 rounded-3xl bg-orange-500/5 hover:bg-orange-500/10 border border-orange-500/10 transition-all group active:scale-[0.98] duration-200 disabled:opacity-50 disabled:grayscale"
+            >
+              <div className="p-3 rounded-2xl bg-orange-500/10 text-orange-500 mr-3 group-hover:scale-110 transition-all duration-300 shadow-sm shadow-orange-500/10">
+                {isProcessingPdf ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-black text-foreground tracking-tight">
+                  {pdfFile ? 'PDF Attached' : 'Document'}
+                </p>
+                <p className="text-[10px] text-muted-foreground/70 font-bold uppercase tracking-tighter">
+                  {isProcessingPdf ? `Processing: ${pdfProgress.current}/${pdfProgress.total}` : pdfFile ? pdfFile.name : 'PDF Only'}
+                </p>
+              </div>
+            </button>
             
             <button onClick={handleAddLocation} className="w-full flex items-center p-4 rounded-3xl bg-muted/30 hover:bg-muted/50 border border-border/50 transition-all group active:scale-[0.98] duration-200">
               <div className={`p-3 rounded-2xl mr-3 group-hover:scale-110 transition-all duration-300 shadow-sm ${locationText ? 'bg-primary/20 text-primary shadow-primary/10' : 'bg-muted text-muted-foreground shadow-black/5'}`}>

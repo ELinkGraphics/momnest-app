@@ -17,6 +17,7 @@ import { PremiumUnlockBanner } from '@/components/premium/PremiumUnlockBanner';
 import { PremiumContentSkeleton } from '@/components/premium/PremiumContentSkeleton';
 import PostReactionButton from '@/components/post/PostReactionButton';
 import LikersModal from '@/components/LikersModal';
+import { PDFCarousel } from '@/components/post/PDFCarousel';
 
 console.log('DEBUG V3: useCircleSubscription hook:', typeof useCircleSubscription);
 
@@ -377,8 +378,15 @@ const CirclePostDetail: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-6">
         <article className="max-w-3xl mx-auto">
+          {/* PDF Carousel */}
+          {post?.post_type === 'pdf' && post.media_urls && post.media_urls.length > 0 && (
+            <div className="mb-6 relative">
+              <PDFCarousel pages={post.media_urls} className="aspect-[4/5] shadow-lg" />
+            </div>
+          )}
+
           {/* Hero Image */}
-          {post?.cover_image_url && (
+          {post?.cover_image_url && post?.post_type !== 'pdf' && (
             <div className="mb-6 relative">
               <img
                 src={post.cover_image_url}

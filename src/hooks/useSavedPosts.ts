@@ -70,6 +70,9 @@ export const useSavedPosts = (userId: string | undefined) => {
             comments_count: stats?.comments_count || 0,
             shares_count: stats?.shares_count || 0,
             user_has_liked: !!liked,
+            media: {
+              urls: (post as any).media_urls || []
+            }
           };
         })
       );

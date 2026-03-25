@@ -34,6 +34,8 @@ export interface Post {
   locationText?: string;
   totalMediaCount?: number;
   thumbnailUrl?: string;
+  post_type?: 'photo' | 'video' | 'pdf' | 'text';
+  original_pdf_url?: string | null;
 }
 
 export interface Comment {

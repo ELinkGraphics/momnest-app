@@ -10,6 +10,8 @@ export interface CreatePostData {
   locationText?: string;
   voiceUrl?: string;
   coverImage?: File;
+  postType?: 'photo' | 'video' | 'pdf' | 'text';
+  originalPdf?: File;
 }
 
 export const usePostMutations = () => {
@@ -21,12 +23,30 @@ export const usePostMutations = () => {
     setIsCreating(true);
     try {
       let mediaUrls: string[] = [];
+      let rootMediaUrl: string | null = null;
 
-      // Upload multiple media files if exist
+      // Handle PDF specifically
+      if (data.postType === 'pdf' && data.originalPdf) {
+        const fileExt = 'pdf';
+        const fileName = `${userId}/post-${Date.now()}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('post-media')
+          .upload(fileName, data.originalPdf);
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('post-media')
+          .getPublicUrl(uploadData.path);
+        rootMediaUrl = publicUrl;
+      }
+
+      // Upload multiple media files (photos, videos, or PDF page images)
       if (data.media && data.media.length > 0) {
-        const uploadPromises = data.media.map(async (file, index) => {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${userId}/post-${Date.now()}-${index}.${fileExt}`;
+        // Sequential upload to avoid ERR_HTTP2_PROTOCOL_ERROR on many files (e.g., large PDFs)
+        for (let i = 0; i < data.media.length; i++) {
+          const file = data.media[i];
+          const fileExt = file.name?.split('.').pop() || 'webp';
+          const fileName = `${userId}/post-${Date.now()}-${i}.${fileExt}`;
           
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('post-media')
@@ -38,10 +58,8 @@ export const usePostMutations = () => {
             .from('post-media')
             .getPublicUrl(uploadData.path);
           
-          return publicUrl;
-        });
-        
-        mediaUrls = await Promise.all(uploadPromises);
+          mediaUrls.push(publicUrl);
+        }
       }
 
       let coverImageUrl: string | undefined;
@@ -61,15 +79,16 @@ export const usePostMutations = () => {
         coverImageUrl = publicUrl;
       }
 
-      // Insert post with media_urls array
+      // Insert post with media_urls array and post_type
       const insertData: any = {
         user_id: userId,
         content: data.content,
-        media_url: mediaUrls[0] || null,
+        media_url: rootMediaUrl || mediaUrls[0] || null,
         media_urls: mediaUrls,
         cover_image_url: coverImageUrl || null,
         tags: data.tags || [],
         is_sponsored: false,
+        post_type: data.postType || (data.media?.length ? 'photo' : 'text'),
       };
       if (data.locationText) insertData.location_text = data.locationText;
       if (data.voiceUrl) insertData.voice_url = data.voiceUrl;

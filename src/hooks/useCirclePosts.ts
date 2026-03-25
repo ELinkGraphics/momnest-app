@@ -28,6 +28,8 @@ export interface CirclePost {
   user_has_unlocked: boolean;
   tip_count: number;
   user_has_tipped: boolean;
+  post_type: 'photo' | 'video' | 'pdf' | 'text';
+  original_pdf_url: string | null;
 }
 
 export const useCirclePosts = (circleId: string | undefined) => {
@@ -61,7 +63,10 @@ export const useCirclePosts = (circleId: string | undefined) => {
             likes_count,
             comments_count,
             shares_count
-          )
+          ),
+          post_type,
+          original_pdf_url,
+          media_urls
         `)
         .eq('circle_id', circleId)
         .order('created_at', { ascending: false });
@@ -130,6 +135,11 @@ export const useCirclePosts = (circleId: string | undefined) => {
         user_has_unlocked: userUnlockedPosts.has(post.id),
         tip_count: tipsByPost[post.id]?.count || 0,
         user_has_tipped: tipsByPost[post.id]?.userTipped || false,
+        post_type: post.post_type || 'photo',
+        original_pdf_url: post.original_pdf_url || null,
+        media: {
+          urls: post.media_urls || []
+        }
       })) as CirclePost[];
     },
     enabled: !!circleId,

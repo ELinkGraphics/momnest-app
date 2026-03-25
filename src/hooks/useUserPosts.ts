@@ -12,7 +12,11 @@ interface PostData {
   comments_count: number;
   shares_count: number;
   saves_count: number;
-  user_has_liked: boolean;
+  post_type?: 'photo' | 'video' | 'pdf' | 'text';
+  original_pdf_url?: string | null;
+  media?: {
+    urls: string[];
+  };
   profiles?: {
     name: string;
     username: string;
@@ -21,7 +25,7 @@ interface PostData {
     avatar_color: string;
     is_verified: boolean;
   };
-}
+};
 
 export const useUserPosts = (userId: string | undefined) => {
   const [posts, setPosts] = useState<PostData[]>([]);
@@ -35,14 +39,16 @@ export const useUserPosts = (userId: string | undefined) => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('posts')
+      const { data, error } = await (supabase
+        .from('posts') as any)
         .select(`
           id,
           content,
           media_url,
           cover_image_url,
           media_urls,
+          post_type,
+          original_pdf_url,
           created_at,
           profiles:user_id (
             name,
@@ -52,7 +58,7 @@ export const useUserPosts = (userId: string | undefined) => {
             avatar_color,
             is_verified
           ),
-          post_stats!inner (
+          post_stat:post_stats!inner (
             likes_count,
             comments_count,
             shares_count,
@@ -86,9 +92,13 @@ export const useUserPosts = (userId: string | undefined) => {
         content: post.content,
         media_url: post.media_url,
         cover_image_url: post.cover_image_url,
-        media_urls: post.media_urls,
-        created_at: post.created_at,
+        post_type: post.post_type,
+        original_pdf_url: post.original_pdf_url,
+        media: {
+          urls: post.media_urls || []
+        },
         profiles: post.profiles,
+        created_at: post.created_at,
         likes_count: (Array.isArray(post.post_stats) ? post.post_stats[0]?.likes_count : (post.post_stats as any)?.likes_count) || 0,
         comments_count: (Array.isArray(post.post_stats) ? post.post_stats[0]?.comments_count : (post.post_stats as any)?.comments_count) || 0,
         shares_count: (Array.isArray(post.post_stats) ? post.post_stats[0]?.shares_count : (post.post_stats as any)?.shares_count) || 0,

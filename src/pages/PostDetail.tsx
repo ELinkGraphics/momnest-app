@@ -20,6 +20,7 @@ import { PremiumContentSkeleton } from '@/components/premium/PremiumContentSkele
 import { useNavigation } from '@/contexts/NavigationContext';
 import PostReactionButton from '@/components/post/PostReactionButton';
 import LikersModal from '@/components/LikersModal';
+import { PDFCarousel } from '@/components/post/PDFCarousel';
 
 console.log('DEBUG V3: useCircleSubscription hook (PostDetail):', typeof useCircleSubscription);
 
@@ -628,7 +629,11 @@ const PostDetail: React.FC = () => {
           </div>
 
           {/* Post Media - Multi-image/video carousel or single media */}
-          {post.media_urls && post.media_urls.length > 0 ? (
+          {post.post_type === 'pdf' && post.media_urls && post.media_urls.length > 0 ? (
+            <div className="px-0 relative mb-4">
+              <PDFCarousel pages={post.media_urls} className="aspect-[4/5] shadow-lg" />
+            </div>
+          ) : post.media_urls && post.media_urls.length > 0 ? (
             <div className="px-0 relative">
               <Carousel className="w-full" setApi={setDetailCarouselApi}>
                 <CarouselContent>
