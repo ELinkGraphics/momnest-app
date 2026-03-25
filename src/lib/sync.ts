@@ -128,6 +128,7 @@ export const syncConversation = async (conversationId: string) => {
         });
  
         if (receipts && receipts.length > 0) {
+          // bulkPut will now correctly update based on [conversation_id, user_id] composite primary key
           await chatDb.read_receipts.bulkPut(receipts.map(r => ({
             user_id: r.user_id,
             conversation_id: r.conversation_id,

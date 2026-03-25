@@ -203,8 +203,16 @@ export const useMessages = (conversationId: string | null, userId: string | unde
 
     // Debounce read-receipt write for a better feel
     const timer = setTimeout(async () => {
-      // Update ref immediately to prevent race conditions
+      // Update ref immediately to prevent race conditions during debounce
       lastSyncedReadSeq.current = lastMsg.seq!;
+
+      // Double-check current DB state before writing - only update if actually higher
+      const existing = await chatDb.read_receipts
+        .where('[conversation_id+user_id]')
+        .equals([conversationId, userId])
+        .first();
+
+      if (existing && existing.last_read_seq >= lastMsg.seq!) return;
 
       const receipt = {
         user_id: userId,
@@ -273,15 +281,14 @@ export const useMessages = (conversationId: string | null, userId: string | unde
   };
 };
 
-export const useOtherUserLastRead = (conversationId: string | null, currentUserId: string | undefined) => {
+export const useOtherUserLastRead = (conversationId: string | null, otherUserId: string | null) => {
   const otherReceipt = useLiveQuery(() => {
-    if (!conversationId || !currentUserId) return null;
+    if (!conversationId || !otherUserId) return null;
     return chatDb.read_receipts
-      .where('conversation_id')
-      .equals(conversationId)
-      .and(r => r.user_id !== currentUserId)
+      .where('[conversation_id+user_id]')
+      .equals([conversationId, otherUserId])
       .first();
-  }, [conversationId, currentUserId]);
+  }, [conversationId, otherUserId]);
 
   return otherReceipt?.last_read_seq || 0;
 };

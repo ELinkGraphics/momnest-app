@@ -110,7 +110,7 @@ export class ChatDatabase extends Dexie {
   message_reactions!: Table<LocalReaction, string>;
   conversations!: Table<{ id: string; last_seen_seq: number }, string>;
   conversations_meta!: Table<LocalConversationMeta, string>;
-  read_receipts!: Table<LocalReadReceipt, number>; // Changed to LocalReadReceipt and number for ++id
+  read_receipts!: Table<LocalReadReceipt, [string, string]>; // Composite key [conversation_id, user_id]
   sync_queue!: Table<LocalSyncQueueItem, string>;
   pinned_conversations!: Table<LocalPinnedConversation, string>;
   profiles!: Table<LocalProfile, string>;
@@ -123,11 +123,11 @@ export class ChatDatabase extends Dexie {
     // Schema version 2 - Added profiles table
     // The keys listed here are the indexed fields. Everything else is unindexed payload.
     // @ts-ignore - TS sometimes fails to resolve the Dexie base class methods properly
-    this.version(2).stores({
+    this.version(3).stores({
       messages: 'id, conversation_id, created_at, [conversation_id+created_at], sync_status',
       conversations: 'id',
       conversations_meta: 'conversation_id',
-      read_receipts: '++id, [conversation_id+user_id], conversation_id',
+      read_receipts: '[conversation_id+user_id], conversation_id',
       sync_queue: 'id, type, created_at',
       message_reactions: 'id, message_id, [message_id+user_id+emoji]',
       pinned_conversations: 'conversation_id',

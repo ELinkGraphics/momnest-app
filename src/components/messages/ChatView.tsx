@@ -134,7 +134,7 @@ const ChatView: React.FC<ChatViewProps> = ({
 
 
   const { messages, isLoading, isSyncing, hasMore, loadMore } = useMessages(conversation.conversation_id, currentUserId);
-  const otherUserLastRead = useOtherUserLastRead(conversation.conversation_id, currentUserId);
+  const otherUserLastRead = useOtherUserLastRead(conversation.conversation_id, conversation.other_user_id);
   const { sendMessage, isSending } = useSendMessage();
   const retryMessage = useRetryMessage();
   const { reactions, toggleReaction } = useMessageReactions(conversation.conversation_id);
