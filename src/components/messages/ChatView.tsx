@@ -1322,8 +1322,8 @@ const ChatView: React.FC<ChatViewProps> = ({
         otherUserId={conversation.other_user_id}
         otherUserUsername={conversation.other_user_username}
         onViewProfile={handleNavigateToProfile}
+        conversationId={conversation.conversation_id}
         onMediaSelect={(url, type) => {
-          // We can reuse the lightbox here logic by finding the item
           const singleMediaItem: MediaItem = { id: url, url, type };
           handleOpenLightbox([singleMediaItem], 0);
         }}
