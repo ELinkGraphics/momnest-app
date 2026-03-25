@@ -317,7 +317,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       {/* ── MEDIA ── */}
       {post.post_type === 'pdf' && post.media?.urls && post.media.urls.length > 0 ? (
         <div className="px-4 pb-2" onClick={handleOpenPost}>
-          <FeedMedia post={post} />
+          <FeedMedia post={{
+            id: post.id,
+            post_type: post.post_type || 'pdf',
+            media_url: post.media?.url,
+            media_urls: post.media?.urls,
+            content: post.content,
+          }} />
         </div>
       ) : post.media && post.media.urls && post.media.urls.length > 0 ? (
         <div className="relative">

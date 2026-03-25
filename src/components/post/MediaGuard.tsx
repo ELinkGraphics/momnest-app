@@ -149,8 +149,12 @@ export const FeedMedia: React.FC<FeedMediaProps> = ({
     ? (post.media_urls?.[0] || post.media_url) 
     : (post.media_url || post.media_urls?.[0]);
 
+  // For PDF posts: media_urls often contains pre-rendered page images (.webp/.png),
+  // not actual .pdf files. Only use 'pdf' type if the source is a real PDF file,
+  // otherwise render the pre-rendered image directly.
+  const isPdfFile = src ? /\.pdf(\?|$)/i.test(src) : false;
   const type: MediaType = post.post_type === 'pdf' 
-    ? 'pdf' 
+    ? (isPdfFile ? 'pdf' : 'image')
     : post.post_type === 'video' 
       ? 'video' 
       : 'image';

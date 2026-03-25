@@ -34,8 +34,12 @@ const formatPost = (item: any): Post => ({
   user: { id: item.user_id, name: item.name, initials: item.initials, avatarColor: item.avatar_color, verified: item.is_verified, avatar: item.avatar_url },
   time: new Date(item.created_at).toISOString(),
   content: item.content,
+  post_type: item.post_type || undefined,
+  original_pdf_url: item.original_pdf_url || undefined,
   media: (() => {
     const base = { kind: "image" as const, alt: item.media_alt || '', colorFrom: item.media_color_from || '#4B164C', colorTo: item.media_color_to || '#22194D' };
+    // For PDF posts, always use urls array so PostCard's PDF check works
+    if (item.post_type === 'pdf' && item.media_urls && item.media_urls.length > 0) return { ...base, urls: item.media_urls };
     if (item.media_urls && item.media_urls.length > 1) return { ...base, urls: item.media_urls };
     if (item.cover_image_url) return { ...base, url: item.cover_image_url };
     if (item.media_url) return { ...base, url: item.media_url };

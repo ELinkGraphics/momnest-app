@@ -125,9 +125,9 @@ export const useMediaLoader = (
         });
         setStatus('ok');
       } else if (type === 'pdf') {
-        const response = await fetch(currentUrl, { method: 'HEAD' });
-        if (!response.ok) throw new Error('PDF not found');
-        console.info(`%c[MediaGuard] OK ${type} %c(Verified on attempt ${currentAttempt}): %c${currentUrl}`, 
+        // Skip cross-origin HEAD fetch to avoid ERR_BLOCKED_BY_ORB.
+        // The actual rendering (via pdfjs or <img>) will surface any real errors.
+        console.info(`%c[MediaGuard] OK ${type} %c(Skipped HEAD validation): %c${currentUrl}`, 
           "color: #10b981; font-weight: bold", "color: #94a3b8", "color: #64748b; opacity: 0.6");
         updateSession({ 
           ok: sessionStats.ok + 1,
