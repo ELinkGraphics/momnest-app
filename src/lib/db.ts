@@ -118,12 +118,12 @@ export class ChatDatabase extends Dexie {
   private resolveEncryptionKey!: (key: Uint8Array) => void;
 
   constructor() {
-    super('MomNestChatDB_v3');
+    super('MomNestChatDB_v4');
     
     // Schema version 2 - Added profiles table
     // The keys listed here are the indexed fields. Everything else is unindexed payload.
     // @ts-ignore - TS sometimes fails to resolve the Dexie base class methods properly
-    this.version(3).stores({
+    this.version(4).stores({
       messages: 'id, conversation_id, created_at, [conversation_id+created_at], sync_status',
       conversations: 'id',
       conversations_meta: 'conversation_id',
@@ -183,7 +183,7 @@ export class ChatDatabase extends Dexie {
       const encryptionKey = new Uint8Array(hashBuffer);
 
       // Self-Healing Clear: Wipe corrupted legacy data if version mismatch
-      const ENCRYPTION_VERSION = 'v5_profile_cache';
+      const ENCRYPTION_VERSION = 'v6_premium_profile';
       const storedVersion = localStorage.getItem('MOMNEST_DB_ENCRYPTION_VERSION');
       if (storedVersion !== ENCRYPTION_VERSION) {
         console.warn(`[Dexie] Encryption version mismatch (${storedVersion} -> ${ENCRYPTION_VERSION}). Nuclear reset...`);
