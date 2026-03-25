@@ -2913,6 +2913,8 @@ export type Database = {
           updated_at: string | null
           username: string
           website: string | null
+          phone: string | null
+          birthday: string | null
         }
         Insert: {
           admin_notes?: string | null
@@ -2940,6 +2942,8 @@ export type Database = {
           updated_at?: string | null
           username: string
           website?: string | null
+          phone?: string | null
+          birthday?: string | null
         }
         Update: {
           admin_notes?: string | null
@@ -2967,6 +2971,8 @@ export type Database = {
           updated_at?: string | null
           username?: string
           website?: string | null
+          phone?: string | null
+          birthday?: string | null
         }
         Relationships: []
       }

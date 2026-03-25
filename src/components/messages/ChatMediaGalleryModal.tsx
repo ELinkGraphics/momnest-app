@@ -1,10 +1,14 @@
-import React, { useState, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { ImageIcon, LinkIcon, MicIcon, Play, VideoIcon, User, Users } from 'lucide-react';
+import { 
+    ImageIcon, LinkIcon, MicIcon, Play, VideoIcon, User, Users,
+    Phone, AtSign, Calendar, BellOff, MoreVertical, Search, MessageSquare,
+    X, ArrowLeft
+} from 'lucide-react';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ChatMediaGalleryModalProps {
     isOpen: boolean;
@@ -15,6 +19,8 @@ interface ChatMediaGalleryModalProps {
     profileInitials: string;
     isGroup: boolean;
     memberCount?: number;
+    otherUserId?: string | null;
+    otherUserUsername?: string | null;
     onViewProfile: () => void;
     onMediaSelect?: (url: string, type: 'photo' | 'video') => void;
 }
@@ -28,30 +34,56 @@ const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
     profileInitials,
     isGroup,
     memberCount,
+    otherUserId,
+    otherUserUsername,
     onViewProfile,
     onMediaSelect
 }) => {
     const [activeTab, setActiveTab] = useState('media');
+    const [extraInfo, setExtraInfo] = useState<{
+        phone?: string;
+        birthday?: string;
+        username?: string;
+        bio?: string;
+    }>({});
+
+    // Fetch extra profile info if it's a private chat
+    useEffect(() => {
+        if (isOpen && otherUserId && !isGroup) {
+            const fetchProfile = async () => {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('phone, birthday, username, bio')
+                    .eq('id', otherUserId)
+                    .single();
+                
+                if (!error && data) {
+                    setExtraInfo({
+                        phone: data.phone || '',
+                        birthday: data.birthday ? format(new Date(data.birthday), 'MMMM d, yyyy') : '',
+                        username: data.username || otherUserUsername || '',
+                        bio: data.bio || ''
+                    });
+                }
+            };
+            fetchProfile();
+        }
+    }, [isOpen, otherUserId, isGroup, otherUserUsername]);
 
     // Categorize messages
     const categorisedItems = useMemo(() => {
         const media: any[] = [];
         const links: any[] = [];
         const voice: any[] = [];
-
-        // URL regex to find links in text
         const urlRegex = /(https?:\/\/[^\s]+)/g;
 
         messages.forEach((msg) => {
             const type = msg.message_type || 'text';
-
             if ((type === 'photo' || type === 'video') && msg.attachment_url) {
                 media.push(msg);
             } else if (type === 'voice' && msg.attachment_url) {
                 voice.push(msg);
             }
-
-            // Extract links from text content
             if (msg.content) {
                 const foundLinks = msg.content.match(urlRegex);
                 if (foundLinks) {
@@ -67,91 +99,164 @@ const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
             }
         });
 
-        // Sort descending by date
-        media.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        links.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        voice.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        const sortByDate = (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        media.sort(sortByDate);
+        links.sort(sortByDate);
+        voice.sort(sortByDate);
 
         return { media, links, voice };
     }, [messages]);
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden bg-background/80 backdrop-blur-xl border-border/50">
-                <DialogHeader className="pt-6 pb-2 px-6 bg-background/50 border-b border-border/50">
-                    <div className="flex flex-col items-center gap-3">
-                        <Avatar className="h-20 w-20 ring-4 ring-background shadow-xl">
-                            <AvatarImage src={profileAvatar || undefined} />
-                            <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-primary-foreground text-2xl">
-                                {isGroup ? <Users className="h-8 w-8" /> : profileInitials}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="text-center">
-                            <DialogTitle className="text-xl font-semibold">{profileName}</DialogTitle>
-                            {isGroup && memberCount && (
-                                <p className="text-sm text-muted-foreground mt-1">{memberCount} members</p>
-                            )}
-                        </div>
+            <DialogContent className="max-w-[360px] p-0 overflow-hidden bg-[#2a1a0e] border-none shadow-[0_24px_64px_rgba(0,0,0,0.6)] outline-none rounded-[16px]">
+                <style dangerouslySetInnerHTML={{ __html: `
+                    :root {
+                        --primary: #713A20;
+                        --primary-light: #9B5230;
+                        --primary-dark: #4d2714;
+                        --secondary: #E09F4D;
+                        --tertiary: #FFE2BE;
+                        --surface: #2a1a0e;
+                        --surface2: #3a2212;
+                        --surface3: #4a2d18;
+                        --text-main: #FFE2BE;
+                        --text-muted: rgba(255,226,190,0.5);
+                        --divider: rgba(255,226,190,0.08);
+                    }
+                    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                    .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--divider); border-radius: 10px; }
+                    .tab-btn { transition: color 0.15s, border-color 0.15s; }
+                    .tab-btn[data-state="active"] { color: var(--secondary) !important; border-bottom: 2px solid var(--secondary) !important; }
+                `}} />
 
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="mt-2 rounded-full px-6 bg-background/50 backdrop-blur-sm"
-                            onClick={() => {
-                                onClose();
-                                onViewProfile();
-                            }}
-                        >
-                            {isGroup ? <Users className="h-4 w-4 mr-2" /> : <User className="h-4 w-4 mr-2" />}
-                            View {isGroup ? 'Group' : 'Profile'}
-                        </Button>
+                {/* Header Section */}
+                <div className="relative bg-gradient-to-br from-[#9B5230] via-[#713A20] to-[#4d2714] px-4 pt-4 pb-0 overflow-hidden">
+                    <div className="flex justify-between items-center mb-4">
+                        <button onClick={onClose} className="p-2 -ml-2 text-[#FFE2BE]/80 hover:text-[#FFE2BE]">
+                            <ArrowLeft className="w-6 h-6" />
+                        </button>
+                        <div className="flex gap-1">
+                            <button className="p-2 text-[#FFE2BE]/80 hover:text-[#FFE2BE]">
+                                <Search className="w-5 h-5" />
+                            </button>
+                            <button className="p-2 text-[#FFE2BE]/80 hover:text-[#FFE2BE]">
+                                <MoreVertical className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
-                </DialogHeader>
 
-                <div className="px-1 py-3">
-                    <Tabs defaultValue="media" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <div className="px-5 mb-4">
-                            <TabsList className="w-full grid grid-cols-3 bg-muted/50 p-1 rounded-xl">
-                                <TabsTrigger value="media" className="rounded-lg data-[state=active]:shadow-sm">
-                                    Media ({categorisedItems.media.length})
-                                </TabsTrigger>
-                                <TabsTrigger value="links" className="rounded-lg data-[state=active]:shadow-sm">
-                                    Links ({categorisedItems.links.length})
-                                </TabsTrigger>
-                                <TabsTrigger value="voice" className="rounded-lg data-[state=active]:shadow-sm">
-                                    Voice ({categorisedItems.voice.length})
-                                </TabsTrigger>
-                            </TabsList>
+                    <div className="flex flex-col items-start pb-6">
+                        <div className="relative mb-4 group">
+                            <Avatar className="w-[84px] h-[84px] ring-2 ring-[#FFE2BE]/20 ring-offset-2 ring-offset-[#713A20]">
+                                <AvatarImage src={profileAvatar || undefined} />
+                                <AvatarFallback className="bg-[#4d2714] text-[#FFE2BE] text-2xl font-bold">
+                                    {isGroup ? <Users className="w-10 h-10" /> : profileInitials}
+                                </AvatarFallback>
+                            </Avatar>
                         </div>
+                        <h2 className="text-[22px] font-bold text-[#FFE2BE] leading-tight mb-1">{profileName}</h2>
+                        <div className="text-[13px] text-[#FFE2BE]/60 font-medium">
+                            {isGroup ? `${memberCount || 0} members` : 'last seen recently'}
+                        </div>
+                    </div>
+                </div>
 
-                        <div className="h-[400px] overflow-y-auto px-6 pb-6 custom-scrollbar">
-                            {/* MEDIA TAB */}
-                            <TabsContent value="media" className="m-0 mt-2">
+                {/* Action Bar */}
+                <div className="flex justify-around items-center py-4 bg-[#2a1a0e] border-b border-[#FFE2BE]/10">
+                    <button onClick={() => { onClose(); onViewProfile(); }} className="flex flex-col items-center gap-1 group">
+                        <div className="w-10 h-10 rounded-full bg-[#3a2212] flex items-center justify-center text-[#E09F4D] group-hover:bg-[#4a2d18] transition-colors">
+                            <MessageSquare className="w-5 h-5" />
+                        </div>
+                        <span className="text-[11px] text-[#E09F4D] font-medium">Message</span>
+                    </button>
+                    <button className="flex flex-col items-center gap-1 group">
+                        <div className="w-10 h-10 rounded-full bg-[#3a2212] flex items-center justify-center text-[#FFE2BE]/70 group-hover:bg-[#4a2d18] transition-colors">
+                            <BellOff className="w-5 h-5" />
+                        </div>
+                        <span className="text-[11px] text-[#FFE2BE]/70 font-medium">Mute</span>
+                    </button>
+                    <button className="flex flex-col items-center gap-1 group">
+                        <div className="w-10 h-10 rounded-full bg-[#3a2212] flex items-center justify-center text-[#FFE2BE]/70 group-hover:bg-[#4a2d18] transition-colors">
+                            <Phone className="w-5 h-5" />
+                        </div>
+                        <span className="text-[11px] text-[#FFE2BE]/70 font-medium">Call</span>
+                    </button>
+                </div>
+
+                {/* Info List */}
+                {!isGroup && (
+                    <div className="px-4 py-3 space-y-4 bg-[#2a1a0e]">
+                        {extraInfo.phone && (
+                            <div className="flex items-center gap-4">
+                                <Phone className="w-5 h-5 text-[#FFE2BE]/40" />
+                                <div>
+                                    <div className="text-[14px] text-[#FFE2BE] font-medium">{extraInfo.phone}</div>
+                                    <div className="text-[12px] text-[#FFE2BE]/40">Mobile</div>
+                                </div>
+                            </div>
+                        )}
+                        {extraInfo.username && (
+                            <div className="flex items-center gap-4">
+                                <AtSign className="w-5 h-5 text-[#FFE2BE]/40" />
+                                <div>
+                                    <div className="text-[14px] text-[#FFE2BE] font-medium">@{extraInfo.username}</div>
+                                    <div className="text-[12px] text-[#FFE2BE]/40">Username</div>
+                                </div>
+                            </div>
+                        )}
+                        {extraInfo.birthday && (
+                            <div className="flex items-center gap-4">
+                                <Calendar className="w-5 h-5 text-[#FFE2BE]/40" />
+                                <div>
+                                    <div className="text-[14px] text-[#FFE2BE] font-medium">{extraInfo.birthday}</div>
+                                    <div className="text-[12px] text-[#FFE2BE]/40">Date of Birth</div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Tabs Section */}
+                <div className="flex-1 min-h-0 bg-[#2a1a0e]">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
+                        <TabsList className="w-full flex justify-start bg-transparent border-b border-[#FFE2BE]/10 rounded-none h-12 p-0 px-2 gap-4">
+                            <TabsTrigger value="media" className="tab-btn h-full bg-transparent border-none text-[13px] font-semibold text-[#FFE2BE]/40 px-2 rounded-none">
+                                Media ({categorisedItems.media.length})
+                            </TabsTrigger>
+                            <TabsTrigger value="links" className="tab-btn h-full bg-transparent border-none text-[13px] font-semibold text-[#FFE2BE]/40 px-2 rounded-none">
+                                Links ({categorisedItems.links.length})
+                            </TabsTrigger>
+                            <TabsTrigger value="voice" className="tab-btn h-full bg-transparent border-none text-[13px] font-semibold text-[#FFE2BE]/40 px-2 rounded-none">
+                                Voice ({categorisedItems.voice.length})
+                            </TabsTrigger>
+                        </TabsList>
+
+                        <div className="h-[300px] overflow-y-auto custom-scrollbar p-2">
+                            <TabsContent value="media" className="m-0 focus-visible:outline-none">
                                 {categorisedItems.media.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-50">
-                                        <ImageIcon className="h-12 w-12 mb-3" />
-                                        <p>No media shared yet</p>
+                                    <div className="flex flex-col items-center justify-center py-12 text-[#FFE2BE]/20">
+                                        <ImageIcon className="w-12 h-12 mb-2" />
+                                        <p className="text-sm">No media yet</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-3 gap-1">
                                         {categorisedItems.media.map((msg) => (
-                                            <div
+                                            <div 
                                                 key={msg.id}
-                                                className="aspect-square relative group cursor-pointer overflow-hidden rounded-md bg-muted/30"
                                                 onClick={() => onMediaSelect?.(msg.attachment_url, msg.message_type)}
+                                                className="aspect-square bg-[#3a2212] cursor-pointer hover:opacity-90 transition-opacity"
                                             >
                                                 {msg.message_type === 'video' ? (
-                                                    <>
+                                                    <div className="relative w-full h-full">
                                                         <video src={msg.attachment_url} className="w-full h-full object-cover" />
-                                                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                                                            <Play className="h-6 w-6 text-white" fill="white" />
+                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                                            <Play className="w-6 h-6 text-white fill-white" />
                                                         </div>
-                                                        <div className="absolute top-1 right-1">
-                                                            <VideoIcon className="h-3 w-3 text-white drop-shadow-md" />
-                                                        </div>
-                                                    </>
+                                                    </div>
                                                 ) : (
-                                                    <img src={msg.attachment_url} alt="Media" className="w-full h-full object-cover" loading="lazy" />
+                                                    <img src={msg.attachment_url} className="w-full h-full object-cover" loading="lazy" />
                                                 )}
                                             </div>
                                         ))}
@@ -159,58 +264,61 @@ const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
                                 )}
                             </TabsContent>
 
-                            {/* LINKS TAB */}
-                            <TabsContent value="links" className="m-0 mt-2 space-y-3">
+                            <TabsContent value="links" className="m-0 focus-visible:outline-none space-y-1">
                                 {categorisedItems.links.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-50">
-                                        <LinkIcon className="h-12 w-12 mb-3" />
-                                        <p>No links shared yet</p>
+                                    <div className="flex flex-col items-center justify-center py-12 text-[#FFE2BE]/20">
+                                        <LinkIcon className="w-12 h-12 mb-2" />
+                                        <p className="text-sm">No links yet</p>
                                     </div>
                                 ) : (
                                     categorisedItems.links.map((link) => (
-                                        <a
+                                        <a 
                                             key={link.id}
                                             href={link.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
+                                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#3a2212] transition-colors"
                                         >
-                                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                                                <LinkIcon className="h-5 w-5 text-primary" />
+                                            <div className="w-10 h-10 rounded-lg bg-[#3a2212] flex items-center justify-center text-[#E09F4D]">
+                                                <LinkIcon className="w-5 h-5" />
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-medium text-blue-500 hover:underline truncate">
-                                                    {link.url}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground mt-1">
+                                                <div className="text-[14px] text-[#E09F4D] truncate">{link.url}</div>
+                                                <div className="text-[12px] text-[#FFE2BE]/40">
                                                     {format(new Date(link.created_at), 'MMM d, yyyy')}
-                                                </p>
+                                                </div>
                                             </div>
                                         </a>
                                     ))
                                 )}
                             </TabsContent>
 
-                            {/* VOICE TAB */}
-                            <TabsContent value="voice" className="m-0 mt-2 space-y-3">
+                            <TabsContent value="voice" className="m-0 focus-visible:outline-none space-y-1">
                                 {categorisedItems.voice.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-50">
-                                        <MicIcon className="h-12 w-12 mb-3" />
-                                        <p>No voice messages shared yet</p>
+                                    <div className="flex flex-col items-center justify-center py-12 text-[#FFE2BE]/20">
+                                        <MicIcon className="w-12 h-12 mb-2" />
+                                        <p className="text-sm">No voice messages yet</p>
                                     </div>
                                 ) : (
                                     categorisedItems.voice.map((msg) => (
-                                        <div key={msg.id} className="flex flex-col gap-2 p-3 rounded-xl bg-muted/30">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <MicIcon className="h-4 w-4 text-primary" />
-                                                    <span className="text-xs font-medium">Voice Message</span>
+                                        <div key={msg.id} className="p-3 rounded-xl hover:bg-[#3a2212] transition-colors">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-full bg-[#E09F4D] flex items-center justify-center text-white cursor-pointer hover:bg-[#9B5230] transition-colors">
+                                                    <Play className="w-5 h-5 fill-current ml-0.5" />
                                                 </div>
-                                                <span className="text-[10px] text-muted-foreground">
-                                                    {format(new Date(msg.created_at), 'MMM d')}
-                                                </span>
+                                                <div className="flex-1 h-8 flex items-center gap-1">
+                                                    {[...Array(20)].map((_, i) => (
+                                                        <div 
+                                                            key={i} 
+                                                            className="flex-1 bg-[#FFE2BE]/10 rounded-full"
+                                                            style={{ height: `${20 + Math.random() * 60}%` }}
+                                                        ></div>
+                                                    ))}
+                                                </div>
+                                                <div className="text-[12px] text-[#FFE2BE]/40 whitespace-nowrap">
+                                                    {format(new Date(msg.created_at), 'HH:mm')}
+                                                </div>
                                             </div>
-                                            <audio controls src={msg.attachment_url} className="w-full h-8" />
                                         </div>
                                     ))
                                 )}

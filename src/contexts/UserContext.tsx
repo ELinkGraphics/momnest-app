@@ -318,7 +318,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             posts: profile.profile_stats?.[0]?.posts_count || 0,
             videos: profile.profile_stats?.[0]?.videos_count || 0,
             saves: profile.profile_stats?.[0]?.saves_count || 0,
-          }
+          },
+          phone: profile.phone || '',
+          birthday: profile.birthday || '',
         };
         setUserAndCache(userProfile);
       }

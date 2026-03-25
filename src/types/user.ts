@@ -31,6 +31,8 @@ export interface UserProfile {
   hideOnlineStatus: boolean;
   allowMessagesFrom: 'everyone' | 'followers' | 'nobody';
   stats: UserStats;
+  phone?: string;
+  birthday?: string;
 }
 
 export interface UserPreferences {

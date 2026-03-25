@@ -24,6 +24,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
   const [bio, setBio] = useState(user?.bio || '');
   const [location, setLocation] = useState(user?.location || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [birthday, setBirthday] = useState(user?.birthday || '');
   const [links, setLinks] = useState<string[]>(
     Array.isArray(user?.website) ? user.website : user?.website ? [user.website] : ['']
   );
@@ -201,6 +203,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
         website: links.filter(link => link.trim() !== ''),
         avatar: avatarUrl,
         coverImage: coverUrl,
+        phone,
+        birthday,
       });
 
       onClose();
@@ -353,6 +357,14 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-2">Location</label>
               <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City, Country" maxLength={100} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">Phone Number</label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+251..." maxLength={20} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">Birthday</label>
+              <Input type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
             </div>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-2">Links</label>
