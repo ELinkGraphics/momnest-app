@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,6 +25,20 @@ const groupModalStyles = `
   }
   .group-modal-card {
     animation: groupModalSlideUp 0.4s ease-out both;
+  }
+
+  /* Friend picker overlay */
+  .g-friend-picker-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    background: rgba(42,26,14,0.95);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    border-radius: 16px;
+    animation: groupModalSlideUp 0.25s ease-out both;
   }
 
   .group-avatar-ring {
@@ -338,11 +353,13 @@ const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
     <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
       <DialogContent
         className="max-w-[380px] p-0 overflow-hidden border-none shadow-[0_24px_64px_rgba(0,0,0,0.6)] outline-none rounded-[16px] gap-0"
-        style={{ background: '#2a1a0e' }}
+        style={{ background: 'rgba(42,26,14,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+        aria-describedby={undefined}
       >
+        <VisuallyHidden.Root><DialogTitle>Group Info</DialogTitle></VisuallyHidden.Root>
         <style dangerouslySetInnerHTML={{ __html: groupModalStyles }} />
 
-        <div className="group-modal-card">
+        <div className="group-modal-card" style={{ position: 'relative' }}>
           {/* ─── Header with Gradient ─── */}
           <div
             className="relative overflow-hidden"
@@ -534,20 +551,7 @@ const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
                   </button>
                 </div>
 
-                {/* Add Members Inline */}
-                {isAddingMembers && (
-                  <div style={{ border: '1px solid rgba(255,226,190,0.1)', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,226,190,0.5)' }}>Select friends to add</div>
-                    <FriendPicker multiSelect selected={selectedFriends} onSelect={setSelectedFriends} />
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button className="g-btn-solid primary" onClick={handleAddMembers} disabled={selectedFriends.length === 0 || isAddingSaving}>
-                        {isAddingSaving && <Loader2 className="h-4 w-4 animate-spin" style={{ marginRight: 4 }} />}
-                        Add {selectedFriends.length > 0 ? `(${selectedFriends.length})` : ''}
-                      </button>
-                      <button className="g-btn-solid ghost" onClick={() => { setIsAddingMembers(false); setSelectedFriends([]); }}>Cancel</button>
-                    </div>
-                  </div>
-                )}
+                {/* Add Members — handled by floating overlay */}
               </div>
             )}
 
@@ -734,6 +738,28 @@ const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
               </div>
             )}
           </div>
+
+          {/* ─── Friend Picker Floating Overlay ─── */}
+          {isAddingMembers && (
+            <div className="g-friend-picker-overlay">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#FFE2BE' }}>Add Members</h3>
+                <button className="g-icon-btn" onClick={() => { setIsAddingMembers(false); setSelectedFriends([]); }}>
+                  <X className="h-4 w-4" style={{ color: '#f87171' }} />
+                </button>
+              </div>
+              <div style={{ flex: 1, overflow: 'auto', marginBottom: 12 }}>
+                <FriendPicker multiSelect selected={selectedFriends} onSelect={setSelectedFriends} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="g-btn-solid primary" style={{ flex: 1 }} onClick={handleAddMembers} disabled={selectedFriends.length === 0 || isAddingSaving}>
+                  {isAddingSaving && <Loader2 className="h-4 w-4 animate-spin" style={{ marginRight: 4 }} />}
+                  Add {selectedFriends.length > 0 ? `(${selectedFriends.length})` : ''}
+                </button>
+                <button className="g-btn-solid ghost" onClick={() => { setIsAddingMembers(false); setSelectedFriends([]); }}>Cancel</button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

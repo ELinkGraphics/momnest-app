@@ -18,9 +18,14 @@ export const useGroupMembers = (conversationId: string, isOpen: boolean) => {
       const { data: admins } = await supabase
         .from('group_admins')
         .select('user_id')
-        .eq('conversation_id', conversationId);
+        .eq('conversation_id', conversationId)
+        .then(res => {
+          // Gracefully handle 500 / RLS errors on group_admins
+          if (res.error) { console.warn('group_admins query failed, falling back to empty', res.error.message); return { data: [] }; }
+          return res;
+        });
 
-      const adminIds = new Set((admins || []).map(a => a.user_id));
+      const adminIds = new Set((admins || []).map((a: any) => a.user_id));
 
       const { data: memberRows, error: memberErr } = await supabase
         .from('conversation_members')

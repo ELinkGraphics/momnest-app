@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
     ImageIcon, LinkIcon, MicIcon, Play, Pause, VideoIcon, User, Users,
@@ -19,6 +20,7 @@ const modalStyles = `
   .profile-modal-card {
     animation: profileModalSlideUp 0.4s ease-out both;
   }
+  .profile-modal-card .flex::-webkit-scrollbar { display: none; }
 
   /* Static gradient ring (no rotation) */
   .avatar-gradient-ring {
@@ -442,8 +444,10 @@ const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent
                 className="max-w-[380px] p-0 overflow-hidden border-none shadow-[0_24px_64px_rgba(0,0,0,0.6)] outline-none rounded-[16px] gap-0"
-                style={{ background: '#2a1a0e' }}
+                style={{ background: 'rgba(42,26,14,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+                aria-describedby={undefined}
             >
+                <VisuallyHidden.Root><DialogTitle>Profile</DialogTitle></VisuallyHidden.Root>
                 <style dangerouslySetInnerHTML={{ __html: modalStyles }} />
 
                 <div className="profile-modal-card">
@@ -540,10 +544,18 @@ const ChatMediaGalleryModal: React.FC<ChatMediaGalleryModalProps> = ({
                         </div>
                     )}
 
-                    {/* ─── Tab Bar (6 tabs) ─── */}
+                    {/* ─── Tab Bar (6 tabs, horizontal scroll) ─── */}
                     <div
-                        className="flex px-3 pt-2 overflow-x-auto"
-                        style={{ borderBottom: '1px solid rgba(255,226,190,0.08)', background: '#2a1a0e', gap: 6 }}
+                        className="flex px-3 pt-2"
+                        style={{
+                            borderBottom: '1px solid rgba(255,226,190,0.08)',
+                            background: 'rgba(42,26,14,0.85)',
+                            gap: 4,
+                            overflowX: 'auto',
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none',
+                            WebkitOverflowScrolling: 'touch'
+                        }}
                     >
                         {tabs.map((tab) => {
                             const count = categorisedItems[tab.key].length;
