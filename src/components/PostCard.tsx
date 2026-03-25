@@ -315,7 +315,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       </header>
 
       {/* ── MEDIA ── */}
-      {post.post_type === 'pdf' && post.media?.urls && post.media.urls.length > 0 ? (
+      {post.post_type?.toLowerCase() === 'pdf' && post.media?.urls && post.media.urls.length > 0 ? (
         <div className="relative" onClick={(e) => e.stopPropagation()}>
           <PDFCarousel pages={post.media.urls} className="aspect-[4/5]" />
         </div>

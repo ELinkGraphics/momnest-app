@@ -158,13 +158,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
     };
 
     // Detect image from regular posts or circle premium posts
-    const displayImage = 
-      post.media_url || 
-      post.cover_image_url || 
-      (Array.isArray(post.media_urls) && post.media_urls.length > 0 ? post.media_urls[0] : null);
+    const isPdf = post.post_type?.toLowerCase() === 'pdf';
+    
+    const displayImage = isPdf 
+      ? (Array.isArray(post.media_urls) && post.media_urls.length > 0 ? post.media_urls[0] : post.cover_image_url || post.media_url)
+      : (post.media_url || post.cover_image_url || (Array.isArray(post.media_urls) && post.media_urls.length > 0 ? post.media_urls[0] : null));
 
     const isVideo = (url: string) => /\.(mp4|webm|mov|ogg|m3u8)(\?|$)/i.test(url);
-    const isPdf = post.post_type === 'pdf';
     const videoUrl = [post.media_url, ...(post.media_urls || [])].find(url => url && isVideo(url));
 
     return (
