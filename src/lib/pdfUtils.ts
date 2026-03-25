@@ -58,3 +58,39 @@ export const renderPDFToImages = async (
 
   return images;
 };
+/**
+ * Fetches a PDF from a URL and renders the first page as a Blob
+ */
+export const getPdfThumbnail = async (url: string): Promise<Blob> => {
+  try {
+    // We use getDocument with the URL directly
+    // pdfjs handles range requests if the server supports them
+    const loadingTask = pdfjs.getDocument(url);
+    const pdf = await loadingTask.promise;
+    
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 1.5 }); // 1.5x scale for decent preview quality
+
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Could not create canvas context');
+
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+
+    await page.render({
+      canvasContext: context,
+      viewport: viewport,
+    }).promise;
+
+    return new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => {
+        if (b) resolve(b);
+        else reject(new Error('Canvas toBlob failed'));
+      }, 'image/webp', 0.8);
+    });
+  } catch (err) {
+    console.error('[pdfUtils] Failed to generate thumbnail:', err);
+    throw err;
+  }
+};

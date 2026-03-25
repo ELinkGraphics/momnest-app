@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils';
 import './MediaGuard.css';
 
 
+import { usePdfThumbnail } from '@/hooks/usePdfThumbnail';
+
 interface MediaGuardItemProps {
   src: string;
   type: MediaType;
@@ -23,9 +25,10 @@ export const MediaGuardItem: React.FC<MediaGuardItemProps> = ({
   showOverlay = true
 }) => {
   const { status, attempt, retryIn, retry } = useMediaLoader(src, type);
+  const { thumbnailUrl, loading: pdfLoading } = usePdfThumbnail(type === 'pdf' ? src : null);
 
-  // Render Skeleton (Loading or Retrying)
-  if (status === 'loading' || status === 'retrying') {
+  // Render Skeleton (Loading or Retrying or PDF Thumbnail Generation)
+  if (status === 'loading' || status === 'retrying' || (type === 'pdf' && status === 'ok' && !thumbnailUrl)) {
     return (
       <div className={cn("media-guard-container rounded-xl flex flex-col items-center justify-center relative", aspectRatio, className)}>
         <div className="media-shimmer absolute inset-0 rounded-xl" />
@@ -37,13 +40,21 @@ export const MediaGuardItem: React.FC<MediaGuardItemProps> = ({
             <PlayCircle className="w-8 h-8 text-white/20" />
           ) : null}
           
-          {status === 'retrying' && (
+          {(status === 'retrying') && (
             <div className="flex flex-col items-center gap-1.5 p-4 text-center">
               <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">
                 Connection unstable
               </span>
               <span className="text-xs font-medium text-white/60">
                 Attempt {attempt}/3 • Retry in {retryIn}s
+              </span>
+            </div>
+          )}
+
+          {type === 'pdf' && status === 'ok' && !thumbnailUrl && (
+            <div className="flex flex-col items-center gap-1.5 p-4 text-center">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 animate-pulse">
+                Generating Preview
               </span>
             </div>
           )}
@@ -74,12 +85,15 @@ export const MediaGuardItem: React.FC<MediaGuardItemProps> = ({
     );
   }
 
+  // Final display source for images/PDFs
+  const displaySrc = type === 'pdf' ? (thumbnailUrl || src) : src;
+
   // Render OK Media
   return (
     <div className={cn("media-guard-container rounded-xl media-fade-in group", aspectRatio, className)}>
       {type === 'image' || type === 'pdf' ? (
         <img
-          src={src}
+          src={displaySrc}
           alt={alt}
           className="w-full h-full object-cover rounded-xl"
           loading="lazy"
