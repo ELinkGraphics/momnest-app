@@ -1,5 +1,30 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+// Internal session tracking (lives outside hook but inside module)
+let sessionStats = {
+  total: 0,
+  ok: 0,
+  retrying: 0,
+  broken: 0
+};
+
+const updateSession = (diff: Partial<typeof sessionStats>) => {
+  sessionStats = { ...sessionStats, ...diff };
+};
+
+// Expose a global report function for the user to call in console
+if (typeof window !== 'undefined') {
+  (window as any).__MEDIA_GUARD_REPORT__ = () => {
+    console.group("%c📊 Media Guard Session Report", "color: #3b82f6; font-size: 14px; font-weight: bold; padding: 4px;");
+    console.log(`%cTotal Media Tracked: %c${sessionStats.total}`, "color: #94a3b8", "font-weight: bold");
+    console.log(`%c✅ Successfully Loaded: %c${sessionStats.ok}`, "color: #10b981", "font-weight: bold");
+    console.log(`%c🔄 Currently Retrying: %c${sessionStats.retrying}`, "color: #fbbf24", "font-weight: bold");
+    console.log(`%c❌ Broken / Failed: %c${sessionStats.broken}`, "color: #ef4444; text-decoration: underline", "font-weight: bold");
+    console.log(`%cSuccess Rate: %c${sessionStats.total > 0 ? ((sessionStats.ok / sessionStats.total) * 100).toFixed(1) : 0}%`, "color: #94a3b8", "font-weight: bold");
+    console.groupEnd();
+  };
+}
+
 export type MediaStatus = 'loading' | 'retrying' | 'ok' | 'broken';
 export type MediaType = 'image' | 'video' | 'pdf';
 
@@ -41,6 +66,11 @@ export const useMediaLoader = (
     const triggerRetry = () => {
       if (currentAttempt < maxRetries) {
         const nextDelay = baseDelay * Math.pow(2, currentAttempt - 1);
+        console.warn(`%c[MediaGuard] Retrying ${type} %c(Attempt ${currentAttempt}/${maxRetries} in ${nextDelay/1000}s): %c${currentUrl}`, 
+          "color: #fbbf24; font-weight: bold", "color: #94a3b8", "color: #64748b; font-style: italic");
+        
+        if (currentAttempt === 1) updateSession({ retrying: sessionStats.retrying + 1 });
+        
         setStatus('retrying');
         setRetryIn(Math.ceil(nextDelay / 1000));
         
@@ -58,6 +88,12 @@ export const useMediaLoader = (
           setAttempt(prev => prev + 1);
         }, nextDelay);
       } else {
+        console.error(`%c[MediaGuard] BROKEN ${type} %c(Failed after ${maxRetries} attempts): %c${currentUrl}`, 
+          "color: #ef4444; font-weight: bold", "color: #94a3b8", "color: #64748b; text-decoration: underline");
+        updateSession({ 
+          retrying: Math.max(0, sessionStats.retrying - 1),
+          broken: sessionStats.broken + 1 
+        });
         setStatus('broken');
       }
     };
@@ -81,10 +117,22 @@ export const useMediaLoader = (
           };
           img.src = currentUrl;
         });
+        console.info(`%c[MediaGuard] OK ${type} %c(Loaded on attempt ${currentAttempt}): %c${currentUrl}`, 
+          "color: #10b981; font-weight: bold", "color: #94a3b8", "color: #64748b; opacity: 0.6");
+        updateSession({ 
+          ok: sessionStats.ok + 1,
+          retrying: currentAttempt > 1 ? Math.max(0, sessionStats.retrying - 1) : sessionStats.retrying
+        });
         setStatus('ok');
       } else if (type === 'pdf') {
         const response = await fetch(currentUrl, { method: 'HEAD' });
         if (!response.ok) throw new Error('PDF not found');
+        console.info(`%c[MediaGuard] OK ${type} %c(Verified on attempt ${currentAttempt}): %c${currentUrl}`, 
+          "color: #10b981; font-weight: bold", "color: #94a3b8", "color: #64748b; opacity: 0.6");
+        updateSession({ 
+          ok: sessionStats.ok + 1,
+          retrying: currentAttempt > 1 ? Math.max(0, sessionStats.retrying - 1) : sessionStats.retrying
+        });
         setStatus('ok');
       } else if (type === 'video') {
         await new Promise((resolve, reject) => {
@@ -92,7 +140,7 @@ export const useMediaLoader = (
           const timeoutId = setTimeout(() => {
             video.src = '';
             reject(new Error('Timeout'));
-          }, timeout * 2); // Videos get a bit more time
+          }, timeout * 2);
 
           video.onloadeddata = () => {
             clearTimeout(timeoutId);
@@ -105,16 +153,27 @@ export const useMediaLoader = (
           video.src = currentUrl;
           video.load();
         });
+        console.info(`%c[MediaGuard] OK ${type} %c(Playback ready on attempt ${currentAttempt}): %c${currentUrl}`, 
+          "color: #10b981; font-weight: bold", "color: #94a3b8", "color: #64748b; opacity: 0.6");
+        updateSession({ 
+          ok: sessionStats.ok + 1,
+          retrying: currentAttempt > 1 ? Math.max(0, sessionStats.retrying - 1) : sessionStats.retrying
+        });
         setStatus('ok');
       }
     } catch (err) {
-      console.warn(`Media validation failed (Attempt ${currentAttempt}/${maxRetries}):`, err);
       triggerRetry();
     }
   }, [type, maxRetries, baseDelay, timeout]);
 
   useEffect(() => {
     if (!src) return;
+    
+    if (attempt === 1) {
+      console.log(`%c[MediaGuard] Loading started for ${type}: %c${src}`, 
+        "color: #3b82f6; font-weight: bold", "color: #64748b; font-style: italic");
+      updateSession({ total: sessionStats.total + 1 });
+    }
     
     setStatus(attempt === 1 ? 'loading' : 'retrying');
     validateMedia(src, attempt);

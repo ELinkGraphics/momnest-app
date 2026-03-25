@@ -1,6 +1,8 @@
 /// <reference lib="webworker" />
 
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { registerRoute } from 'workbox-routing';
+import { NetworkOnly } from 'workbox-strategies';
 
 declare let self: ServiceWorkerGlobalScope;
 
@@ -8,6 +10,12 @@ declare let self: ServiceWorkerGlobalScope;
 precacheAndRoute(self.__WB_MANIFEST);
 
 cleanupOutdatedCaches();
+
+// Bypass SW for Supabase Storage (Fix for Video Range Requests / ERR_CACHE_OPERATION_NOT_SUPPORTED)
+registerRoute(
+  ({ url }) => url.host.includes('supabase.co') && url.pathname.includes('/storage/v1/object/public/'),
+  new NetworkOnly()
+);
 
 // Handle Push Events
 self.addEventListener('push', (event) => {
