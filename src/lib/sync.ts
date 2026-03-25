@@ -178,7 +178,27 @@ export const syncConversations = async (userId: string) => {
       }
 
       if (data && data.length > 0) {
-        await chatDb.conversations_meta.bulkPut(data);
+        // Use a transaction to safely merge server data with local state
+        await chatDb.transaction('rw', chatDb.conversations_meta, async () => {
+          for (const serverConv of data) {
+            const localConv = await chatDb.conversations_meta.get(serverConv.conversation_id);
+            
+            // OPTIMISTIC PRESERVATION:
+            // If we have a local record and the server is telling us there are unread messages,
+            // but we recently marked it as read (unread_count === 0 locally), 
+            // we trust our local state until the server syncs up.
+            if (localConv && localConv.unread_count === 0 && serverConv.unread_count > 0) {
+              // Keep local zero unread count
+              await chatDb.conversations_meta.put({
+                ...serverConv,
+                unread_count: 0
+              });
+            } else {
+              // Otherwise, take server data
+              await chatDb.conversations_meta.put(serverConv);
+            }
+          }
+        });
       }
     } catch (err) {
       console.error('[Sync] Unexpected error during list sync:', err);

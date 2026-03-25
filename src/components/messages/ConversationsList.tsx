@@ -5,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Conversation, usePinnedConversations, useTogglePin } from '@/hooks/useConversations';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePresence } from '@/hooks/usePresence';
+import { useUnreadCount } from '@/hooks/useUnreadCount';
 
 interface ConversationsListProps {
   conversations: Conversation[];
@@ -50,6 +51,7 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
   currentUserId,
 }) => {
   const { isUserOnline } = usePresence(currentUserId);
+  const { getUnreadCountForConversation } = useUnreadCount();
 
   const pinnedIds = usePinnedConversations(currentUserId);
   const { togglePin: togglePinAction } = useTogglePin();
@@ -124,7 +126,8 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
       {sortedConversations.map((conversation) => {
         const isSelected = conversation.conversation_id === selectedConversationId;
         const isLastMessageFromOther = conversation.last_message_sender_id !== currentUserId;
-        const isUnread = conversation.unread_count > 0 && isLastMessageFromOther;
+        const unreadCount = getUnreadCountForConversation(conversation.conversation_id);
+        const isUnread = unreadCount > 0 && isLastMessageFromOther;
         const isPinned = pinnedIds.has(conversation.conversation_id);
 
         return (
@@ -192,7 +195,7 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
                   {conversation.last_message || 'No messages yet'}
                 </p>
                 {isUnread && (
-                  <UnreadBadge count={conversation.unread_count} />
+                  <UnreadBadge count={unreadCount} />
                 )}
               </div>
             </div>

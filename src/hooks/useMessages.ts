@@ -201,7 +201,7 @@ export const useMessages = (conversationId: string | null, userId: string | unde
     const lastMsg = localMessages?.[localMessages.length - 1];
     if (!conversationId || !userId || !lastMsg?.seq || lastMsg.seq <= lastSyncedReadSeq.current) return;
 
-    // Debounce read-receipt write by 1500ms
+    // Debounce read-receipt write for a better feel
     const timer = setTimeout(async () => {
       // Update ref immediately to prevent race conditions
       lastSyncedReadSeq.current = lastMsg.seq!;
@@ -214,9 +214,11 @@ export const useMessages = (conversationId: string | null, userId: string | unde
       };
 
       try {
-        // 1. Update local DB
-        await chatDb.read_receipts.put(receipt);
-        await chatDb.conversations_meta.update(conversationId, { unread_count: 0 });
+        // 1. Update local DB - This triggers useUnreadCount immediately via useLiveQuery
+        await Promise.all([
+          chatDb.read_receipts.put(receipt),
+          chatDb.conversations_meta.update(conversationId, { unread_count: 0 })
+        ]);
 
         // 2. Queue for server sync
         await chatDb.sync_queue.put({
@@ -233,22 +235,15 @@ export const useMessages = (conversationId: string | null, userId: string | unde
         // 4. Mark related notifications as read on server
         markConversationNotificationsAsRead.mutate(conversationId);
         
-        // 5. Optimistic update for conversations list (safely handles badge clearing)
-        queryClient.setQueryData(['conversations', userId], (oldData: any) => {
-          if (!oldData) return oldData;
-          return oldData.map((conv: any) => 
-            conv.conversation_id === conversationId 
-              ? { ...conv, unread_count: 0 } 
-              : conv
-          );
-        });
+        // 5. Optimistic update for React Query cache (fallback)
+        queryClient.invalidateQueries({ queryKey: ['conversations', userId] });
       } catch (err) {
         console.error('Failed to mark as read:', err);
       }
-    }, 1500);
+    }, 300); // Reduced delay for more responsive feel
 
     return () => clearTimeout(timer);
-  }, [localMessages?.length, conversationId, userId]);
+  }, [localMessages && localMessages.length > 0 ? localMessages[localMessages.length - 1].seq : null, conversationId, userId]);
 
   const messagesWithSenders = useMemo(() => {
     return localMessages?.map((msg: any) => ({

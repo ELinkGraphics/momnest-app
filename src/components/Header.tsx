@@ -12,6 +12,7 @@ import { cacheManager } from '@/utils/cacheManager';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useConversations } from '@/hooks/useConversations';
 import { useCoinWallet } from '@/hooks/useCoinWallet';
+import { useUnreadCount } from '@/hooks/useUnreadCount';
 import { supabase } from '@/integrations/supabase/client';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNavigation } from '@/contexts/NavigationContext';
@@ -142,9 +143,8 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
     }
   }, []);
   const { user, isLoading } = useUser();
-  const { conversations } = useConversations(user?.id);
   const { balance } = useCoinWallet(user?.id);
-  const totalUnreadMessages = conversations?.reduce((sum, conv) => sum + conv.unread_count, 0) || 0;
+  const { totalUnreadCount: totalUnreadMessages } = useUnreadCount();
 
   if (isLoading || !user) {
     return (

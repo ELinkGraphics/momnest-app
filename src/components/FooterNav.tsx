@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppNav, type TabKey } from '@/hooks/useAppNav';
 import { useUser } from '@/contexts/UserContext';
 import { useConversations } from '@/hooks/useConversations';
+import { useUnreadCount } from '@/hooks/useUnreadCount';
 
 interface FooterNavProps {
   active: TabKey;
@@ -37,8 +38,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
   const { navigateToTab, navigateToCreatePost, navigateToCreateVideo, navigateToCreateCircle, navigateToCreateShop, navigateToMessages } = useAppNav();
   const [showCreatePopup, setShowCreatePopup] = useState(false);
   const { user } = useUser();
-  const { conversations } = useConversations(user?.id);
-  const totalUnreadMessages = conversations?.reduce((sum, conv) => sum + conv.unread_count, 0) || 0;
+  const { totalUnreadCount: totalUnreadMessages } = useUnreadCount();
 
   const handleCreateClick = () => {
     if (active === 'ask' && onOpenQuestionForm) {
