@@ -198,11 +198,45 @@ export const usePushNotifications = () => {
     }
   };
 
+  const sendTestNotification = async () => {
+    if (!subscription) {
+      toast.error('You must be subscribed to test notifications');
+      return false;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('You must be logged in');
+        return false;
+      }
+
+      const { error } = await supabase.functions.invoke('send-push-notification', {
+        body: {
+          userId: user.id,
+          title: '🔔 Test Notification',
+          body: 'This is a test notification from your MomsNest settings!',
+          data: { test: true, timestamp: new Date().toISOString() }
+        }
+      });
+
+      if (error) throw error;
+      
+      toast.success('Test notification triggered!');
+      return true;
+    } catch (error) {
+      console.error('Error triggering push:', error);
+      toast.error('Failed to trigger test notification');
+      return false;
+    }
+  };
+
   return {
     permission,
     isSupported,
     subscription,
     requestPermission,
     unregisterServiceWorker,
+    sendTestNotification,
   };
 };

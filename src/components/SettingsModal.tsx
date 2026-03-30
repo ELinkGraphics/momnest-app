@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Lock, Eye, MessageCircle, LogOut, Shield, Mail, Phone, KeyRound, BadgeCheck, ChevronRight, Loader2, HardDrive, Trash2, Moon, Video, Download, Smartphone } from 'lucide-react';
+import { ArrowLeft, Lock, Eye, MessageCircle, LogOut, Shield, Mail, Phone, KeyRound, BadgeCheck, ChevronRight, Loader2, HardDrive, Trash2, Moon, Video, Download, Smartphone, Bell, RefreshCw, Send } from 'lucide-react';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useAutoplaySettings } from '@/hooks/useAutoplaySettings';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
@@ -19,7 +20,7 @@ interface SettingsModalProps {
   onClose: () => void;
 }
 
-type SettingsView = 'main' | 'account';
+type SettingsView = 'main' | 'account' | 'notifications';
 type PasswordStep = 'idle' | 'sending' | 'code-sent' | 'verifying' | 'new-password' | 'saving';
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
@@ -29,6 +30,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [view, setView] = useState<SettingsView>('main');
   const { isDark, toggle: toggleDark } = useDarkMode();
   const { autoplayEnabled, toggleAutoplay } = useAutoplaySettings();
+  const { isSupported, permission, requestPermission, unregisterServiceWorker, sendTestNotification } = usePushNotifications();
+  const [isPushLoading, setIsPushLoading] = useState(false);
+
+  const handleEnablePush = async () => {
+    setIsPushLoading(true);
+    await requestPermission();
+    setIsPushLoading(false);
+  };
+
+  const handleForceEnablePush = async () => {
+    setIsPushLoading(true);
+    await unregisterServiceWorker();
+    setTimeout(async () => {
+      await requestPermission();
+      setIsPushLoading(false);
+      window.location.reload();
+    }, 1000);
+  };
 
   // PWA install state
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -344,7 +363,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 variant="ghost"
                 size="icon"
                 onClick={() => {
-                  if (view === 'account') setView('main');
+                  if (view === 'account' || view === 'notifications') setView('main');
                   else onClose();
                 }}
                 className="hover:bg-muted/50"
@@ -352,7 +371,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <h1 className="text-xl font-bold text-foreground">
-                {view === 'main' ? 'Settings' : 'Account & Security'}
+                {view === 'main' ? 'Settings' : view === 'account' ? 'Account & Security' : 'Notification Settings'}
               </h1>
               <div className="w-10" />
             </div>
@@ -393,6 +412,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                         onCheckedChange={toggleAutoplay}
                       />
                     </SettingRow>
+                  </div>
+                </div>
+
+                {/* Notification Settings Entry */}
+                <div>
+                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Notifications</h2>
+                  <div className="bg-card rounded-xl border border-border/50">
+                    <button
+                      onClick={() => setView('notifications')}
+                      className="flex items-center justify-between w-full px-4 py-4 hover:bg-muted/50 transition-colors rounded-xl"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Bell className="h-5 w-5 text-primary" />
+                        <div className="text-left">
+                          <p className="font-medium text-foreground">Push Notifications</p>
+                          <p className="text-sm text-muted-foreground">
+                            {permission === 'granted' ? 'Enabled' : 'Setup notifications'}
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    </button>
                   </div>
                 </div>
 
@@ -586,6 +627,92 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   Log Out
                 </Button>
               </>
+            )}
+
+            {view === 'notifications' && (
+              <div className="space-y-6">
+                <div className="bg-card rounded-xl border border-border/50 p-6 text-center space-y-4">
+                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Bell className={`h-8 w-8 ${permission === 'granted' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-semibold">Push Notifications</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {!isSupported 
+                        ? 'Not supported on this browser/device' 
+                        : permission === 'granted' 
+                          ? 'You are all set to receive notifications' 
+                          : 'Stay updated with messages and alerts'}
+                    </p>
+                  </div>
+
+                  <div className="pt-2">
+                    {permission !== 'granted' && isSupported && (
+                      <Button 
+                        onClick={handleEnablePush} 
+                        disabled={isPushLoading || permission === 'denied'}
+                        className="w-full h-12 text-base"
+                      >
+                        {isPushLoading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Bell className="h-5 w-5 mr-2" />}
+                        Enable Notifications
+                      </Button>
+                    )}
+                    
+                    {permission === 'granted' && (
+                      <Button
+                        variant="secondary"
+                        onClick={sendTestNotification}
+                        disabled={isPushLoading}
+                        className="w-full h-12 text-base"
+                      >
+                        <Send className="h-5 w-5 mr-2" />
+                        Send Test Notification
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Troubleshooting</h3>
+                  
+                  <div className="bg-card rounded-xl border border-border/50 divide-y divide-border/50">
+                    <div className="p-4 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <RefreshCw className="h-4 w-4 text-primary" />
+                        <p className="font-medium">Force Enable</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Enabled but not getting alerts? This will reset the connection and re-register your device.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleForceEnablePush}
+                        disabled={isPushLoading}
+                        className="mt-2"
+                      >
+                        {isPushLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                        Force Re-enable
+                      </Button>
+                    </div>
+
+                    <div className="p-4 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-primary" />
+                        <p className="font-medium">Browser Permissions</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Current permission: <span className="font-mono font-bold capitalize">{permission}</span>
+                      </p>
+                      {permission === 'denied' && (
+                        <p className="text-xs text-destructive bg-destructive/10 p-2 rounded-lg">
+                          Notifications are blocked at the browser level. Please open your browser settings to allow MomsNest to send notifications.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
             {view === 'account' && (
