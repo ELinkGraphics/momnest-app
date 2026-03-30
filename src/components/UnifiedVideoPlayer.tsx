@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import PublicProfileModal from '@/components/PublicProfileModal';
 import { VideoShareMenu } from '@/components/VideoShareMenu';
+import { useVideoViewTracker } from '@/hooks/useVideoViewTracker';
+import { formatCount } from '@/utils/formatters';
 
 interface UnifiedVideoPlayerProps {
   video: Video;
@@ -16,15 +18,6 @@ interface UnifiedVideoPlayerProps {
   index: number;
   onVideoClick?: () => void;
 }
-
-const formatCount = (count: number): string => {
-  if (count >= 1000000) {
-    return `${(count / 1000000).toFixed(1)}M`;
-  } else if (count >= 1000) {
-    return `${(count / 1000).toFixed(1)}K`;
-  }
-  return count.toString();
-};
 
 export const UnifiedVideoPlayer = memo<UnifiedVideoPlayerProps>(({
   video,
@@ -44,6 +37,8 @@ export const UnifiedVideoPlayer = memo<UnifiedVideoPlayerProps>(({
   const { toggleLike, toggleSave } = useVideoMutations();
   const { toggleFollow, checkFollowStatus } = useFollowMutations();
   const { user } = useUser();
+
+  useVideoViewTracker(videoRef.current, video.id);
 
   // Check initial follow status
   useEffect(() => {

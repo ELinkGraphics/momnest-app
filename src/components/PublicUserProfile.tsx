@@ -14,6 +14,8 @@ import { useFollowMutations } from '@/hooks/useFollowMutations';
 import { useUser } from '@/contexts/UserContext';
 import { toast } from 'sonner';
 import { BioRichTextRenderer } from '@/components/BioRichTextRenderer';
+import { useVideoViewTracker } from '@/hooks/useVideoViewTracker';
+import { formatCount } from '@/utils/formatters';
 
 interface PublicUserProfileProps {
   userId: string;
@@ -347,48 +349,60 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
   );
 };
 
-  const VideoCard = ({ video }: { video: any }) => (
-    <div 
-      className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300"
-      onClick={() => {
-        onClose?.();
-        navigate(`/video/${video.id}`);
-      }}
-    >
-      <div className="aspect-[9/16] relative overflow-hidden bg-black/5">
-        {video.thumbnail_url ? (
-          <img 
-            src={video.thumbnail_url} 
-            alt={video.title} 
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-          />
-        ) : video.video_url ? (
-          <video 
-            src={video.video_url} 
-            className="w-full h-full object-cover" 
-            preload="metadata"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <MessageCircle className="h-8 w-8 text-muted-foreground/30" />
+  const VideoCard = ({ video }: { video: any }) => {
+    const videoRef = React.useRef<HTMLVideoElement>(null);
+    
+    // Attaches the tracking logic to track muted autoplay views on the profile grid
+    useVideoViewTracker(videoRef.current, video.id);
+
+    return (
+      <div 
+        className="group relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300"
+        onClick={() => {
+          onClose?.();
+          navigate(`/video/${video.id}`);
+        }}
+      >
+        <div className="aspect-[9/16] relative overflow-hidden bg-black/5">
+          {video.thumbnail_url ? (
+            <img 
+              src={video.thumbnail_url} 
+              alt={video.title} 
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+            />
+          ) : video.video_url ? (
+            <video 
+              ref={videoRef}
+              src={video.video_url} 
+              className="w-full h-full object-cover" 
+              preload="metadata"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <MessageCircle className="h-8 w-8 text-muted-foreground/30" />
+            </div>
+          )}
+
+          {/* Glassmorphic Play Badge */}
+          <div className="absolute top-2 right-2 bg-black/20 backdrop-blur-md border border-white/10 rounded-full px-2 py-1 flex items-center gap-1 shadow-sm">
+            <div className="w-0 h-0 border-y-[4px] border-y-transparent border-l-[6px] border-l-white ml-0.5" />
+            <span className="text-[10px] font-bold text-white">
+              {formatCount(video.video_stats?.[0]?.views_count || video.video_stats?.views_count || 0)}
+            </span>
           </div>
-        )}
 
-        {/* Glassmorphic Play Badge */}
-        <div className="absolute top-2 right-2 bg-black/20 backdrop-blur-md border border-white/10 rounded-full px-2 py-1 flex items-center gap-1 shadow-sm">
-          <div className="w-0 h-0 border-y-[4px] border-y-transparent border-l-[6px] border-l-white ml-0.5" />
-          <span className="text-[10px] font-bold text-white">
-            {video.video_stats?.[0]?.views_count || video.video_stats?.views_count || video.video_stats?.views_count || 0}
-          </span>
-        </div>
-
-        {/* Glassmorphic Info Banner */}
-        <div className="absolute inset-x-2 bottom-2 p-2 bg-black/20 backdrop-blur-md border border-white/20 rounded-xl shadow-lg transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-          <p className="text-[11px] font-semibold text-white line-clamp-1">{video.title || "Untitled Video"}</p>
+          {/* Glassmorphic Info Banner */}
+          <div className="absolute inset-x-2 bottom-2 p-2 bg-black/20 backdrop-blur-md border border-white/20 rounded-xl shadow-lg transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+            <p className="text-[11px] font-semibold text-white line-clamp-1">{video.title || "Untitled Video"}</p>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const EmptyState = ({ icon: Icon, message }: { icon: any; message: string }) => (
     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
