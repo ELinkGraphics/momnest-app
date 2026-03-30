@@ -90,43 +90,15 @@ export const FeedView: React.FC<FeedViewProps> = ({ onRefresh }) => {
 
   const fetchPosts = useCallback(async (pageNum: number) => {
     try {
-      const { data, error } = await (supabase
-        .from('posts')
-        .select(`
-          post_id:id,
-          content,
-          media_url,
-          media_alt,
-          media_color_from,
-          media_color_to,
-          tags,
-          is_sponsored,
-          created_at,
-          user_id,
-          media_urls,
-          profiles!inner(name, username, avatar_url, initials, avatar_color, is_verified),
-          post_stats(likes_count, comments_count, shares_count, saves_count)
-        `)
-        .order('created_at', { ascending: false })
-        .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1) as any);
+      const { data, error } = await supabase.rpc('get_feed_posts', {
+        page_num: pageNum,
+        page_size: PAGE_SIZE
+      });
 
       if (error) throw error;
       
-      const formatted = (data || []).map((item: any) => formatPost({
-        ...item,
-        name: item.profiles.name,
-        username: item.profiles.username,
-        avatar_url: item.profiles.avatar_url,
-        initials: item.profiles.initials,
-        avatar_color: item.profiles.avatar_color,
-        is_verified: item.profiles.is_verified,
-        likes_count: item.post_stats?.likes_count || 0,
-        comments_count: item.post_stats?.comments_count || 0,
-        shares_count: item.post_stats?.shares_count || 0,
-        saves_count: item.post_stats?.saves_count || 0,
-        user_has_liked: false,
-        user_reaction: undefined
-      }));
+      const formatted = (data || []).map((item: any) => formatPost(item));
+      
       if (pageNum === 0) {
         setPosts(formatted);
       } else {

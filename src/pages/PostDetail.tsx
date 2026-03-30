@@ -106,15 +106,10 @@ const PostDetail: React.FC = () => {
       if (!postId) return;
 
       setLoading(true);
-      const { data, error } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          profiles!inner(name, username, avatar_url, initials, avatar_color, is_verified),
-          post_stats(likes_count, comments_count, shares_count, saves_count)
-        `)
-        .eq('id', postId)
-        .maybeSingle();
+      // Use the new definitive RPC for fetching post details
+      const { data, error } = await supabase.rpc('get_post_details', {
+        _post_id: postId
+      });
 
       if (error) {
         console.error('Error fetching post:', error);
@@ -122,44 +117,25 @@ const PostDetail: React.FC = () => {
         return;
       }
 
-      if (data) {
-        setPost(data);
-        setLikesCount(data.post_stats?.likes_count || 0);
+      if (data && data.length > 0) {
+        const postData = data[0];
+        setPost(postData);
+        setLikesCount(postData.likes_count || 0);
+        setLiked(postData.user_has_liked || false);
+        setUserReaction(postData.user_reaction);
+        setHasUnlocked(postData.user_has_unlocked || false);
+        setSaved(postData.user_has_saved || false);
 
         // Fetch circle creator if it's a circle post
-        if (data.circle_id) {
+        if (postData.circle_id) {
           const { data: circleData } = await supabase
             .from('circles')
             .select('creator_id')
-            .eq('id', data.circle_id)
+            .eq('id', postData.circle_id)
             .maybeSingle();
           if (circleData) {
             setCircleCreatorId(circleData.creator_id);
           }
-        }
-
-        // Check if user has liked this post
-        if (user) {
-          const { data: likeData } = await supabase
-            .from('likes')
-            .select('id, reaction_type')
-            .eq('post_id', postId)
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-          setLiked(!!likeData);
-          if (likeData) setUserReaction(likeData.reaction_type);
-        }
-
-        // Check if user has unlocked this premium post
-        if (data.is_premium && data.premium_price && user) {
-          const { data: unlockData } = await supabase
-            .from('post_unlocks')
-            .select('id')
-            .eq('post_id', postId)
-            .eq('user_id', user.id)
-            .maybeSingle();
-          setHasUnlocked(!!unlockData);
         }
 
         // Fetch comments for this post
@@ -415,7 +391,7 @@ const PostDetail: React.FC = () => {
 
   const handleSharePost = async () => {
     if (navigator.share) {
-      await navigator.share({ title: post.profiles.name, text: post.content, url: window.location.href });
+      await navigator.share({ title: post.name, text: post.content, url: window.location.href });
     } else {
       await navigator.clipboard.writeText(window.location.href);
       toast.success('Link copied');
@@ -462,7 +438,7 @@ const PostDetail: React.FC = () => {
           <ArrowLeft className="size-5" />
         </Button>
         <div>
-          <h1 className="font-semibold text-foreground">{post.profiles.name}</h1>
+          <h1 className="font-semibold text-foreground">{post.name}</h1>
           <p className="text-sm text-muted-foreground">Post</p>
         </div>
       </header>
@@ -474,20 +450,20 @@ const PostDetail: React.FC = () => {
           <div className="p-4 flex items-center gap-3">
             <div
               className="size-10 rounded-full grid place-items-center text-sm font-medium text-white overflow-hidden"
-              style={{ backgroundColor: post.profiles.avatar_color }}
+              style={{ backgroundColor: post.avatar_color }}
             >
-              {post.profiles.avatar_url ? (
-                <img src={post.profiles.avatar_url} alt={post.profiles.initials} className="w-full h-full object-cover" />
+              {post.avatar_url ? (
+                <img src={post.avatar_url} alt={post.initials} className="w-full h-full object-cover" />
               ) : (
-                post.profiles.initials
+                post.initials
               )}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-1.5">
                 <h3 className="font-semibold text-foreground">
-                  {post.profiles.name}
+                  {post.name}
                 </h3>
-                {post.profiles.is_verified && (
+                {post.is_verified && (
                   <BadgeCheck className="size-4 text-secondary" />
                 )}
               </div>

@@ -40,76 +40,16 @@ export const useCirclePosts = (circleId: string | undefined) => {
 
       const { data: { user } } = await supabase.auth.getUser();
 
-      const { data, error } = await supabase
-        .from('posts')
-        .select(`
-          id,
-          content,
-          cover_image_url,
-          is_premium,
-          has_tips_enabled,
-          premium_price,
-          created_at,
-          user_id,
-          circle_id,
-          profiles:user_id (
-            name,
-            username,
-            avatar_url,
-            initials,
-            avatar_color
-          ),
-          post_stats (
-            likes_count,
-            comments_count,
-            shares_count
-          ),
-          post_type,
-          original_pdf_url,
-          media_urls
-        `)
-        .eq('circle_id', circleId)
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_circle_posts_definitive', {
+        _circle_id: circleId,
+        page_num: 0,
+        page_size: 50 // Fetch enough for initial view
+      });
 
       if (error) throw error;
 
-      // Get user interactions
-      const postIds = data?.map(p => p.id) || [];
-      
-      const [likesData, tipsData, unlocksData] = await Promise.all([
-        user ? supabase
-          .from('likes')
-          .select('post_id')
-          .eq('user_id', user.id)
-          .in('post_id', postIds) : { data: [] },
-        supabase
-          .from('circle_tips')
-          .select('post_id, tipper_id')
-          .in('post_id', postIds),
-        user ? supabase
-          .from('post_unlocks')
-          .select('post_id')
-          .eq('user_id', user.id)
-          .in('post_id', postIds) : { data: [] },
-      ]);
-
-      const userLikes = new Map<string, string | null>((likesData.data || []).map(l => [l.post_id as string, l.reaction_type as string | null]));
-      const userUnlockedPosts = new Set(unlocksData.data?.map(u => u.post_id) || []);
-      
-      // Count tips per post and check if user tipped
-      const tipsByPost: Record<string, { count: number; userTipped: boolean }> = {};
-      tipsData.data?.forEach(tip => {
-        if (!tipsByPost[tip.post_id]) {
-          tipsByPost[tip.post_id] = { count: 0, userTipped: false };
-        }
-        tipsByPost[tip.post_id].count++;
-        if (user && tip.tipper_id === user.id) {
-          tipsByPost[tip.post_id].userTipped = true;
-        }
-      });
-
-      return data?.map(post => ({
-        id: post.id,
+      return (data || []).map((post: any) => ({
+        id: post.post_id,
         content: post.content,
         cover_image_url: post.cover_image_url,
         is_premium: post.is_premium || false,
@@ -119,22 +59,22 @@ export const useCirclePosts = (circleId: string | undefined) => {
         user_id: post.user_id,
         circle_id: post.circle_id!,
         author: {
-          name: post.profiles?.name || 'Unknown',
-          username: post.profiles?.username || 'unknown',
-          avatar_url: post.profiles?.avatar_url || null,
-          initials: post.profiles?.initials || '??',
-          avatar_color: post.profiles?.avatar_color || '#4B164C',
+          name: post.name || 'Unknown',
+          username: post.username || 'unknown',
+          avatar_url: post.avatar_url || null,
+          initials: post.initials || '??',
+          avatar_color: post.avatar_color || '#4B164C',
         },
         stats: {
-          likes_count: (post.post_stats as any)?.likes_count || 0,
-          comments_count: (post.post_stats as any)?.comments_count || 0,
-          shares_count: (post.post_stats as any)?.shares_count || 0,
+          likes_count: post.likes_count || 0,
+          comments_count: post.comments_count || 0,
+          shares_count: post.shares_count || 0,
         },
-        user_has_liked: userLikes.has(post.id),
-        user_reaction: userLikes.get(post.id) || null,
-        user_has_unlocked: userUnlockedPosts.has(post.id),
-        tip_count: tipsByPost[post.id]?.count || 0,
-        user_has_tipped: tipsByPost[post.id]?.userTipped || false,
+        user_has_liked: post.user_has_liked || false,
+        user_reaction: post.user_reaction || null,
+        user_has_unlocked: post.user_has_unlocked || false,
+        tip_count: post.tip_count || 0,
+        user_has_tipped: post.user_has_tipped || false,
         post_type: post.post_type || 'photo',
         original_pdf_url: post.original_pdf_url || null,
         media: {
