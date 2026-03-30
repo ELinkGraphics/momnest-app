@@ -42,12 +42,36 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const handleForceEnablePush = async () => {
     setIsPushLoading(true);
     await unregisterServiceWorker();
-    setTimeout(async () => {
-      await requestPermission();
-      setIsPushLoading(false);
-      window.location.reload();
-    }, 1000);
+    // Use URL parameters to signal the app to return here and resubscribe after reload
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', 'notifications');
+    url.searchParams.set('action', 'resubscribe');
+    window.location.href = url.toString();
   };
+
+  // Logic to handle auto-opening and auto-resubscribing from URL params
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const targetView = params.get('view') as SettingsView;
+    const action = params.get('action');
+    
+    if (targetView === 'notifications') {
+      setView('notifications');
+      
+      if (action === 'resubscribe') {
+        // Delay slightly to ensure service worker is initialized
+        setTimeout(() => {
+          handleEnablePush();
+          // Clean up URL parameter so it doesn't re-trigger on subsequent opens
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('action');
+          window.history.replaceState({}, document.title, newUrl.toString());
+        }, 1000);
+      }
+    }
+  }, [isOpen]);
 
   // PWA install state
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
