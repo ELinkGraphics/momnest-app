@@ -3,6 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUser } from '@/contexts/UserContext';
 import { playMessageSound } from '@/utils/notificationSound';
+import { chatDb } from '@/lib/db';
+import { syncConversations } from '@/lib/sync';
 
 /**
  * App-level component that listens for realtime changes to messages and notifications,
@@ -22,13 +24,56 @@ const GlobalRealtimeListener = () => {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
+        async (payload) => {
+          const msg = payload.new as any;
+          const senderId = msg?.sender_id;
+
+          // ✅ ONLY increment if current user is the receiver, not the sender
+          if (senderId && senderId === user.id) return;
+
           // Only play sound if this message is NOT from the current user
-          const senderId = (payload.new as any)?.sender_id;
-          if (senderId && senderId !== user.id) {
+          if (senderId) {
             playMessageSound();
           }
-          queryClient.invalidateQueries({ queryKey: ['conversations'] });
+
+          // ✅ Also skip if the conversation is currently open and visible
+          const currentPath = window.location.pathname;
+          const isMainChatOpen = currentPath === `/messages/${msg.conversation_id}`;
+          const isShopChatOpen = currentPath === `/shop/messages/${msg.conversation_id}`;
+          const isConversationOpen = (isMainChatOpen || isShopChatOpen) && !document.hidden;
+
+          if (isConversationOpen) {
+            // The active chat's useMessages hook will handle marking it as read
+            // To ensure we don't have a temporary visual glitch, proactively reset it locally
+            try {
+              if (msg.conversation_id) {
+                await chatDb.conversations_meta.update(msg.conversation_id, { unread_count: 0 });
+              }
+            } catch (err) {
+              console.error('Failed to optimistically reset unread count:', err);
+            }
+            return;
+          }
+
+          // ✅ Otherwise, it's a legit background message for *this* user
+          if (msg.conversation_id) {
+            try {
+              const conv = await chatDb.conversations_meta.get(msg.conversation_id);
+              if (conv) {
+                await chatDb.conversations_meta.update(msg.conversation_id, {
+                  unread_count: (conv.unread_count || 0) + 1,
+                  last_message: msg.content,
+                  last_message_at: msg.created_at,
+                  last_message_sender_id: msg.sender_id
+                });
+              } else {
+                // Trigger a full sync if this is a brand new conversation we don't have locally
+                syncConversations(user.id).catch(console.error);
+              }
+            } catch (err) {
+              console.error('Failed to optimistically update unread count:', err);
+            }
+          }
         }
       )
       .on(
