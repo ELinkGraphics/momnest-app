@@ -96,8 +96,18 @@ export function useCoinWallet(userId?: string) {
 
   // ─── TOP UP: Initiate Chapa checkout ─────────────────────────────────────
   const initiateTopUp = useMutation({
-    mutationFn: async ({ amount }: { amount: number }) => {
-      return callEdgeFunction('chapa-initialize', { amount });
+    mutationFn: async ({ 
+      amount, 
+      email, 
+      firstName, 
+      lastName 
+    }: { 
+      amount: number; 
+      email?: string; 
+      firstName?: string; 
+      lastName?: string; 
+    }) => {
+      return callEdgeFunction('chapa-initialize', { amount, email, firstName, lastName });
     },
     onSuccess: (data) => {
       // Store txRef so we can verify if needed

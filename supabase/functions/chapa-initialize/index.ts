@@ -51,8 +51,8 @@ serve(async (req) => {
       amount: amount.toString(),
       currency: "ETB",
       email: email || user.email || "user@momnest.app",
-      first_name: firstName || "MomNest",
-      last_name: lastName || "User",
+      first_name: firstName || user.user_metadata?.name?.split(' ')[0] || "MomNest",
+      last_name: lastName || user.user_metadata?.name?.split(' ').slice(1).join(' ') || "User",
       phone_number: phoneNumber || undefined,
       tx_ref: txRef,
       // After payment, Chapa will redirect user to this URL (/verify path)
@@ -66,6 +66,11 @@ serve(async (req) => {
         type: "wallet_topup",
       },
     };
+
+    console.log("Initializing Chapa payment with payload:", {
+      ...payload,
+      email: payload.email, // Log it clearly to debug validation errors
+    });
 
     const chapaRes = await fetch(
       "https://api.chapa.co/v1/transaction/initialize",

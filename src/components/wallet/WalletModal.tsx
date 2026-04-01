@@ -6,12 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import {
   Coins, ArrowUpCircle, ArrowDownCircle, History, Wallet,
   TrendingUp, TrendingDown, Loader2, ArrowLeft, ExternalLink,
-  CheckCircle2, Building2, ChevronDown,
+  CheckCircle2, Building2, ChevronDown, Mail
 } from 'lucide-react';
 import { useCoinWallet, ChapaBank } from '@/hooks/useCoinWallet';
 import { useUser } from '@/contexts/UserContext';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { toast } from '@/hooks/use-toast';
 
 
 interface WalletModalProps {
@@ -39,7 +40,7 @@ const transactionTypeLabels: Record<string, { label: string; color: string }> = 
 };
 
 const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
-  const { user } = useUser();
+  const { user, updateProfile } = useUser();
   const {
     balance,
     totalEarned,
@@ -68,6 +69,8 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
   const [selectedBank, setSelectedBank] = useState<ChapaBank | null>(null);
   const [bankSearch, setBankSearch] = useState('');
   const [showBankList, setShowBankList] = useState(false);
+  const [tempEmail, setTempEmail] = useState('');
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
   const filteredBanks = chapaBanks.filter((b) =>
     b.name.toLowerCase().includes(bankSearch.toLowerCase())
@@ -107,9 +110,28 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
     setTopUpDone(false);
   }, [topUpAmount, customTopUp]);
 
-  const handleTopUp = () => {
+  const handleTopUp = async () => {
     if (finalTopUp < 10) return;
-    initiateTopUp.mutate({ amount: finalTopUp }, {
+    
+    // Check if email exists, if not we need it first
+    if (!user?.email) {
+      toast({
+        title: "Email Required",
+        description: "Please provide an email address for billing records.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const firstName = user.name?.split(' ')[0] || "User";
+    const lastName = user.name?.split(' ').slice(1).join(' ') || "";
+
+    initiateTopUp.mutate({ 
+      amount: finalTopUp,
+      email: user.email,
+      firstName,
+      lastName
+    }, {
       onSuccess: (data) => {
         const chapaPublicKey = import.meta.env.VITE_CHAPA_PUBLIC_KEY;
         
@@ -135,6 +157,30 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
         }
       }
     });
+  };
+
+  const handleSaveEmail = async () => {
+    if (!tempEmail || !tempEmail.includes('@')) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUpdatingProfile(true);
+    try {
+      await updateProfile({ email: tempEmail });
+      toast({
+        title: "Profile Updated",
+        description: "Your email has been saved successfully.",
+      });
+    } catch (error) {
+      console.error("Failed to update email:", error);
+    } finally {
+      setIsUpdatingProfile(false);
+    }
   };
 
   const handleClosePaymentModal = async () => {
@@ -289,6 +335,35 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
 
             {/* ── TOP UP TAB ───────────────────────────────────────── */}
             <TabsContent value="topup" className="mt-3 space-y-4">
+              {!user?.email && (
+                <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="flex items-center gap-2 text-primary font-semibold">
+                    <Mail className="w-4 h-4" />
+                    <span className="text-sm">Email Required for Billing</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Chapa requires a valid email address to process your payment. 
+                    This email will be saved to your profile for future transactions.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter your email"
+                      value={tempEmail}
+                      onChange={(e) => setTempEmail(e.target.value)}
+                      type="email"
+                      className="rounded-lg h-10 bg-card border-border/30 text-sm"
+                    />
+                    <Button 
+                      onClick={handleSaveEmail} 
+                      disabled={isUpdatingProfile || !tempEmail.includes('@')}
+                      size="sm"
+                      className="px-4"
+                    >
+                      {isUpdatingProfile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save'}
+                    </Button>
+                  </div>
+                </div>
+              )}
               {/* Amount presets */}
               <div className="grid grid-cols-3 gap-2">
                 {TOPUP_PRESETS.map((amount) => (
