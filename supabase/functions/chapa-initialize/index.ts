@@ -47,10 +47,12 @@ serve(async (req) => {
     // Generate a unique transaction reference
     const txRef = `topup-${user.id.slice(0, 8)}-${Date.now()}`;
 
+    const trimmedEmail = (email || user.email || "user@momnest.app").trim();
+
     const payload = {
       amount: amount.toString(),
       currency: "ETB",
-      email: email || user.email || "user@momnest.app",
+      email: trimmedEmail,
       first_name: firstName || user.user_metadata?.name?.split(' ')[0] || "MomNest",
       last_name: lastName || user.user_metadata?.name?.split(' ').slice(1).join(' ') || "User",
       phone_number: phoneNumber || undefined,
@@ -58,7 +60,7 @@ serve(async (req) => {
       // After payment, Chapa will redirect user to this URL (/verify path)
       return_url: `https://momnest-app.vercel.app/verify`,
       customization: {
-        title: "MomNest Wallet Top-Up",
+        title: "Wallet Top-Up",
         description: `Add ${amount} ETB to your MomNest wallet`,
       },
       meta: {
@@ -67,10 +69,8 @@ serve(async (req) => {
       },
     };
 
-    console.log("Initializing Chapa payment with payload:", {
-      ...payload,
-      email: payload.email, // Log it clearly to debug validation errors
-    });
+    console.log("Initializing Chapa payment for user:", user.id);
+    console.log("Email being sent to Chapa:", payload.email);
 
     const chapaRes = await fetch(
       "https://api.chapa.co/v1/transaction/initialize",
@@ -87,8 +87,19 @@ serve(async (req) => {
     const chapaData = await chapaRes.json();
 
     if (!chapaRes.ok || chapaData.status !== "success") {
-      console.error("Chapa init error:", chapaData);
-      throw new Error(chapaData.message || "Chapa initialization failed");
+      console.error("Chapa init error response:", JSON.stringify(chapaData, null, 2));
+      
+      // If message is an object (validation errors), flatten it
+      let errorMessage = "Chapa initialization failed";
+      if (typeof chapaData.message === "string") {
+        errorMessage = chapaData.message;
+      } else if (typeof chapaData.message === "object" && chapaData.message !== null) {
+        errorMessage = Object.entries(chapaData.message)
+          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
+          .join(" | ");
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const checkoutUrl: string = chapaData.data.checkout_url;

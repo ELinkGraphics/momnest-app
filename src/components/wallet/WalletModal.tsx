@@ -160,10 +160,11 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handleSaveEmail = async () => {
-    if (!tempEmail || !tempEmail.includes('@')) {
+    const trimmedEmail = tempEmail.trim();
+    if (!trimmedEmail || !trimmedEmail.includes('@') || !trimmedEmail.includes('.')) {
       toast({
         title: "Invalid Email",
-        description: "Please enter a valid email address.",
+        description: "Please enter a valid email address (e.g. name@example.com).",
         variant: "destructive",
       });
       return;
@@ -171,7 +172,8 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
 
     setIsUpdatingProfile(true);
     try {
-      await updateProfile({ email: tempEmail });
+      await updateProfile({ email: trimmedEmail });
+      setTempEmail(''); // Clear after success
       toast({
         title: "Profile Updated",
         description: "Your email has been saved successfully.",
