@@ -47,12 +47,31 @@ serve(async (req) => {
     // Generate a unique transaction reference
     const txRef = `topup-${user.id.slice(0, 8)}-${Date.now()}`;
 
-    const trimmedEmail = (email || user.email || "user@momnest.app").trim();
+    // Resolve email: request body → auth user → profiles table → reject
+    let resolvedEmail = (email || user.email || "").trim();
+
+    // If still no email, try fetching from profiles table (where WalletModal saves it)
+    if (!resolvedEmail || !resolvedEmail.includes("@")) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.email) {
+        resolvedEmail = profile.email.trim();
+      }
+    }
+
+    // Final validation — don't send garbage to Chapa
+    if (!resolvedEmail || !resolvedEmail.includes("@") || !resolvedEmail.includes(".")) {
+      throw new Error("A valid email address is required. Please update your profile with an email first.");
+    }
 
     const payload = {
       amount: amount.toString(),
       currency: "ETB",
-      email: trimmedEmail,
+      email: resolvedEmail,
       first_name: firstName || user.user_metadata?.name?.split(' ')[0] || "MomNest",
       last_name: lastName || user.user_metadata?.name?.split(' ').slice(1).join(' ') || "User",
       phone_number: phoneNumber || undefined,

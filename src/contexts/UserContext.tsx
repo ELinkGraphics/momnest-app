@@ -348,6 +348,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         .update({
           ...(updates.name !== undefined && { name: updates.name }),
           ...(updates.username !== undefined && { username: updates.username }),
+          ...(updates.email !== undefined && { email: updates.email }),
           ...(updates.bio !== undefined && { bio: updates.bio }),
           ...(updates.subtitle !== undefined && { subtitle: updates.subtitle }),
           ...(updates.location !== undefined && { location: updates.location }),
