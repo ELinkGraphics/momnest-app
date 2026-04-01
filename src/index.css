@@ -429,3 +429,21 @@ All colors MUST be HSL.
   .prose .text-right { text-align: right !important; }
   .prose .text-justify { text-align: justify !important; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   Body scroll lock — used when wallet overlays are active
+   ═══════════════════════════════════════════════════════ */
+body.modal-overlay-open {
+  overflow: hidden !important;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+/* iOS PWA safe height utility */
+@supports (height: 100dvh) {
+  .pwa-safe-height {
+    height: 100dvh;
+  }
+}
