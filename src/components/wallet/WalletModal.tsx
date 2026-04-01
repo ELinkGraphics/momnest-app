@@ -39,6 +39,13 @@ const transactionTypeLabels: Record<string, { label: string; color: string }> = 
   premium_earning: { label: 'Premium Earned', color: 'text-green-600' },
 };
 
+// Helper to check if an email is valid enough for Chapa
+const isValidEmail = (email?: string | null): boolean => {
+  if (!email) return false;
+  const trimmed = email.trim();
+  return trimmed.includes('@') && trimmed.includes('.') && trimmed.length >= 5;
+};
+
 const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
   const { user, updateProfile } = useUser();
   const {
@@ -113,11 +120,11 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
   const handleTopUp = async () => {
     if (finalTopUp < 10) return;
     
-    // Check if email exists, if not we need it first
-    if (!user?.email) {
+    // Check if email is a valid format for Chapa
+    if (!isValidEmail(user?.email)) {
       toast({
         title: "Email Required",
-        description: "Please provide an email address for billing records.",
+        description: "Please enter a valid email address above before topping up.",
         variant: "destructive",
       });
       return;
@@ -337,7 +344,7 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
 
             {/* ── TOP UP TAB ───────────────────────────────────────── */}
             <TabsContent value="topup" className="mt-3 space-y-4">
-              {!user?.email && (
+              {!isValidEmail(user?.email) && (
                 <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="flex items-center gap-2 text-primary font-semibold">
                     <Mail className="w-4 h-4" />
