@@ -71,7 +71,6 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
   const [topUpDone, setTopUpDone] = useState(false);
   const [topUpError, setTopUpError] = useState<string | null>(null);
   const [topUpStep, setTopUpStep] = useState<TopUpStep>('amount');
-  const [iframeCheckoutUrl, setIframeCheckoutUrl] = useState<string | null>(null);
   const finalTopUp = topUpAmount || parseInt(customTopUp) || 0;
 
   // ── Withdraw state ────────────────────────────────────────────────────────
@@ -128,36 +127,6 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [handleVisibilityChange]);
 
-  // ── Listen for Chapa Iframe results ──────────────────────────────────────
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      // Security check: ensure the message comes from our own origin
-      if (event.origin !== window.location.origin) return;
-
-      const data = event.data;
-      if (data && data.type === 'CHAPA_PAYMENT_RESULT') {
-        console.log('Received Chapa results from iframe:', data);
-        
-        // Close the iframe modal immediately
-        setIframeCheckoutUrl(null);
-
-        if (data.status === 'success') {
-          setTopUpDone(true);
-          setTopUpAmount(null);
-          setCustomTopUp('');
-          setTopUpError(null);
-          setTopUpStep('amount');
-          // Clear pending ref as we're done
-          localStorage.removeItem('chapa_pending_txref');
-        } else {
-          setTopUpError(data.message || 'Payment was not completed successfully.');
-        }
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
 
   // Reset step & topUpDone when amount changes
   useEffect(() => {
@@ -210,8 +179,47 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
       returnUrl: window.location.origin + '/verify'
     }, {
       onSuccess: (data) => {
-        // Instead of external redirect, we open our inline iframe
-        setIframeCheckoutUrl(data.checkoutUrl);
+        // Use the official Chapa Inline SDK to avoid 419 errors in iframes
+        if (!(window as any).ChapaCheckout) {
+          toast({
+            title: "Payment gateway error",
+            description: "Chapa SDK failed to load. Please refresh and try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const chapa = new (window as any).ChapaCheckout({
+          publicKey: import.meta.env.VITE_CHAPA_PUBLIC_KEY,
+          amount: finalTopUp.toString(),
+          currency: 'ETB',
+          email: user.email,
+          first_name: firstName,
+          last_name: lastName,
+          tx_ref: data.txRef,
+          onSuccess: (res: any) => {
+            console.log('Chapa success callback:', res);
+            setIsVerifying(true);
+            verifyTopUp.mutate({ txRef: data.txRef }, {
+              onSuccess: (verifyRes) => {
+                if (verifyRes.status === 'success') {
+                  setTopUpDone(true);
+                  setTopUpAmount(null);
+                  setCustomTopUp('');
+                  setTopUpError(null);
+                  setTopUpStep('amount');
+                }
+              },
+              onSettled: () => setIsVerifying(false)
+            });
+          },
+          onClose: () => {
+            console.log('Chapa checkout closed');
+            // Optional fallback: handle potential background success
+          }
+        });
+        
+        chapa.initialize();
       }
     });
   };
@@ -825,48 +833,6 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
               </Button>
             </div>
           </div>
-        </div>
-      )}
-      {/* ─── CHAPA IFRAME MODAL ────────────────────────────────────────────────── */}
-      {iframeCheckoutUrl && (
-        <div className="fixed inset-0 z-[300] bg-background animate-in slide-in-from-bottom duration-300 isolate flex flex-col pwa-safe-height shadow-2xl">
-          {/* Header for Iframe Modal */}
-          <div className="relative z-10 flex-shrink-0 flex items-center justify-between px-4 py-3 bg-background border-b border-border/10 safe-area-top">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setIframeCheckoutUrl(null)} 
-              className="text-foreground gap-2 font-bold hover:bg-muted/50 rounded-xl"
-            >
-              <XCircle className="h-5 w-5" /> Cancel
-            </Button>
-            <div className="flex flex-col items-center">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Secure Checkout</span>
-            </div>
-            <div className="w-20" />
-          </div>
-
-          {/* The Iframe Container */}
-          <div className="flex-1 w-full bg-white relative">
-            {/* Spinner loader while iframe loads */}
-            <div className="absolute inset-0 flex items-center justify-center -z-10 bg-background">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-                <p className="text-xs font-bold text-muted-foreground animate-pulse tracking-widest uppercase">Initializing Secure Gateway...</p>
-              </div>
-            </div>
-            
-            <iframe 
-              src={iframeCheckoutUrl}
-              className="w-full h-full border-none"
-              title="Chapa Checkout"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
-              allow="payment; publickey-credentials-get"
-            />
-          </div>
-          
-          {/* Footer buffer for safe area */}
-          <div className="h-[env(safe-area-inset-bottom)] bg-white" />
         </div>
       )}
     </>
