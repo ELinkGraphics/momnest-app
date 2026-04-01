@@ -219,7 +219,7 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
           }
         });
         
-        chapa.initialize();
+        chapa.pay();
       }
     });
   };
