@@ -38,7 +38,7 @@ serve(async (req) => {
       throw new Error("Unauthorized: Invalid token");
     }
 
-    const { amount, firstName, lastName, email, phoneNumber } = await req.json();
+    const { amount, firstName, lastName, email, phoneNumber, returnUrl } = await req.json();
 
     if (!amount || amount < 10) {
       throw new Error("Minimum top-up amount is 10 ETB");
@@ -68,6 +68,9 @@ serve(async (req) => {
       throw new Error("A valid email address is required. Please update your profile with an email first.");
     }
 
+    // Fallback for return_url (dynamic is better for local testing/iframe handshake)
+    const finalReturnUrl = returnUrl || `https://momnest-app.vercel.app/verify`;
+
     const payload = {
       amount: amount.toString(),
       currency: "ETB",
@@ -77,7 +80,7 @@ serve(async (req) => {
       phone_number: phoneNumber || undefined,
       tx_ref: txRef,
       // After payment, Chapa will redirect user to this URL (/verify path)
-      return_url: `https://momnest-app.vercel.app/verify`,
+      return_url: finalReturnUrl,
       customization: {
         title: "Wallet Top-Up",
         description: `Add ${amount} ETB to your MomNest wallet`,

@@ -13,6 +13,7 @@ const VerifyTopUp = () => {
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const isIframe = window !== window.parent;
   const txRef = searchParams.get('tx_ref') || searchParams.get('verify_topup');
 
   useEffect(() => {
@@ -23,13 +24,38 @@ const VerifyTopUp = () => {
         const result = await verifyTopUp.mutateAsync({ txRef });
         if (result?.status === 'success' || result?.status === 'already_credited') {
           setStatus('success');
+          if (isIframe) {
+            window.parent.postMessage({ 
+              type: 'CHAPA_PAYMENT_RESULT', 
+              status: 'success', 
+              txRef 
+            }, window.location.origin);
+          }
         } else {
           setStatus('error');
-          setErrorMsg(result?.message || 'Verification failed.');
+          const msg = result?.message || 'Verification failed.';
+          setErrorMsg(msg);
+          if (isIframe) {
+            window.parent.postMessage({ 
+              type: 'CHAPA_PAYMENT_RESULT', 
+              status: 'error', 
+              message: msg,
+              txRef 
+            }, window.location.origin);
+          }
         }
       } catch (err: any) {
         setStatus('error');
-        setErrorMsg(err.message || 'Something went wrong during verification.');
+        const msg = err.message || 'Something went wrong during verification.';
+        setErrorMsg(msg);
+        if (isIframe) {
+          window.parent.postMessage({ 
+            type: 'CHAPA_PAYMENT_RESULT', 
+            status: 'error', 
+            message: msg,
+            txRef 
+          }, window.location.origin);
+        }
       }
     };
 
@@ -39,6 +65,22 @@ const VerifyTopUp = () => {
   const handleGoHome = () => {
     navigate('/?wallet=open');
   };
+
+  if (isIframe) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 bg-transparent">
+        <div className="flex flex-col items-center text-center">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 animate-pulse">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          </div>
+          <h1 className="text-xl font-bold mb-1">Completing Payment...</h1>
+          <p className="text-sm text-muted-foreground">
+            Please don't close this window.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 sm:p-12">

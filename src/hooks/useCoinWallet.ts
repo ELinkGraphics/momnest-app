@@ -100,14 +100,16 @@ export function useCoinWallet(userId?: string) {
       amount, 
       email, 
       firstName, 
-      lastName 
+      lastName,
+      returnUrl
     }: { 
       amount: number; 
       email?: string; 
       firstName?: string; 
       lastName?: string; 
+      returnUrl?: string;
     }) => {
-      return callEdgeFunction('chapa-initialize', { amount, email, firstName, lastName });
+      return callEdgeFunction('chapa-initialize', { amount, email, firstName, lastName, returnUrl });
     },
     onSuccess: (data) => {
       // Store txRef so we can verify if needed
