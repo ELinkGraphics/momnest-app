@@ -1,52 +1,79 @@
-# Implementation Plan - PWA Back Navigation & Chat Scroll Fix
+# 🎬 Story Feature: Deep Analysis & Instagram-Level Redesign
 
-This plan ensures that the Android hardware/gesture back button provides a consistent and expected user experience, following the navigation hierarchy and implementation requirements provided.
+Complete bug audit, performance analysis, and UI/UX redesign plan for the Story system.
 
-## User Review Required
+---
 
-> [!IMPORTANT]
-> I will be refactoring the `/messages` route to use sub-routes (e.g., `/messages/:conversationId`). This might affect existing links to the chat view if they rely on state rather than URL.
+## A. 🐞 Bug Report
 
-## Proposed Changes
+### 🔴 HIGH Severity
 
-### [Core Navigation Framework](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/contexts/NavigationContext.tsx)
+#### BUG-1: Progress timer creates infinite `goToNext` calls
+**File:** [StoryViewer.tsx](file:///c:/Users/elink/./src/components/StoryViewer.tsx#L417-L431)
 
-#### [NEW] [NavigationContext.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/contexts/NavigationContext.tsx)
-- Create a context to manage "back-press consumers" (modals, sheets, overlays).
-- Implement a global `popstate` listener.
-- Provide a `pushModalState(closeFn: () => void)` helper that:
-    1. Pushes a dummy state to history: `window.history.pushState({ isModal: true }, '')`.
-    2. Registers the `closeFn`.
-- In `popstate`, if we were in a modal state, call the registered `closeFn` and prevent further navigation.
+The `setInterval` callback calls `setProgress`, and when `prev >= 100`, it calls `goToNext()` **inline inside the state updater**. But `goToNext` itself calls `setProgress(0)` and `setCurrentIndex(...)`, which causes multiple re-renders. This creates a race condition where:
+1. `prev >= 100` triggers `goToNext()`
+2. `goToNext()` sets `progress = 0` and updates `currentIndex`
+3. The interval is cleared and re-created (because `goToNext` is in the deps)
+4. But during the re-render gap, the old interval may fire again before cleanup, calling `goToNext()` **twice**
 
-### [Routing Updates](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/App.tsx)
+This causes **story skipping** — users occasionally see a story get skipped entirely.
 
-#### [MODIFY] [App.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/App.tsx)
-- Update `/messages` to support `:conversationId`.
-- Add placeholders for `/thread/:messageId` and `/media/:mediaId` if needed, or integrate them into sub-components.
+#### BUG-2: `STORY_DURATION` uses stale `videoDuration` on story change
+**File:** [StoryViewer.tsx](file:///c:/Users/elink/./src/components/StoryViewer.tsx#L65)
 
-### [Messages & Chat Refactor](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/Messages.tsx)
+`videoDuration` is not reset when transitioning to a new story. When going from a 30s video to a 5s image, `STORY_DURATION` can still be `30000` because `videoDuration` hasn't been cleared yet, causing the image to display for 30 seconds.
 
-#### [MODIFY] [Messages.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/Messages.tsx)
-- Use `useParams()` to get `conversationId`.
-- Remove internal `selectedConversationId` state where it conflicts with URL.
-- Implement scroll position saving in `window.history.replaceState` before navigating forward.
+**Fix:** Reset `videoDuration` to `null` in `goToNext()` and `goToPrevious()`.
 
-#### [MODIFY] [ChatView.tsx](file:///c:/Users/elink/./gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/messages/ChatView.tsx)
-- **Unique Scroll**: Added a floating "Jump to Bottom" button that appears when scrolled up (>300px).
-- **New Message Indicator**: The button shows a notification dot if new messages arrive while the user is scrolled up.
-- **Robust Back**: Updated the UI back arrow to call `window.history.back()`, leveraging the `NavigationContext` stoppers to close modals before navigating away.
+#### BUG-3: `viewedStoryIds` ref is never cleared between viewer sessions
+**File:** [StoryViewer.tsx](file:///c:/Users/elink/./src/components/StoryViewer.tsx#L51)
 
-### [Modal & Sheet Integration]
+`viewedStoryIds` is a `useRef<Set>` that persists across open/close cycles. After closing and re-opening the viewer, previously viewed stories won't trigger `onStoryViewed` again. 
 
-#### [MODIFY] [Various Modals]
-- Update `CreateGroupModal`, `SOSCreationModal`, and `CustomFilePicker` to use the `NavigationContext`'s `pushModalState`.
+**Fix:** Clear the set when `isOpen` changes to `false`.
 
-## Verification Plan
+#### BUG-4: `fetchStories` debounces with `useMemo` but creates closure leak
+**File:** [StoryContext.tsx](file:///c:/Users/elink/./src/contexts/StoryContext.tsx#L22-L159)
 
-### Manual Verification (on Android/Emulator or via Desktop Back Button)
-- [ ] **Home -> Chat -> Back**: Should return to Home.
-- [ ] **Chat -> Modal -> Back**: Should close Modal, stay in Chat.
-- [ ] **Chat -> Scroll -> Open Profile -> Back**: Should return to Chat at the same scroll position.
-- [ ] **Home -> Back**: App should minimize (not show blank/exit unexpectedly).
-- [ ] **Chat -> Fullscreen Media -> Back**: Should close media, stay in Chat.
+The `fetchStories` function is created inside `useMemo` and captures a `timer` variable. However, when `user` changes, the old timer is NOT cleared.
+
+**Fix:** Use `useRef` for the debounce timer and clear it in a cleanup effect.
+
+#### BUG-5: Nested `setTimeout` in transitions creates race conditions
+**File:** [StoryViewer.tsx](file:///c:/Users/elink/./src/components/StoryViewer.tsx#L342-L352)
+
+These timeouts are never cleaned up on unmount. If the viewer is closed during a transition, these fire on an unmounted component.
+
+---
+
+### 🟡 MEDIUM Severity
+
+#### BUG-13: `stickerData` override in `StoryContext.tsx`
+**File:** [StoryContext.tsx](file:///c:/Users/elink/./src/contexts/StoryContext.tsx#L93)
+
+The transformed sticker data from mentions **replaces** any actual sticker_data from the database. Link stickers become non-clickable.
+
+#### BUG-6: `StoryContext` fetches ALL story_mentions without a filter
+**File:** [StoryContext.tsx](file:///c:/Users/elink/./src/contexts/StoryContext.tsx#L58-L64)
+
+Fetches every mention ever created without an `in('story_id', activeStoryIds)` filter.
+
+#### BUG-8: Swipe and pointer events conflict
+**File:** [StoryViewer.tsx](file:///c:/Users/elink/./src/components/StoryViewer.tsx#L405-L408)
+
+`useSwipeGestures` and pointer events fire simultaneously on touch devices, causing double-navigation.
+
+---
+
+## B. 🎨 UI Redesign Plan
+
+- **Blur Background**: Added dynamic blurred background mirroring story media.
+- **rAF Progress**: 60fps buttery-smooth progress bars.
+- **Unified Gestures**: Pointer-based hold/tap/swipe-down system.
+- **Gradient Overlays**: Top/bottom readability improvements.
+
+## C. 🧪 Verification Results
+- ✅ **Type Check**: Project compiles with 0 TypeScript errors.
+- ✅ **Logic Flow**: Verified state transitions and pause/resume logic.
+- ✅ **Performance**: Optimized fetching and rendering logic.

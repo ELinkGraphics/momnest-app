@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUser } from '@/contexts/UserContext';
 
@@ -48,42 +48,47 @@ export const useStoryActivity = (storyId: string | null) => {
     messages: [],
     isLoading: true,
   });
+  
+  // PERF-3 FIX: Debounce timer for realtime re-fetches
+  const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const fetchActivity = useCallback(async () => {
     if (!storyId || !user?.id) return;
 
     try {
-      // Fetch views with profiles
-      const { data: views } = await supabase
-        .from('story_views')
-        .select(`
-          id,
-          viewer_id,
-          viewed_at,
-          profiles:viewer_id (name, initials, avatar_color, avatar_url)
-        `)
-        .eq('story_id', storyId);
+      // PERF-2 FIX: Parallelize all three queries
+      const [viewsRes, likesRes, messagesRes] = await Promise.all([
+        supabase
+          .from('story_views')
+          .select(`
+            id,
+            viewer_id,
+            viewed_at,
+            profiles:viewer_id (name, initials, avatar_color, avatar_url)
+          `)
+          .eq('story_id', storyId),
+        supabase
+          .from('story_likes')
+          .select('id, user_id')
+          .eq('story_id', storyId),
+        supabase
+          .from('story_messages')
+          .select(`
+            id,
+            sender_id,
+            receiver_id,
+            content,
+            created_at,
+            profiles:sender_id (name, initials, avatar_color, avatar_url)
+          `)
+          .eq('story_id', storyId)
+          .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`)
+          .order('created_at', { ascending: false }),
+      ]);
 
-      // Fetch likes
-      const { data: likes } = await supabase
-        .from('story_likes')
-        .select('id, user_id')
-        .eq('story_id', storyId);
-
-      // Fetch messages with profiles (both incoming and outgoing)
-      const { data: messages } = await supabase
-        .from('story_messages')
-        .select(`
-          id,
-          sender_id,
-          receiver_id,
-          content,
-          created_at,
-          profiles:sender_id (name, initials, avatar_color, avatar_url)
-        `)
-        .eq('story_id', storyId)
-        .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`)
-        .order('created_at', { ascending: false });
+      const views = viewsRes.data;
+      const likes = likesRes.data;
+      const messages = messagesRes.data;
 
       const likedUserIds = new Set((likes || []).map((l: any) => l.user_id));
 
@@ -118,35 +123,40 @@ export const useStoryActivity = (storyId: string | null) => {
     }
   }, [storyId, user?.id]);
 
+  // PERF-3 FIX: Debounced re-fetch for realtime events
+  const debouncedFetch = useCallback(() => {
+    clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      fetchActivity();
+    }, 300); // 300ms debounce to batch rapid realtime events
+  }, [fetchActivity]);
+
   useEffect(() => {
     if (!storyId) return;
     let isMounted = true;
     
-    const fetch = async () => {
-      await fetchActivity();
-    };
-    
-    fetch();
+    fetchActivity();
 
-    // Realtime subscriptions
+    // Realtime subscriptions with debounced re-fetch
     const channel = supabase
       .channel(`story-activity-${storyId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'story_views', filter: `story_id=eq.${storyId}` }, () => {
-        if (isMounted) fetchActivity();
+        if (isMounted) debouncedFetch();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'story_likes', filter: `story_id=eq.${storyId}` }, () => {
-        if (isMounted) fetchActivity();
+        if (isMounted) debouncedFetch();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'story_messages', filter: `story_id=eq.${storyId}` }, () => {
-        if (isMounted) fetchActivity();
+        if (isMounted) debouncedFetch();
       })
       .subscribe();
 
     return () => {
       isMounted = false;
+      clearTimeout(debounceTimer.current);
       supabase.removeChannel(channel);
     };
-  }, [storyId, fetchActivity]);
+  }, [storyId, fetchActivity, debouncedFetch]);
 
   // Send a reply message in chat
   const sendReply = useCallback(async (receiverId: string, content: string) => {
