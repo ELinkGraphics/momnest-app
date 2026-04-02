@@ -80,6 +80,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   // BUG-2 FIX: Track videoDuration separately, reset on story change
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const bgVideoRef = useRef<HTMLVideoElement>(null);
 
   // BUG-5 FIX: Track transition timeouts for cleanup
   const transitionTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -509,11 +510,18 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
   // Pause/play video when isPaused changes
   useEffect(() => {
-    if (videoRef.current) {
+    const v = videoRef.current;
+    const bgV = bgVideoRef.current;
+    if (v) {
       if (isPaused) {
-        videoRef.current.pause();
+        v.pause();
+        if (bgV) bgV.pause();
       } else {
-        videoRef.current.play().catch(() => {});
+        v.play().catch(() => {});
+        if (bgV) {
+          bgV.currentTime = v.currentTime;
+          bgV.play().catch(() => {});
+        }
       }
     }
   }, [isPaused]);
@@ -707,11 +715,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       {/* ─── BLUR BACKGROUND LAYER ────────────────────────────────── */}
       <div className="story-bg-blur">
         {isCurrentVideo ? (
-          <img
+          <video
+            ref={bgVideoRef}
             src={currentStory.image}
-            alt=""
-            className="story-bg-media"
-            draggable={false}
+            className="story-bg-media object-cover"
+            autoPlay
+            loop
+            muted
+            playsInline
           />
         ) : (
           <img

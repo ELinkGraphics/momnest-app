@@ -58,8 +58,8 @@ const CANVAS_W = 390;
 const CANVAS_H = 844;
 const SNAP_THRESHOLD = 8;
 const TRASH_ZONE_H = 80;
-const MIN_SCALE = 0.2;
-const MAX_SCALE = 5;
+const MIN_SCALE = 0.05;
+const MAX_SCALE = 10;
 
 // Safe-frame margin (px inside the canvas) — visible boundary
 const SAFE_MARGIN_X = 12;
@@ -107,6 +107,7 @@ const StoryEditor: React.FC<Props> = ({ previewUrl, mediaType = 'image', initial
   const [textOverlays, setTextOverlays] = useState<TextOverlay[]>(buildInitialTextOverlays);
   const [emojiStickers, setEmojiStickers] = useState<StickerItem[]>([]);
   const [imageStickers, setImageStickers] = useState<ImageSticker[]>(buildInitialImageStickers);
+  const [initialMediaRatio, setInitialMediaRatio] = useState<number | null>(null);
   const [selectedFilter, setSelectedFilter] = useState('none');
   const [activeTool, setActiveTool] = useState<'text' | 'sticker' | 'filter' | null>(null);
 
@@ -116,6 +117,47 @@ const StoryEditor: React.FC<Props> = ({ previewUrl, mediaType = 'image', initial
   useEffect(() => { imageStickersRef.current = imageStickers; }, [imageStickers]);
   useEffect(() => { textOverlaysRef.current = textOverlays; }, [textOverlays]);
   useEffect(() => { emojiStickersRef.current = emojiStickers; }, [emojiStickers]);
+
+  // Detect initial media dimensions for better layout
+  useEffect(() => {
+    if (isInitialVideo) {
+      const v = document.createElement('video');
+      v.src = previewUrl;
+      v.onloadedmetadata = () => {
+        const ratio = v.videoWidth / v.videoHeight;
+        setInitialMediaRatio(ratio);
+        adjustInitialSticker(ratio);
+      };
+    } else {
+      const img = new Image();
+      img.src = previewUrl;
+      img.onload = () => {
+        const ratio = img.width / img.height;
+        setInitialMediaRatio(ratio);
+        adjustInitialSticker(ratio);
+      };
+    }
+  }, [previewUrl]);
+
+  const adjustInitialSticker = (ratio: number) => {
+    // If not close to 9:16 (approx 0.56)
+    const targetRatio = CANVAS_W / CANVAS_H;
+    if (Math.abs(ratio - targetRatio) > 0.05) {
+      setImageStickers(prev => prev.map(s => {
+        if (s.id.startsWith('img-initial-')) {
+          // Scale to FIT (contain)
+          const scale = Math.min(SAFE_W / (CANVAS_W * ratio), SAFE_H / CANVAS_H);
+          // Actually, just scale it so it fits nicely
+          const fitScale = ratio > targetRatio 
+            ? (CANVAS_W * 0.9) / CANVAS_W // Landscape: fit width
+            : (CANVAS_H * 0.8) / CANVAS_H; // Portrait but not 9:16
+          
+          return { ...s, scale: fitScale };
+        }
+        return s;
+      }));
+    }
+  };
 
   // Refs to video elements for frame capture during export
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
@@ -411,16 +453,63 @@ const StoryEditor: React.FC<Props> = ({ previewUrl, mediaType = 'image', initial
     canvas.height = CANVAS_H * 2;
     const scaleX = canvas.width / CANVAS_W;
     const scaleY = canvas.height / CANVAS_H;
+    const isPortrait916 = initialMediaRatio && Math.abs(initialMediaRatio - (CANVAS_W / CANVAS_H)) < 0.05;
 
-    // Draw gradient background
-    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    const rootStyles = getComputedStyle(document.documentElement);
-    const primaryHSL = rootStyles.getPropertyValue('--primary').trim();
-    const secondaryHSL = rootStyles.getPropertyValue('--secondary').trim();
-    gradient.addColorStop(0, `hsl(${primaryHSL})`);
-    gradient.addColorStop(1, `hsl(${secondaryHSL})`);
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (!isPortrait916) {
+      // Draw Blurred Background Layer
+      const initialSticker = imageStickers.find(s => s.id.startsWith('img-initial-'));
+      if (initialSticker) {
+        let bgSource: HTMLImageElement | HTMLVideoElement;
+        if (initialSticker.isVideo) {
+          bgSource = videoRefs.current.get(initialSticker.id)!;
+        } else {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.src = initialSticker.src;
+          await new Promise((r) => img.onload = r);
+          bgSource = img;
+        }
+
+        if (bgSource) {
+          ctx.save();
+          
+          // 1. Draw blurred media (COVER)
+          const sW = initialSticker.isVideo ? (bgSource as HTMLVideoElement).videoWidth : (bgSource as HTMLImageElement).width;
+          const sH = initialSticker.isVideo ? (bgSource as HTMLVideoElement).videoHeight : (bgSource as HTMLImageElement).height;
+          const coverScale = Math.max(canvas.width / sW, canvas.height / sH);
+          const dW = sW * coverScale;
+          const dH = sH * coverScale;
+
+          // Simple canvas blur: draw at low res then scale up
+          const tempCanvas = document.createElement('canvas');
+          const tempCtx = tempCanvas.getContext('2d')!;
+          tempCanvas.width = 100;
+          tempCanvas.height = 100 * (canvas.height / canvas.width);
+          tempCtx.drawImage(bgSource, 0, 0, tempCanvas.width, tempCanvas.height);
+          
+          ctx.globalAlpha = 1.0;
+          ctx.filter = 'blur(60px) brightness(0.7)'; // Modern browsers support this
+          ctx.drawImage(tempCanvas, (canvas.width - dW) / 2, (canvas.height - dH) / 2, dW, dH);
+          ctx.filter = 'none';
+          
+          // 2. Draw 30% black overlay
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          ctx.restore();
+        }
+      }
+    } else {
+      // Draw standard gradient background
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      const rootStyles = getComputedStyle(document.documentElement);
+      const primaryHSL = rootStyles.getPropertyValue('--primary').trim();
+      const secondaryHSL = rootStyles.getPropertyValue('--secondary').trim();
+      gradient.addColorStop(0, `hsl(${primaryHSL})`);
+      gradient.addColorStop(1, `hsl(${secondaryHSL})`);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
     // Draw image/video stickers
     for (const sticker of imageStickers) {
@@ -457,6 +546,14 @@ const StoryEditor: React.FC<Props> = ({ previewUrl, mediaType = 'image', initial
       ctx.save();
       ctx.translate(sticker.x * scaleX, sticker.y * scaleY);
       ctx.rotate((sticker.rotation * Math.PI) / 180);
+
+      // Add drop shadow for foreground media if it's the initial non-9:16 media
+      if (isInitial && !isPortrait916) {
+        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+        ctx.shadowBlur = 40;
+        ctx.shadowOffsetY = 10;
+      }
+
       ctx.drawImage(source, -drawW, -drawH, drawW * 2, drawH * 2);
       ctx.restore();
     }
@@ -744,12 +841,38 @@ const StoryEditor: React.FC<Props> = ({ previewUrl, mediaType = 'image', initial
         onPointerUp={onImageUp}
         onPointerCancel={onImageUp}
       >
-        {/* Gradient background */}
+        {/* Blurred background for non-9:16 media */}
+        {initialMediaRatio && Math.abs(initialMediaRatio - (CANVAS_W / CANVAS_H)) > 0.05 && (
+          <div className="absolute inset-0 pointer-events-none">
+            {isInitialVideo ? (
+              <video
+                src={previewUrl}
+                className="w-full h-full object-cover"
+                style={{ filter: 'blur(40px) brightness(0.7)', transform: 'scale(1.15)' }}
+                muted
+                loop
+                autoPlay
+                playsInline
+              />
+            ) : (
+              <img
+                src={previewUrl}
+                className="w-full h-full object-cover"
+                style={{ filter: 'blur(40px) brightness(0.7)', transform: 'scale(1.15)' }}
+                alt=""
+              />
+            )}
+            <div className="absolute inset-0 bg-black/30" />
+          </div>
+        )}
+
+        {/* Gradient background fallback */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))',
             filter: filterCss,
+            opacity: initialMediaRatio && Math.abs(initialMediaRatio - (CANVAS_W / CANVAS_H)) > 0.05 ? 0 : 1,
           }}
         />
 
