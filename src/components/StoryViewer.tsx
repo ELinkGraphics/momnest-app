@@ -98,6 +98,28 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   const isOwnStory = currentStory?.user?.id === user?.id;
   const currentStoryDbId = typeof currentStory?.id === 'string' ? currentStory.id : null;
 
+
+  // ─── BACKGROUND VIDEO SYNC ──────────────────────────────────────────
+  useEffect(() => {
+    if (!isCurrentVideo || !isOpen || isPaused || isTransitioning) return;
+    
+    const v = videoRef.current;
+    const bgV = bgVideoRef.current;
+    if (!v || !bgV) return;
+
+    // Sync playing state and time
+    const syncVideos = () => {
+      if (Math.abs(bgV.currentTime - v.currentTime) > 0.1) {
+        bgV.currentTime = v.currentTime;
+      }
+      if (v.paused && !bgV.paused) bgV.pause();
+      if (!v.paused && bgV.paused) bgV.play().catch(() => {});
+    };
+
+    const interval = setInterval(syncVideos, 100);
+    return () => clearInterval(interval);
+  }, [isCurrentVideo, isOpen, isPaused, isTransitioning]);
+
   // ─── Record view when story changes ──────────────────────────────────
   useEffect(() => {
     const storyId = typeof currentStory?.id === "string" ? currentStory.id : null;
@@ -718,7 +740,12 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           <video
             ref={bgVideoRef}
             src={currentStory.image}
-            className="story-bg-media object-cover"
+            className="story-bg-media"
+            style={{
+              filter: 'blur(40px) brightness(0.7)',
+              transform: 'scale(1.15)',
+              objectFit: 'cover'
+            }}
             autoPlay
             loop
             muted
@@ -729,6 +756,11 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             src={currentStory.image}
             alt=""
             className="story-bg-media"
+            style={{
+              filter: 'blur(40px) brightness(0.7)',
+              transform: 'scale(1.15)',
+              objectFit: 'cover'
+            }}
             draggable={false}
           />
         )}
@@ -891,9 +923,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                 {currentStory.videoTransform ? (
                   <div className="w-full h-full relative overflow-hidden"
                     style={{
-                      background: currentStory.backgroundGradient
-                        ? `linear-gradient(135deg, hsl(${currentStory.backgroundGradient.from}), hsl(${currentStory.backgroundGradient.to}))`
-                        : 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))',
+                      background: 'transparent',
                     }}
                   >
                     <video
