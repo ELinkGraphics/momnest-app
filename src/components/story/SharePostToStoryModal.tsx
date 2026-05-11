@@ -40,7 +40,7 @@ const SharePostToStoryModal: React.FC<SharePostToStoryModalProps> = ({ isOpen, o
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.font = '24px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Shared from MomsNest', 540, 1850);
+    ctx.fillText('Shared from Serkle', 540, 1850);
 
     return canvas.toDataURL('image/jpeg', 0.9);
   };

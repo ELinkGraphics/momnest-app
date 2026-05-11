@@ -124,7 +124,7 @@ export const InstallPrompt = () => {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold text-foreground">
-              Install MomsNest App
+              Install Serkle App
             </h3>
             {isIOS ? (
               <p className="text-xs text-muted-foreground mt-1">

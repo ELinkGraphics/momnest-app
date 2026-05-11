@@ -9,7 +9,7 @@ All colors MUST be HSL.
 @layer base {
   [data-theme="light"],
   :root:not([data-theme="dark"]) {
-    /* MomsNest Design System - Beautiful purple/pink theme */
+    /* Serkle Design System - Beautiful purple/pink theme */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --bg: #ffffff;

@@ -33,7 +33,7 @@ const TestPush = () => {
         body: {
           userId: user.id,
           title: '🔔 Test Notification',
-          body: 'This is a test notification from the MomsNest debug page!',
+          body: 'This is a test notification from the Serkle debug page!',
           data: { test: true, timestamp: new Date().toISOString() }
         }
       });

@@ -106,7 +106,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       await deferredPrompt.prompt();
       const result = await deferredPrompt.userChoice;
       if (result.outcome === 'accepted') {
-        toast({ title: 'App installed!', description: 'MomsNest has been added to your home screen.' });
+        toast({ title: 'App installed!', description: 'Serkle has been added to your home screen.' });
       }
       setDeferredPrompt(null);
     } catch (err) {
@@ -471,7 +471,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                           <Smartphone className="h-5 w-5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground text-sm">MomsNest App</p>
+                          <p className="font-medium text-foreground text-sm">Serkle App</p>
                           <p className="text-xs text-muted-foreground">
                             {isIOS
                               ? 'Tap Share → "Add to Home Screen" to install'
@@ -730,7 +730,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                       </p>
                       {permission === 'denied' && (
                         <p className="text-xs text-destructive bg-destructive/10 p-2 rounded-lg">
-                          Notifications are blocked at the browser level. Please open your browser settings to allow MomsNest to send notifications.
+                          Notifications are blocked at the browser level. Please open your browser settings to allow Serkle to send notifications.
                         </p>
                       )}
                     </div>

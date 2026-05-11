@@ -93,7 +93,7 @@ export default function Signup() {
         if (error) {
           toast({ title: "Signup failed", description: error.message, variant: "destructive" });
         } else {
-          toast({ title: "Account created!", description: "Welcome to MomsNest!" });
+          toast({ title: "Account created!", description: "Welcome to Serkle!" });
           navigate("/");
         }
       }
@@ -128,13 +128,13 @@ export default function Signup() {
 
           <div className="inline-flex items-center rounded-full px-3 py-1 border border-border">
             <img
-              src="/lovable-uploads/0cbbe835-9c4c-4a9c-87ae-8385aa0d34ee.png"
-              alt="MomsNest"
+              src="/lovable-uploads/SerkleMainLogo.svg"
+              alt="Serkle"
               className="h-8 w-auto"
             />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Join MomsNest</h1>
+            <h1 className="text-xl font-semibold text-foreground">Join Serkle</h1>
             <p className="text-sm text-muted-foreground mt-1">Create your account</p>
           </div>
         </div>

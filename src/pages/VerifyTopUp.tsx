@@ -112,7 +112,7 @@ const VerifyTopUp = () => {
               </div>
               <h1 className="text-3xl font-black text-foreground mb-3">Payment Successful!</h1>
               <p className="text-muted-foreground mb-8">
-                Your coins have been added to your wallet. You're all set to explore MomNest!
+                Your coins have been added to your wallet. You're all set to explore Serkle!
               </p>
               
               <div className="w-full p-5 rounded-3xl bg-primary/5 border border-primary/10 flex items-center justify-between mb-8">

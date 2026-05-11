@@ -215,7 +215,7 @@ export const usePushNotifications = () => {
         body: {
           userId: user.id,
           title: '🔔 Test Notification',
-          body: 'This is a test notification from your MomsNest settings!',
+          body: 'This is a test notification from your Serkle settings!',
           data: { test: true, timestamp: new Date().toISOString() }
         }
       });

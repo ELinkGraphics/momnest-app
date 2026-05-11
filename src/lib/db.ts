@@ -118,7 +118,7 @@ export class ChatDatabase extends Dexie {
   private resolveEncryptionKey!: (key: Uint8Array) => void;
 
   constructor() {
-    super('MomNestChatDB_v4');
+    super('SerkleChatDB_v4');
     
     // Schema version 2 - Added profiles table
     // The keys listed here are the indexed fields. Everything else is unindexed payload.
@@ -184,10 +184,10 @@ export class ChatDatabase extends Dexie {
 
       // Self-Healing Clear: Wipe corrupted legacy data if version mismatch
       const ENCRYPTION_VERSION = 'v6_premium_profile';
-      const storedVersion = localStorage.getItem('MOMNEST_DB_ENCRYPTION_VERSION');
+      const storedVersion = localStorage.getItem('SERKLE_DB_ENCRYPTION_VERSION');
       if (storedVersion !== ENCRYPTION_VERSION) {
         console.warn(`[Dexie] Encryption version mismatch (${storedVersion} -> ${ENCRYPTION_VERSION}). Nuclear reset...`);
-        localStorage.setItem('MOMNEST_DB_ENCRYPTION_VERSION', ENCRYPTION_VERSION);
+        localStorage.setItem('SERKLE_DB_ENCRYPTION_VERSION', ENCRYPTION_VERSION);
         await this.delete(); // Nukes the specific DB name
         window.location.reload(); // Force refresh to re-init with clean DB
         return; 

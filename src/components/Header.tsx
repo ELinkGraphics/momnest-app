@@ -158,8 +158,8 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
             <div className="px-4 h-10 flex items-center justify-between">
             <div className="inline-flex items-center rounded-full px-3 py-1 border border-border">
               <img 
-                src="/lovable-uploads/0cbbe835-9c4c-4a9c-87ae-8385aa0d34ee.png" 
-                alt="MomsNest" 
+                src="/lovable-uploads/SerkleMainLogo.svg" 
+                alt="Serkle" 
                 className="h-7 w-auto"
               />
             </div>
@@ -178,8 +178,8 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
         <div className="px-4 h-10 flex items-center justify-between">
           <div className="inline-flex items-center rounded-full px-2.5 py-0.5 border border-border">
             <img 
-              src="/lovable-uploads/0cbbe835-9c4c-4a9c-87ae-8385aa0d34ee.png" 
-              alt="MomsNest" 
+              src="/lovable-uploads/SerkleMainLogo.svg" 
+              alt="Serkle" 
               className="h-7 w-7 rounded-full object-cover"
             />
           </div>
