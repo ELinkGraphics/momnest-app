@@ -1,28 +1,6 @@
-- [x] Circle Feed Video Tab
-    - [x] Database Schema Setup
-    - [x] Hooks & Logic
-    - [x] UI Components
-    - [x] Integration & Verification
-    - [x] Push to GitHub
-- [x] Navigation & Route Fixes
-    - [x] Fix Circle Navigation (Stuck UI Issue)
-    - [x] Implement robust `handleBack` and route remounting
-    - [x] Push to GitHub
-- [x] Stories Experience Enhancements
-    - [x] Flatten story array for seamless user-to-user navigation in `StoriesBar.tsx`
-    - [x] Implement smooth opening/closing animations for `StoryViewer.tsx`
-    - [x] Add slide/zoom transitions between individual stories
-    - [x] Ensure automatic progression between users' stories
-    - [x] Final Verification & Push to GitHub
-- [x] Story Seen Status Persistence
-    - [x] Research and Planning
-    - [x] Update `useStoryPersistence.tsx` to fetch view data and calculate `isViewed`
-    - [x] Update `StoryViewer.tsx` to record views in `story_views` table
-    - [x] Verify automatic reset when new stories are posted
-    - [x] Final Verification & Push to GitHub
-- [x] Fix Story View RLS Policies (Refined)
-    - [x] Research and Planning
-    - [x] Create migration `20260318113500_refined_story_views_rls.sql` (clean recreation)
-    - [x] Simplify `StoryViewer.tsx` to use `insert()` instead of `upsert()`
-    - [x] Apply migration and verify fixes
-    - [x] Push to GitHub
+- [x] Analyze codebase for "MomsNest" and logo references
+- [x] Update global metadata (index.html, manifest.json, capacitor.config.json)
+- [x] Replace logo assets in UI (Header, Login, Signup)
+- [x] Update UI text references (Signup, Login, Settings, Notifications)
+- [x] Refactor local database naming (src/lib/db.ts)
+- [x] Final global sweep and verification

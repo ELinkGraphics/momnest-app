@@ -1,27 +1,42 @@
-# Implementation Plan - Navigation Fix
+# Implementation Plan - App Rebranding to "Serkle"
 
-The Circle Detail page currently experiences "stuck" navigation where the back button and footer buttons fail to return the user to the home page or circles list. This is caused by redundant `navigate` calls and a lack of proper state synchronization.
+This plan outlines the steps to rebrand the app from **MomsNest** to **Serkle** and replace the current logo with the new SVG logo.
 
 ## Proposed Changes
 
-### [MODIFY] [FooterNav](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/FooterNav.tsx)
+### 1. Identify and Replace App Name
+The app name "MomsNest" (and "MomNest") will be replaced with **"Serkle"** in the following locations:
+- `index.html` (Title, Meta tags)
+- `public/manifest.json` (PWA name and short name)
+- `capacitor.config.json` (appName)
+- `src/components/Header.tsx` (Alt text)
+- `src/pages/Login.tsx` & `src/pages/Signup.tsx` (Alt text, Headings)
+- `src/index.css` (Comments, Design System name)
+- `src/lib/db.ts` (Database name, LocalStorage keys)
+- Various toast messages and UI text.
 
-- Update `handleTabClick` to prioritize `navigateToTab` and ensure `onSelect` only handles internal state without triggering redundant navigations.
+### 2. Identify and Replace Logo
+The new logo is located at `/lovable-uploads/SerkleMainLogo.svg`.
+The old logo `/lovable-uploads/0cbbe835-9c4c-4a9c-87ae-8385aa0d34ee.png` will be replaced.
 
-### [MODIFY] [CircleDetailWrapper](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/components/CircleDetailWrapper.tsx)
+**Logo Specifications:**
+- **Standard Size**: Used at `h-7` (approx 28px) to `h-8` (approx 32px) in the UI.
+- **PWA Icons**: 192x192 and 512x512 pixels (SVG is ideal for these).
+- **Format**: SVG.
 
-- Refactor `handleTabSelect` to simplify logic and move the responsibility of state management to the router where possible.
-- Ensure that clicking tabs in the footer correctly unmounts the circle view.
+### 3. Font and Typography
+The current font remains **Inter**.
 
-### [MODIFY] [CircleDetail](file:///c:/Users/elink/./.gemini/antigravity/scratch/MomNest/heart-lens-studio-main/src/pages/CircleDetail.tsx)
-
-- Change the `ArrowLeft` button's behavior from `navigate('/')` to `navigate(-1)` or a more appropriate back-to-list call.
-- Ensure that any lingering video playback or overlays from the new "Videos" tab are properly cleaned up on unmount.
+---
 
 ## Verification Plan
 
+### Automated Tests
+- Grep the entire codebase for "MomsNest" and "MomNest" to ensure no occurrences remain.
+- Grep for the old logo filename to ensure all references are updated.
+
 ### Manual Verification
-- Open a Circle Detail page and interact with the "Videos" tab.
-- Click the "Back" arrow icon in the header -> Expect to return to the circles browse list.
-- Click the "Home" icon in the footer -> Expect to return to the main feed.
-- Click the "Add" icon in the footer -> Expect the create modal to open on the home/circles page.
+- Verify the app title in the browser tab.
+- Verify the logo in the Header, Login, and Signup pages.
+- Check the PWA installation prompt to see the new name and icon.
+- Verify that the database and localStorage keys are correctly updated.
