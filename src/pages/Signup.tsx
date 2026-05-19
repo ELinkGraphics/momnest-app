@@ -126,11 +126,11 @@ export default function Signup() {
             <ArrowLeft className="w-4 h-4" />
           </Button>
 
-          <div className="inline-flex items-center rounded-full px-3 py-1 border border-border">
+          <div className="flex items-center justify-center w-12 h-12 rounded-full border border-border overflow-hidden">
             <img
               src="/lovable-uploads/SerkleMainLogo.svg"
               alt="Serkle"
-              className="h-8 w-auto"
+              className="h-7 w-7 object-contain"
             />
           </div>
           <div>

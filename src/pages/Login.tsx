@@ -86,8 +86,8 @@ export default function Login() {
       <div className="w-full max-w-md space-y-6">
         {/* Header */}
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center rounded-full px-3 py-1 border border-border">
-            <img src="/lovable-uploads/SerkleMainLogo.svg" alt="Serkle" className="h-8 w-auto" />
+          <div className="flex items-center justify-center w-12 h-12 rounded-full border border-border overflow-hidden">
+            <img src="/lovable-uploads/SerkleMainLogo.svg" alt="Serkle" className="h-7 w-7 object-contain" />
           </div>
           <div>
             <h1 className="text-xl font-semibold text-foreground">Welcome back</h1>

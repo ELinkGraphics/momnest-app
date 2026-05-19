@@ -156,11 +156,11 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
       <header className="sticky top-0 z-30 border-b border-border">
         <div className="bg-background">
             <div className="px-4 h-10 flex items-center justify-between">
-            <div className="inline-flex items-center rounded-full px-3 py-1 border border-border">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full border border-border overflow-hidden">
               <img 
                 src="/lovable-uploads/SerkleMainLogo.svg" 
                 alt="Serkle" 
-                className="h-7 w-auto"
+                className="h-5 w-5 object-contain"
               />
             </div>
             <div className="flex items-center gap-1">
@@ -176,11 +176,11 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
     <header className="sticky top-0 z-30 border-b border-border">
       <div className="bg-background">
         <div className="px-4 h-10 flex items-center justify-between">
-          <div className="inline-flex items-center rounded-full px-2.5 py-0.5 border border-border">
+          <div className="flex items-center justify-center w-8 h-8 rounded-full border border-border overflow-hidden">
             <img 
               src="/lovable-uploads/SerkleMainLogo.svg" 
               alt="Serkle" 
-              className="h-7 w-7 rounded-full object-cover"
+              className="h-5 w-5 object-contain"
             />
           </div>
           
