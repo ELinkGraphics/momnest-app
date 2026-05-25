@@ -16,6 +16,7 @@ import { AppLoader } from "@/components/AppLoader";
 import UploadProgressOverlay from "@/components/UploadProgressOverlay";
 import { NotificationPermissionPrompt } from "@/components/NotificationPermissionPrompt";
 import { ForceReinstallOverlay } from "@/components/ForceReinstallOverlay";
+import { IncomingHelperRequestAlert } from "@/components/safe/IncomingHelperRequestAlert";
 import { SerkleLoader } from "@/components/ui/SerkleLoader";
 import GlobalErrorBoundary from "@/components/GlobalErrorBoundary";
 import AdminRoute from "@/components/AdminRoute";
