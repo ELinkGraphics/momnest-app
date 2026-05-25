@@ -13,6 +13,8 @@ interface UnifiedRelaxViewProps {
   onRefresh?: () => void;
 }
 
+import { SerkleLoader } from './ui/SerkleLoader';
+
 export const UnifiedRelaxView: React.FC<UnifiedRelaxViewProps> = ({ 
   autoOpenFirstVideo = false, 
   onBackToFeed,
@@ -25,9 +27,12 @@ export const UnifiedRelaxView: React.FC<UnifiedRelaxViewProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [fullscreenVideo, setFullscreenVideo] = useState<Video | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullProgress, setPullProgress] = useState(0);
   const { pushModalState } = useNavigation();
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef<number>(0);
+  const touchCurrentY = useRef<number>(0);
   const touchStartTime = useRef<number>(0);
 
   // Fixed height calculation
@@ -35,18 +40,31 @@ export const UnifiedRelaxView: React.FC<UnifiedRelaxViewProps> = ({
 
   // Handle touch gestures with debouncing
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (isTransitioning) return;
+    if (isTransitioning || isRefreshing) return;
     touchStartY.current = e.touches[0].clientY;
+    touchCurrentY.current = e.touches[0].clientY;
     touchStartTime.current = Date.now();
-  }, [isTransitioning]);
+  }, [isTransitioning, isRefreshing]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    e.preventDefault();
-  }, []);
+    if (isTransitioning || isRefreshing) return;
+    touchCurrentY.current = e.touches[0].clientY;
+    
+    // Calculate pull progress for refresh indicator
+    if (currentIndex === 0 && touchCurrentY.current > touchStartY.current) {
+      const deltaY = touchCurrentY.current - touchStartY.current;
+      if (deltaY > 0 && deltaY < 150) {
+        setPullProgress(deltaY);
+        // Prevent default only when actively pulling down at the top
+        if (e.cancelable) e.preventDefault();
+      }
+    }
+  }, [currentIndex, isTransitioning, isRefreshing]);
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (isTransitioning) return;
+  const handleTouchEnd = useCallback(async (e: React.TouchEvent) => {
+    if (isTransitioning || isRefreshing) return;
 
+    setPullProgress(0);
     const touchEndY = e.changedTouches[0].clientY;
     const touchEndTime = Date.now();
     const deltaY = touchEndY - touchStartY.current;
@@ -55,8 +73,10 @@ export const UnifiedRelaxView: React.FC<UnifiedRelaxViewProps> = ({
 
     // Pull-to-refresh
     if (currentIndex === 0 && deltaY > 120 && velocity > 0.5) {
-      refetch();
-      onRefresh();
+      setIsRefreshing(true);
+      await refetch();
+      if (onRefresh) onRefresh();
+      setIsRefreshing(false);
       return;
     }
 
@@ -103,8 +123,9 @@ export const UnifiedRelaxView: React.FC<UnifiedRelaxViewProps> = ({
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <div className="text-white">Loading videos...</div>
+      <div className="fixed inset-0 bg-background flex flex-col items-center justify-center gap-4">
+        <SerkleLoader size="lg" pulse={true} />
+        <div className="text-muted-foreground animate-pulse font-medium text-sm">Loading videos...</div>
       </div>
     );
   }
@@ -131,6 +152,22 @@ export const UnifiedRelaxView: React.FC<UnifiedRelaxViewProps> = ({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
+        
+        {/* Pull to refresh indicator */}
+        {(pullProgress > 0 || isRefreshing) && currentIndex === 0 && (
+          <div 
+            className="absolute left-0 right-0 flex justify-center z-50 pointer-events-none transition-transform duration-200"
+            style={{ 
+              top: `${Math.min(pullProgress * 0.5, 60)}px`,
+              opacity: Math.min(pullProgress / 100, 1)
+            }}
+          >
+            <div className="bg-background/80 backdrop-blur-sm p-2 rounded-full shadow-lg border border-white/10">
+              <SerkleLoader size="sm" pulse={isRefreshing} className={isRefreshing ? "animate-spin-slow" : ""} />
+            </div>
+          </div>
+        )}
+
         {visibleIndices.map((index) => {
           const video = videos[index];
           const translateY = (index - currentIndex) * videoHeight;

@@ -15,8 +15,8 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import { AppLoader } from "@/components/AppLoader";
 import UploadProgressOverlay from "@/components/UploadProgressOverlay";
 import { NotificationPermissionPrompt } from "@/components/NotificationPermissionPrompt";
-import { IncomingHelperRequestAlert } from "@/components/safe/IncomingHelperRequestAlert";
 import { ForceReinstallOverlay } from "@/components/ForceReinstallOverlay";
+import { SerkleLoader } from "@/components/ui/SerkleLoader";
 import GlobalErrorBoundary from "@/components/GlobalErrorBoundary";
 import AdminRoute from "@/components/AdminRoute";
 import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
@@ -111,10 +111,8 @@ const persister = createIDBPersister();
 
 // ─── Page Loading Fallback ──────────────────────────────────────────
 const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="flex flex-col items-center gap-3">
-      <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
-    </div>
+  <div className="min-h-[60vh] flex items-center justify-center bg-background">
+    <SerkleLoader size="lg" />
   </div>
 );
 
@@ -124,8 +122,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-[60vh] flex items-center justify-center bg-background">
+        <SerkleLoader size="lg" />
       </div>
     );
   }
