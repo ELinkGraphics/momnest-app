@@ -6,6 +6,7 @@ import { Conversation, usePinnedConversations, useTogglePin } from '@/hooks/useC
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePresence } from '@/hooks/usePresence';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
+import { useGlobalTyping } from '@/hooks/useGlobalTyping';
 
 interface ConversationsListProps {
   conversations: Conversation[];
@@ -28,12 +29,14 @@ const UnreadBadge = ({ count }: { count: number }) => {
     prevCount.current = count;
   }, [count]);
 
+  const display = count > 99 ? '99+' : String(count);
+
   return (
     <span
       className={`bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center shrink-0 transition-transform ${animate ? 'animate-bounce-in' : ''
         }`}
     >
-      {count}
+      {display}
     </span>
   );
 };
@@ -50,8 +53,12 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
   isLoading,
   currentUserId,
 }) => {
-  const { isUserOnline } = usePresence(currentUserId);
+  const { isUserOnline, getLastSeenText } = usePresence(currentUserId);
   const { getUnreadCountForConversation } = useUnreadCount();
+  const { getTypingText, isTyping } = useGlobalTyping(
+    conversations.map(c => c.conversation_id),
+    currentUserId
+  );
 
   const pinnedIds = usePinnedConversations(currentUserId);
   const { togglePin: togglePinAction } = useTogglePin();
@@ -177,11 +184,15 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
                   <h3 className={`font-semibold truncate text-base ${isUnread ? 'text-foreground' : 'text-foreground/80'}`}>
                     {conversation.is_group ? conversation.group_name : conversation.other_user_name}
                   </h3>
-                  {conversation.is_group && (
+                  {conversation.is_group ? (
                     <span className="text-xs text-muted-foreground shrink-0">
                       · {conversation.member_count}
                     </span>
-                  )}
+                  ) : !isUserOnline(conversation.other_user_id || '') ? (
+                    <span className="text-[10px] text-muted-foreground shrink-0 font-normal truncate max-w-[80px]">
+                      · {getLastSeenText(conversation.other_user_id || '')?.replace('last seen', '')}
+                    </span>
+                  ) : null}
                 </div>
                 {conversation.last_message_at && (
                   <span className="text-xs text-muted-foreground ml-2 shrink-0">
@@ -191,9 +202,15 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
               </div>
 
               <div className="flex items-center justify-between gap-2">
-                <p className={`text-sm truncate flex-1 ${isUnread ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
-                  {conversation.last_message || 'No messages yet'}
-                </p>
+                {isTyping(conversation.conversation_id) ? (
+                  <p className="text-sm truncate flex-1 font-medium text-primary italic animate-pulse">
+                    {getTypingText(conversation.conversation_id)}
+                  </p>
+                ) : (
+                  <p className={`text-sm truncate flex-1 ${isUnread ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
+                    {conversation.last_message || 'No messages yet'}
+                  </p>
+                )}
                 {isUnread && (
                   <UnreadBadge count={unreadCount} />
                 )}

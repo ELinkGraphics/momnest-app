@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { CartItem, ShippingAddress, PaymentMethod, Order } from '../types/cart';
 import { ShopItem } from '../types/shop';
 
@@ -36,10 +36,26 @@ interface CartProviderProps {
 }
 
 export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('serkle_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+
+  // Persist cart to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('serkle_cart', JSON.stringify(items));
+    } catch {
+      // Silently fail if localStorage is full
+    }
+  }, [items]);
 
   const addToCart = (shopItem: ShopItem, quantity = 1) => {
     setItems(prevItems => {

@@ -111,6 +111,15 @@ All colors MUST be HSL.
     --chart-2: 210 100% 50%; /* blue */
     --chart-3: 162 78% 46%; /* success */
     --chart-4: 280 60% 50%; /* purple */
+
+    /* Premium Player System (light-mode equivalents) */
+    --player-bg: #f8f8fa;
+    --player-surface: #ffffff;
+    --player-card: #f0f0f2;
+    --player-accent: #7c6aef;
+    --player-gold: #d4a730;
+    --player-gold-dim: rgba(212,167,48,0.12);
+    --player-border: rgba(0,0,0,0.08);
   }
 
   [data-theme="dark"] {
@@ -205,15 +214,7 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 
-  /* Override default browser active states */
-  button:active,
-  [role="button"]:active,
-  input[type="button"]:active,
-  input[type="submit"]:active {
-    background-color: hsl(var(--primary)) !important;
-    color: hsl(var(--primary-foreground)) !important;
-    outline: none !important;
-  }
+  /* Active state for primary interactive elements only */
 
   /* Ensure focus states use primary color */
   button:focus-visible,

@@ -9,6 +9,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePresence } from '@/hooks/usePresence';
 import { supabase } from '@/integrations/supabase/client';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { chatDb } from '@/lib/db';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
@@ -142,7 +144,7 @@ const ChatView: React.FC<ChatViewProps> = ({
   const { deleteForMe, deleteForEveryone } = useDeleteMessage();
   const forwardMessage = useForwardMessage();
   const { conversations } = useConversations(currentUserId);
-  const { isUserOnline } = usePresence(currentUserId);
+  const { isUserOnline, getLastSeenText } = usePresence(currentUserId);
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(
     conversation.conversation_id,
     currentUserId,
@@ -597,6 +599,34 @@ const ChatView: React.FC<ChatViewProps> = ({
     [messages]
   );
 
+  // Compute the first unread message ID for the "New Messages" divider
+  // Read current user's own read receipt from Dexie to find where unread begins
+  const myReadReceipt = useLiveQuery(
+    async () => {
+      if (!conversation.conversation_id || !currentUserId) return null;
+      return chatDb.read_receipts
+        .where('[conversation_id+user_id]')
+        .equals([conversation.conversation_id, currentUserId])
+        .first();
+    },
+    [conversation.conversation_id, currentUserId]
+  );
+
+  const firstUnreadMessageId = useMemo(() => {
+    if (!visibleMessages.length || !currentUserId || !myReadReceipt) return null;
+    const myLastReadSeq = myReadReceipt.last_read_seq || 0;
+    if (myLastReadSeq === 0) return null;
+
+    // Find the first message from another user whose seq > our last read position
+    for (const msg of visibleMessages) {
+      const m = msg as any;
+      if (m.sender_id !== currentUserId && m.seq && m.seq > myLastReadSeq) {
+        return m.id;
+      }
+    }
+    return null;
+  }, [visibleMessages, currentUserId, myReadReceipt]);
+
   // Group consecutive media messages from same sender
   type MessageGroup = { type: 'single'; message: any } | { type: 'media_group'; messages: any[]; senderId: string };
   
@@ -712,9 +742,13 @@ const ChatView: React.FC<ChatViewProps> = ({
                     <p className="text-xs text-muted-foreground">
                       @{conversation.other_user_username}
                     </p>
-                    {conversation.other_user_id && isUserOnline(conversation.other_user_id) && (
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">Online</Badge>
-                    )}
+                    {conversation.other_user_id && isUserOnline(conversation.other_user_id) ? (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-success/10 text-success hover:bg-success/20 border-0">Online</Badge>
+                    ) : conversation.other_user_id ? (
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                        {getLastSeenText(conversation.other_user_id) || 'Offline'}
+                      </span>
+                    ) : null}
                   </>
                 )}
               </div>
@@ -867,6 +901,22 @@ const ChatView: React.FC<ChatViewProps> = ({
           </div>
         ) : (
           groupedMessages.map((group, groupIdx) => {
+            // Determine the leading message ID for this group
+            const groupLeadId = group.type === 'media_group' ? group.messages[0].id : group.message.id;
+
+            // --- NEW MESSAGES DIVIDER ---
+            const showUnreadDivider = firstUnreadMessageId && groupLeadId === firstUnreadMessageId;
+
+            const dividerElement = showUnreadDivider ? (
+              <div key="unread-divider" className="flex items-center gap-3 py-2 px-2 animate-fade-in">
+                <div className="flex-1 h-px bg-primary/30" />
+                <span className="text-xs font-semibold text-primary uppercase tracking-wider shrink-0">
+                  New Messages
+                </span>
+                <div className="flex-1 h-px bg-primary/30" />
+              </div>
+            ) : null;
+
             // --- MEDIA GROUP ---
             if (group.type === 'media_group') {
               const msgs = group.messages;
@@ -881,57 +931,59 @@ const ChatView: React.FC<ChatViewProps> = ({
               const timestamp = formatDistanceToNow(new Date(lastMsg.created_at), { addSuffix: true });
 
               return (
-                <div
-                  key={`group-${msgs[0].id}`}
-                  ref={(el) => { if (el) messageRefs.current.set(lastMsg.id, el); }}
-                  className={`flex gap-2 animate-fade-in ${isOwn ? 'justify-end' : 'justify-start'}`}
-                  onTouchStart={(e) => { handleLongPressStart(e, lastMsg); handleSwipeStart(e, lastMsg); }}
-                  onTouchEnd={(e) => { handleLongPressEnd(); handleSwipeEnd(e); }}
-                  onTouchMove={handleLongPressEnd}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    openActionMenu(e.clientX, e.clientY, lastMsg);
-                  }}
-                >
-                  {!isOwn && (
-                    <Avatar className="h-8 w-8 shrink-0 mt-1 cursor-pointer active:scale-95 transition-transform" onClick={handleProfileClick}>
-                      <AvatarImage src={conversation.other_user_avatar || undefined} />
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs">
-                        {conversation.other_user_initials}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                  <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[75%] lg:max-w-[75%] min-w-0`}>
-                    <div className={`rounded-xl shadow-sm overflow-hidden ${isOwn ? 'bg-primary rounded-br-md text-white' : 'bg-muted rounded-bl-md'
-                      }`}>
-                      <MediaGroupMosaic
-                        items={mediaItems}
-                        isOwn={isOwn}
-                        timestamp={timestamp}
-                        onOpenLightbox={(index) => handleOpenLightbox(mediaItems, index)}
-                      />
-                      {(() => {
-                        const groupCaption = mediaItems.find(
-                          (mi) => mi.caption && mi.caption !== '📷 Photo' && mi.caption !== '🎥 Video'
-                        )?.caption;
-                        return groupCaption ? (
-                          <p className={`px-3 pt-2 pb-1.5 text-[14px] whitespace-pre-wrap break-words ${isOwn ? 'text-foreground' : 'text-foreground'
-                            }`} dir="auto" style={{ overflowWrap: 'anywhere' }}>
-                            {groupCaption}
-                          </p>
-                        ) : null;
-                      })()}
+                <React.Fragment key={`group-${msgs[0].id}`}>
+                  {dividerElement}
+                  <div
+                    ref={(el) => { if (el) messageRefs.current.set(lastMsg.id, el); }}
+                    className={`flex gap-2 animate-fade-in ${isOwn ? 'justify-end' : 'justify-start'}`}
+                    onTouchStart={(e) => { handleLongPressStart(e, lastMsg); handleSwipeStart(e, lastMsg); }}
+                    onTouchEnd={(e) => { handleLongPressEnd(); handleSwipeEnd(e); }}
+                    onTouchMove={handleLongPressEnd}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      openActionMenu(e.clientX, e.clientY, lastMsg);
+                    }}
+                  >
+                    {!isOwn && (
+                      <Avatar className="h-8 w-8 shrink-0 mt-1 cursor-pointer active:scale-95 transition-transform" onClick={handleProfileClick}>
+                        <AvatarImage src={conversation.other_user_avatar || undefined} />
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs">
+                          {conversation.other_user_initials}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                    <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-[75%] lg:max-w-[75%] min-w-0`}>
+                      <div className={`rounded-xl shadow-sm overflow-hidden ${isOwn ? 'bg-primary rounded-br-md text-white' : 'bg-muted rounded-bl-md'
+                        }`}>
+                        <MediaGroupMosaic
+                          items={mediaItems}
+                          isOwn={isOwn}
+                          timestamp={timestamp}
+                          onOpenLightbox={(index) => handleOpenLightbox(mediaItems, index)}
+                        />
+                        {(() => {
+                          const groupCaption = mediaItems.find(
+                            (mi) => mi.caption && mi.caption !== '📷 Photo' && mi.caption !== '🎥 Video'
+                          )?.caption;
+                          return groupCaption ? (
+                            <p className={`px-3 pt-2 pb-1.5 text-[14px] whitespace-pre-wrap break-words ${isOwn ? 'text-foreground' : 'text-foreground'
+                              }`} dir="auto" style={{ overflowWrap: 'anywhere' }}>
+                              {groupCaption}
+                            </p>
+                          ) : null;
+                        })()}
+                      </div>
                     </div>
+                    {isOwn && (
+                      <Avatar className="h-8 w-8 shrink-0 mt-1">
+                        <AvatarImage src={currentUserAvatar || undefined} />
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs">
+                          {currentUserInitials}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
                   </div>
-                  {isOwn && (
-                    <Avatar className="h-8 w-8 shrink-0 mt-1">
-                      <AvatarImage src={currentUserAvatar || undefined} />
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-xs">
-                        {currentUserInitials}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                </div>
+                </React.Fragment>
               );
             }
 
@@ -951,8 +1003,9 @@ const ChatView: React.FC<ChatViewProps> = ({
               : null;
 
             return (
-              <div
-                key={message.id}
+              <React.Fragment key={message.id}>
+                {dividerElement}
+                <div
                 ref={(el) => { if (el) messageRefs.current.set(message.id, el); }}
                 className={`flex gap-2 animate-fade-in transition-colors duration-500 rounded-xl ${isOwn ? 'justify-end' : 'justify-start'}`}
                 onTouchStart={(e) => { handleLongPressStart(e, message); handleSwipeStart(e, message); }}
@@ -1096,6 +1149,7 @@ const ChatView: React.FC<ChatViewProps> = ({
                   </Avatar>
                 )}
               </div>
+              </React.Fragment>
             );
           })
         )}
@@ -1105,8 +1159,20 @@ const ChatView: React.FC<ChatViewProps> = ({
 
       {/* Typing Indicator */}
       {typingUsers.length > 0 && (
-        <div className="px-4 py-2 text-sm text-muted-foreground italic animate-fade-in">
-          {typingUsers[0]} is typing...
+        <div className="px-4 py-2 flex items-center gap-2 animate-fade-in">
+          {/* Animated typing dots */}
+          <div className="flex items-center gap-[3px]">
+            <span className="w-[6px] h-[6px] rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-[6px] h-[6px] rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-[6px] h-[6px] rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+          <span className="text-sm text-muted-foreground italic">
+            {typingUsers.length === 1
+              ? `${typingUsers[0]} is typing`
+              : typingUsers.length === 2
+              ? `${typingUsers[0]} and ${typingUsers[1]} are typing`
+              : `${typingUsers.length} people are typing`}
+          </span>
         </div>
       )}
 

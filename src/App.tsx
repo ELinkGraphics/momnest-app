@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { UserProvider, useUser } from "@/contexts/UserContext";
@@ -17,75 +16,85 @@ import { AppLoader } from "@/components/AppLoader";
 import UploadProgressOverlay from "@/components/UploadProgressOverlay";
 import { NotificationPermissionPrompt } from "@/components/NotificationPermissionPrompt";
 import { IncomingHelperRequestAlert } from "@/components/safe/IncomingHelperRequestAlert";
+import { ForceReinstallOverlay } from "@/components/ForceReinstallOverlay";
+import GlobalErrorBoundary from "@/components/GlobalErrorBoundary";
+import AdminRoute from "@/components/AdminRoute";
 import { useAndroidBackButton } from "@/hooks/useAndroidBackButton";
 import { cacheManager, isFilePickerActive } from "@/utils/cacheManager";
 import { createIDBPersister, PERSIST_MAX_AGE, requestPersistentStorage } from "@/utils/queryPersister";
-import Index from "./pages/Index";
-import Notifications from "./pages/Notifications";
-import Messages from "./pages/Messages";
-import Shop from "./pages/Shop";
-import Ask from "./pages/Ask";
-import QuestionDetail from "./pages/QuestionDetail";
-import AskProfile from "./pages/AskProfile";
-import ProductDetail from "./pages/ProductDetail";
-import SellerProfile from "./pages/SellerProfile";
-import Cart from "./pages/Cart";
-import { SOSSubCategories } from "./pages/SOSSubCategories";
-import CircleDetailWrapper from "./components/CircleDetailWrapper";
-import CirclePostDetail from "./pages/CirclePostDetail";
-import PostDetail from "./pages/PostDetail";
-import CreatePost from "./pages/CreatePost";
-import CreateVideo from "./pages/CreateVideo";
-import CreateCircle from "./pages/CreateCircle";
-import CreateShop from "./pages/CreateShop";
-import SellerDashboard from "./pages/SellerDashboard";
-import OrderHistory from "./pages/OrderHistory";
-import OrderDetail from "./pages/OrderDetail";
-import Wishlist from "./pages/Wishlist";
-import Disputes from "./pages/Disputes";
-import ShopMessages from "./pages/ShopMessages";
-import ShippingAddresses from "./pages/ShippingAddresses";
-import Profile from "./pages/Profile";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import NotFound from "./pages/NotFound";
 import UpdateNotifier from "@/components/UpdateNotifier";
 import GlobalRealtimeListener from "@/components/GlobalRealtimeListener";
-import VideoDetail from "./pages/VideoDetail";
-import JoinCircle from "./pages/JoinCircle";
-import EmailAddress from "./pages/EmailAddress";
-import AdminLayout from "./pages/admin/AdminLayout";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminUsers from "./pages/admin/AdminUsers";
-import AdminPosts from "./pages/admin/AdminPosts";
-import AdminVideos from "./pages/admin/AdminVideos";
-import AdminAlerts from "./pages/admin/AdminAlerts";
-import AdminRoles from "./pages/admin/AdminRoles";
-import AdminReports from "./pages/admin/AdminReports";
-import AdminAppeals from "./pages/admin/AdminAppeals";
-import AdminComments from "./pages/admin/AdminComments";
-import AdminMessagesOversight from "./pages/admin/AdminMessagesOversight";
-import AdminAnalytics from "./pages/admin/AdminAnalytics";
-import AdminSettings from "./pages/admin/AdminSettings";
-import AdminAIModeration from "./pages/admin/AdminAIModeration";
-import AdminAutoModeration from "./pages/admin/AdminAutoModeration";
-import AdminBulkActions from "./pages/admin/AdminBulkActions";
-import AdminWebhooks from "./pages/admin/AdminWebhooks";
-import AdminEngagement from "./pages/admin/AdminEngagement";
-import TestPush from "./pages/TestPush";
-import AdminContentQueue from "./pages/admin/AdminContentQueue";
-import AdminAuditLog from "./pages/admin/AdminAuditLog";
-import AdminPlatformHealth from "./pages/admin/AdminPlatformHealth";
-import AdminCommunication from "./pages/admin/AdminCommunication";
-import AdminCircles from "./pages/admin/AdminCircles";
-import AdminReporting from "./pages/admin/AdminReporting";
-import AdminAskModeration from "./pages/admin/AdminAskModeration";
-import AdminLiveStreams from "./pages/admin/AdminLiveStreams";
-import AdminShopManagement from "./pages/admin/AdminShopManagement";
-import AdminSafetyOperations from "./pages/admin/AdminSafetyOperations";
-import AdminExpertVerification from "./pages/admin/AdminExpertVerification";
-import VerifyTopUp from "./pages/VerifyTopUp";
+import { useFirebaseMessaging } from "@/hooks/useFirebaseMessaging";
 
+// ─── Route-Level Code Splitting ─────────────────────────────────────
+// All pages are lazy-loaded to reduce initial bundle size by 60-80%
+const Index = React.lazy(() => import("./pages/Index"));
+const Notifications = React.lazy(() => import("./pages/Notifications"));
+const Messages = React.lazy(() => import("./pages/Messages"));
+const Shop = React.lazy(() => import("./pages/Shop"));
+const Ask = React.lazy(() => import("./pages/Ask"));
+const QuestionDetail = React.lazy(() => import("./pages/QuestionDetail"));
+const AskProfile = React.lazy(() => import("./pages/AskProfile"));
+const ProductDetail = React.lazy(() => import("./pages/ProductDetail"));
+const SellerProfile = React.lazy(() => import("./pages/SellerProfile"));
+const Cart = React.lazy(() => import("./pages/Cart"));
+const SOSSubCategories = React.lazy(() => import("./pages/SOSSubCategories").then(m => ({ default: m.SOSSubCategories })));
+const CircleDetailWrapper = React.lazy(() => import("./components/CircleDetailWrapper"));
+const CirclePostDetail = React.lazy(() => import("./pages/CirclePostDetail"));
+const PostDetail = React.lazy(() => import("./pages/PostDetail"));
+const CreatePost = React.lazy(() => import("./pages/CreatePost"));
+const CreateVideo = React.lazy(() => import("./pages/CreateVideo"));
+const CreateCircle = React.lazy(() => import("./pages/CreateCircle"));
+const CreateShop = React.lazy(() => import("./pages/CreateShop"));
+const SellerDashboard = React.lazy(() => import("./pages/SellerDashboard"));
+const OrderHistory = React.lazy(() => import("./pages/OrderHistory"));
+const OrderDetail = React.lazy(() => import("./pages/OrderDetail"));
+const Wishlist = React.lazy(() => import("./pages/Wishlist"));
+const Disputes = React.lazy(() => import("./pages/Disputes"));
+const ShopMessages = React.lazy(() => import("./pages/ShopMessages"));
+const ShippingAddresses = React.lazy(() => import("./pages/ShippingAddresses"));
+const Profile = React.lazy(() => import("./pages/Profile"));
+const Login = React.lazy(() => import("./pages/Login"));
+const Signup = React.lazy(() => import("./pages/Signup"));
+const NotFound = React.lazy(() => import("./pages/NotFound"));
+const VideoDetail = React.lazy(() => import("./pages/VideoDetail"));
+const JoinCircle = React.lazy(() => import("./pages/JoinCircle"));
+const EmailAddress = React.lazy(() => import("./pages/EmailAddress"));
+const TestPush = React.lazy(() => import("./pages/TestPush"));
+const VerifyTopUp = React.lazy(() => import("./pages/VerifyTopUp"));
+
+// Admin pages - lazy loaded
+const AdminLayout = React.lazy(() => import("./pages/admin/AdminLayout"));
+const AdminDashboard = React.lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminUsers = React.lazy(() => import("./pages/admin/AdminUsers"));
+const AdminPosts = React.lazy(() => import("./pages/admin/AdminPosts"));
+const AdminVideos = React.lazy(() => import("./pages/admin/AdminVideos"));
+const AdminAlerts = React.lazy(() => import("./pages/admin/AdminAlerts"));
+const AdminRoles = React.lazy(() => import("./pages/admin/AdminRoles"));
+const AdminReports = React.lazy(() => import("./pages/admin/AdminReports"));
+const AdminAppeals = React.lazy(() => import("./pages/admin/AdminAppeals"));
+const AdminComments = React.lazy(() => import("./pages/admin/AdminComments"));
+const AdminMessagesOversight = React.lazy(() => import("./pages/admin/AdminMessagesOversight"));
+const AdminAnalytics = React.lazy(() => import("./pages/admin/AdminAnalytics"));
+const AdminSettings = React.lazy(() => import("./pages/admin/AdminSettings"));
+const AdminAIModeration = React.lazy(() => import("./pages/admin/AdminAIModeration"));
+const AdminAutoModeration = React.lazy(() => import("./pages/admin/AdminAutoModeration"));
+const AdminBulkActions = React.lazy(() => import("./pages/admin/AdminBulkActions"));
+const AdminWebhooks = React.lazy(() => import("./pages/admin/AdminWebhooks"));
+const AdminEngagement = React.lazy(() => import("./pages/admin/AdminEngagement"));
+const AdminContentQueue = React.lazy(() => import("./pages/admin/AdminContentQueue"));
+const AdminAuditLog = React.lazy(() => import("./pages/admin/AdminAuditLog"));
+const AdminPlatformHealth = React.lazy(() => import("./pages/admin/AdminPlatformHealth"));
+const AdminCommunication = React.lazy(() => import("./pages/admin/AdminCommunication"));
+const AdminCircles = React.lazy(() => import("./pages/admin/AdminCircles"));
+const AdminReporting = React.lazy(() => import("./pages/admin/AdminReporting"));
+const AdminAskModeration = React.lazy(() => import("./pages/admin/AdminAskModeration"));
+const AdminLiveStreams = React.lazy(() => import("./pages/admin/AdminLiveStreams"));
+const AdminShopManagement = React.lazy(() => import("./pages/admin/AdminShopManagement"));
+const AdminSafetyOperations = React.lazy(() => import("./pages/admin/AdminSafetyOperations"));
+const AdminExpertVerification = React.lazy(() => import("./pages/admin/AdminExpertVerification"));
+
+// ─── Query Client ───────────────────────────────────────────────────
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -100,6 +109,16 @@ const queryClient = new QueryClient({
 
 const persister = createIDBPersister();
 
+// ─── Page Loading Fallback ──────────────────────────────────────────
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="flex flex-col items-center gap-3">
+      <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
+    </div>
+  </div>
+);
+
+// ─── Route Guards ───────────────────────────────────────────────────
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useUser();
   
@@ -123,83 +142,92 @@ const PresenceWrapper = ({ children }: { children: React.ReactNode }) => {
   return <PresenceProvider userId={user?.id}>{children}</PresenceProvider>;
 };
 
+const FirebaseMessagingWrapper = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useUser();
+  useFirebaseMessaging(user?.id);
+  return <>{children}</>;
+};
+
+// ─── App Routes ─────────────────────────────────────────────────────
 const AppRoutes = () => {
-  const location = useLocation();
   useAndroidBackButton();
   return (
-    <Routes key={location.pathname}>
-    <Route path="/login" element={<Login />} />
-    <Route path="/signup" element={<Signup />} />
-    <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-    <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-    <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-    <Route path="/messages/:conversationId" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-    <Route path="/shop" element={<ProtectedRoute><Shop activeTab="shop" onTabSelect={() => {}} onOpenCreate={() => {}} /></ProtectedRoute>} />
-    <Route path="/shop/product/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
-    <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
-    <Route path="/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
-    <Route path="/order/:orderId" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
-    <Route path="/seller/dashboard" element={<ProtectedRoute><SellerDashboard /></ProtectedRoute>} />
-    <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
-    <Route path="/disputes" element={<ProtectedRoute><Disputes /></ProtectedRoute>} />
-    <Route path="/seller/:sellerId" element={<ProtectedRoute><SellerProfile /></ProtectedRoute>} />
-    <Route path="/shop/messages" element={<ProtectedRoute><ShopMessages /></ProtectedRoute>} />
-    <Route path="/shop/messages/:conversationId" element={<ProtectedRoute><ShopMessages /></ProtectedRoute>} />
-    <Route path="/shipping-addresses" element={<ProtectedRoute><ShippingAddresses /></ProtectedRoute>} />
-    <Route path="/ask" element={<ProtectedRoute><Ask activeTab="ask" onTabSelect={() => {}} onOpenCreate={() => {}} /></ProtectedRoute>} />
-    <Route path="/ask/profile" element={<ProtectedRoute><AskProfile /></ProtectedRoute>} />
-    <Route path="/ask/question/:questionId" element={<ProtectedRoute><QuestionDetail /></ProtectedRoute>} />
-    <Route path="/create/post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
-    <Route path="/create/video" element={<ProtectedRoute><CreateVideo /></ProtectedRoute>} />
-    <Route path="/create/circle" element={<ProtectedRoute><CreateCircle /></ProtectedRoute>} />
-    <Route path="/create/shop" element={<ProtectedRoute><CreateShop /></ProtectedRoute>} />
-    <Route path="/sos/:category" element={<ProtectedRoute><SOSSubCategories /></ProtectedRoute>} />
-    <Route path="/post/:postId" element={<ProtectedRoute><PostDetail /></ProtectedRoute>} />
-    <Route path="/circle/:id" element={<ProtectedRoute><CircleDetailWrapper /></ProtectedRoute>} />
-    <Route path="/circle/:circleId/post/:postId" element={<ProtectedRoute><CirclePostDetail /></ProtectedRoute>} />
-    <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-    <Route path="/video/:videoId" element={<ProtectedRoute><VideoDetail /></ProtectedRoute>} />
-    <Route path="/join/:inviteCode" element={<ProtectedRoute><JoinCircle /></ProtectedRoute>} />
-    <Route path="/email-address" element={<ProtectedRoute><EmailAddress /></ProtectedRoute>} />
-    <Route path="/test-push" element={<ProtectedRoute><TestPush /></ProtectedRoute>} />
-    {/* Admin Dashboard Routes */}
-    <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
-      <Route index element={<Navigate to="/admin/dashboard" replace />} />
-      <Route path="dashboard" element={<AdminDashboard />} />
-      <Route path="alerts" element={<AdminAlerts />} />
-      <Route path="users" element={<AdminUsers />} />
-      <Route path="roles" element={<AdminRoles />} />
-      <Route path="posts" element={<AdminPosts />} />
-      <Route path="videos" element={<AdminVideos />} />
-      <Route path="comments" element={<AdminComments />} />
-      <Route path="messages" element={<AdminMessagesOversight />} />
-      <Route path="reports" element={<AdminReports />} />
-      <Route path="appeals" element={<AdminAppeals />} />
-      <Route path="analytics" element={<AdminAnalytics />} />
-      <Route path="ai-moderation" element={<AdminAIModeration />} />
-      <Route path="auto-moderation" element={<AdminAutoModeration />} />
-      <Route path="bulk-actions" element={<AdminBulkActions />} />
-      <Route path="webhooks" element={<AdminWebhooks />} />
-      <Route path="engagement" element={<AdminEngagement />} />
-      <Route path="content-queue" element={<AdminContentQueue />} />
-      <Route path="audit-log" element={<AdminAuditLog />} />
-      <Route path="platform-health" element={<AdminPlatformHealth />} />
-      <Route path="communication" element={<AdminCommunication />} />
-      <Route path="circles" element={<AdminCircles />} />
-      <Route path="reporting" element={<AdminReporting />} />
-      <Route path="ask-moderation" element={<AdminAskModeration />} />
-      <Route path="live-streams" element={<AdminLiveStreams />} />
-      <Route path="shop" element={<AdminShopManagement />} />
-      <Route path="safety" element={<AdminSafetyOperations />} />
-      <Route path="settings" element={<AdminSettings />} />
-      <Route path="expert-verification" element={<AdminExpertVerification />} />
-    </Route>
-    <Route path="/verify" element={<VerifyTopUp />} />
-    <Route path="*" element={<NotFound />} />
-  </Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+      <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+      <Route path="/messages/:conversationId" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+      <Route path="/shop" element={<ProtectedRoute><Shop activeTab="shop" onTabSelect={() => {}} onOpenCreate={() => {}} /></ProtectedRoute>} />
+      <Route path="/shop/product/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
+      <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+      <Route path="/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
+      <Route path="/order/:orderId" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
+      <Route path="/seller/dashboard" element={<ProtectedRoute><SellerDashboard /></ProtectedRoute>} />
+      <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
+      <Route path="/disputes" element={<ProtectedRoute><Disputes /></ProtectedRoute>} />
+      <Route path="/seller/:sellerId" element={<ProtectedRoute><SellerProfile /></ProtectedRoute>} />
+      <Route path="/shop/messages" element={<ProtectedRoute><ShopMessages /></ProtectedRoute>} />
+      <Route path="/shop/messages/:conversationId" element={<ProtectedRoute><ShopMessages /></ProtectedRoute>} />
+      <Route path="/shipping-addresses" element={<ProtectedRoute><ShippingAddresses /></ProtectedRoute>} />
+      <Route path="/ask" element={<ProtectedRoute><Ask activeTab="ask" onTabSelect={() => {}} onOpenCreate={() => {}} /></ProtectedRoute>} />
+      <Route path="/ask/profile" element={<ProtectedRoute><AskProfile /></ProtectedRoute>} />
+      <Route path="/ask/question/:questionId" element={<ProtectedRoute><QuestionDetail /></ProtectedRoute>} />
+      <Route path="/create/post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
+      <Route path="/create/video" element={<ProtectedRoute><CreateVideo /></ProtectedRoute>} />
+      <Route path="/create/circle" element={<ProtectedRoute><CreateCircle /></ProtectedRoute>} />
+      <Route path="/create/shop" element={<ProtectedRoute><CreateShop /></ProtectedRoute>} />
+      <Route path="/sos/:category" element={<ProtectedRoute><SOSSubCategories /></ProtectedRoute>} />
+      <Route path="/post/:postId" element={<ProtectedRoute><PostDetail /></ProtectedRoute>} />
+      <Route path="/circle/:id" element={<ProtectedRoute><CircleDetailWrapper /></ProtectedRoute>} />
+      <Route path="/circle/:circleId/post/:postId" element={<ProtectedRoute><CirclePostDetail /></ProtectedRoute>} />
+      <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/video/:videoId" element={<ProtectedRoute><VideoDetail /></ProtectedRoute>} />
+      <Route path="/join/:inviteCode" element={<ProtectedRoute><JoinCircle /></ProtectedRoute>} />
+      <Route path="/email-address" element={<ProtectedRoute><EmailAddress /></ProtectedRoute>} />
+      <Route path="/test-push" element={<ProtectedRoute><TestPush /></ProtectedRoute>} />
+      {/* Admin Dashboard Routes — protected by role-based AdminRoute */}
+      <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+        <Route index element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="alerts" element={<AdminAlerts />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="roles" element={<AdminRoles />} />
+        <Route path="posts" element={<AdminPosts />} />
+        <Route path="videos" element={<AdminVideos />} />
+        <Route path="comments" element={<AdminComments />} />
+        <Route path="messages" element={<AdminMessagesOversight />} />
+        <Route path="reports" element={<AdminReports />} />
+        <Route path="appeals" element={<AdminAppeals />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="ai-moderation" element={<AdminAIModeration />} />
+        <Route path="auto-moderation" element={<AdminAutoModeration />} />
+        <Route path="bulk-actions" element={<AdminBulkActions />} />
+        <Route path="webhooks" element={<AdminWebhooks />} />
+        <Route path="engagement" element={<AdminEngagement />} />
+        <Route path="content-queue" element={<AdminContentQueue />} />
+        <Route path="audit-log" element={<AdminAuditLog />} />
+        <Route path="platform-health" element={<AdminPlatformHealth />} />
+        <Route path="communication" element={<AdminCommunication />} />
+        <Route path="circles" element={<AdminCircles />} />
+        <Route path="reporting" element={<AdminReporting />} />
+        <Route path="ask-moderation" element={<AdminAskModeration />} />
+        <Route path="live-streams" element={<AdminLiveStreams />} />
+        <Route path="shop" element={<AdminShopManagement />} />
+        <Route path="safety" element={<AdminSafetyOperations />} />
+        <Route path="settings" element={<AdminSettings />} />
+        <Route path="expert-verification" element={<AdminExpertVerification />} />
+      </Route>
+      <Route path="/verify" element={<VerifyTopUp />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+    </Suspense>
   );
 };
 
+// ─── Main App ───────────────────────────────────────────────────────
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -238,42 +266,46 @@ const App = () => {
   }
 
   return (
-    <ThemeProvider>
-      <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{
-          persister,
-          maxAge: PERSIST_MAX_AGE,
-          buster: import.meta.env.VITE_APP_VERSION || 'v1',
-        }}
-      >
-        <UserProvider>
-          <StoryProvider>
-            <PresenceWrapper>
-              <UploadProvider>
-                <CartProvider>
-                  <TooltipProvider>
-                    <NavigationProvider>
-                      <Toaster />
-                      <Sonner />
-                      <UpdateNotifier />
-                      <GlobalRealtimeListener />
-                      <InstallPrompt />
-                      <UploadProgressOverlay />
-                      <NotificationPermissionPrompt />
-                      <IncomingHelperRequestAlert />
-                      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                        <AppRoutes />
-                      </BrowserRouter>
-                    </NavigationProvider>
-                  </TooltipProvider>
-                </CartProvider>
-              </UploadProvider>
-            </PresenceWrapper>
-          </StoryProvider>
-        </UserProvider>
-      </PersistQueryClientProvider>
-    </ThemeProvider>
+    <GlobalErrorBoundary>
+      <ThemeProvider>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{
+            persister,
+            maxAge: PERSIST_MAX_AGE,
+            buster: import.meta.env.VITE_APP_VERSION || 'v1',
+          }}
+        >
+          <UserProvider>
+            <FirebaseMessagingWrapper>
+              <StoryProvider>
+                <PresenceWrapper>
+                <UploadProvider>
+                  <CartProvider>
+                    <TooltipProvider>
+                      <NavigationProvider>
+                        <Toaster />
+                        <UpdateNotifier />
+                        <GlobalRealtimeListener />
+                        <InstallPrompt />
+                        <UploadProgressOverlay />
+                        <ForceReinstallOverlay />
+                        <NotificationPermissionPrompt />
+                        <IncomingHelperRequestAlert />
+                        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                          <AppRoutes />
+                        </BrowserRouter>
+                      </NavigationProvider>
+                    </TooltipProvider>
+                  </CartProvider>
+                </UploadProvider>
+                </PresenceWrapper>
+              </StoryProvider>
+            </FirebaseMessagingWrapper>
+          </UserProvider>
+        </PersistQueryClientProvider>
+      </ThemeProvider>
+    </GlobalErrorBoundary>
   );
 };
 

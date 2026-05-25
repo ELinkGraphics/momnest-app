@@ -40,6 +40,8 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
   const { user } = useUser();
   const { totalUnreadCount: totalUnreadMessages } = useUnreadCount();
 
+  const formatBadge = (count: number) => count > 99 ? '99+' : String(count);
+
   const handleCreateClick = () => {
     if (active === 'ask' && onOpenQuestionForm) {
       onOpenQuestionForm();
@@ -177,7 +179,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
             <Mail className="size-6 text-muted-foreground" />
             {totalUnreadMessages > 0 && (
               <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] grid place-items-center bg-destructive text-white font-medium">
-                {totalUnreadMessages}
+                {formatBadge(totalUnreadMessages)}
               </span>
             )}
           </button>
@@ -295,7 +297,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
               <Mail className="size-6 text-muted-foreground" />
               {totalUnreadMessages > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] grid place-items-center bg-destructive text-white font-medium">
-                  {totalUnreadMessages}
+                  {formatBadge(totalUnreadMessages)}
                 </span>
               )}
             </button>

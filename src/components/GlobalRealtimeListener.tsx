@@ -67,7 +67,26 @@ const GlobalRealtimeListener = () => {
                   last_message_sender_id: msg.sender_id
                 });
               } else {
-                // Trigger a full sync if this is a brand new conversation we don't have locally
+                // NEW CONVERSATION: Create an immediate placeholder entry so the badge
+                // appears instantly. The full sync will fill in the rest of the data.
+                await chatDb.conversations_meta.put({
+                  conversation_id: msg.conversation_id,
+                  other_user_id: msg.sender_id,
+                  other_user_name: 'New message',
+                  other_user_username: null,
+                  other_user_avatar: null,
+                  other_user_initials: '?',
+                  other_user_online: false,
+                  last_message: msg.content,
+                  last_message_at: msg.created_at,
+                  last_message_sender_id: msg.sender_id,
+                  unread_count: 1,
+                  is_group: false,
+                  group_name: null,
+                  group_avatar_url: null,
+                  member_count: 0,
+                });
+                // Then trigger a full sync to get the real data
                 syncConversations(user.id).catch(console.error);
               }
             } catch (err) {

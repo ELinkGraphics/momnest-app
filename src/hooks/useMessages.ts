@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { chatDb, sanitizeMessage } from '@/lib/db';
 import { syncConversation, processSyncQueue } from '@/lib/sync';
@@ -294,6 +294,9 @@ export const useOtherUserLastRead = (conversationId: string | null, otherUserId:
 };
 
 export const useRetryMessage = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   return useMutation({
     mutationFn: async (messageId: string) => {
       const msg = await chatDb.messages.get(messageId);
@@ -331,7 +334,7 @@ export const useRetryMessage = () => {
       // Update status to pending
       await chatDb.messages.update(messageId, { sync_status: 'pending' });
 
-      toast.success('Retrying message...');
+      toast({ title: 'Retrying message...', variant: 'default' });
 
       // Trigger sync
       processSyncQueue().catch(console.error);
@@ -345,6 +348,7 @@ export const useRetryMessage = () => {
 export const useSendMessage = () => {
   const queryClient = useQueryClient();
   const broadcastRef = useRef<any>(null);
+  const { toast } = useToast();
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({
@@ -452,7 +456,7 @@ export const useSendMessage = () => {
     },
     onError: (error) => {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
+      toast({ title: 'Failed to send message', variant: 'destructive' });
     },
   });
 

@@ -21,15 +21,15 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png', 'badge-72.png'],
       manifest: {
-        name: 'MomsNest - Connect, Share, Support',
-        short_name: 'MomsNest',
+        name: 'Serkle - Connect, Share, Support',
+        short_name: 'Serkle',
         description: 'The supportive community for mothers. Share moments, get advice, find resources, and connect with other moms on their parenting journey.',
-        theme_color: '#4B164C',
+        theme_color: '#713A20',
         background_color: '#FFFFFF',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
-        start_url: '/',
+        start_url: '/?app=serkle',
         icons: [
           {
             src: 'icon-192.png',

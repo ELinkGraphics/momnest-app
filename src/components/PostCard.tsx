@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import DOMPurify from 'dompurify';
 import { Heart, MessageCircle, Share2, MoreHorizontal, BadgeCheck, Plus, Check, Trash2, Bookmark, Flag, Crown, Lock, MapPin, Mic, BookImage, Play, ThumbsUp, Laugh, LifeBuoy, Ghost, Angry, FileText } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -9,6 +10,7 @@ import { useUser } from '@/contexts/UserContext';
 import { usePostMutations } from '@/hooks/usePostMutations';
 import { useFollowMutations } from '@/hooks/useFollowMutations';
 import { toast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import PublicProfileModal from '@/components/PublicProfileModal';
 import LikersModal from '@/components/LikersModal';
@@ -16,6 +18,16 @@ import PostReactionButton from './post/PostReactionButton';
 import { PremiumContentSkeleton } from '@/components/premium/PremiumContentSkeleton';
 import SharePostToStoryModal from '@/components/story/SharePostToStoryModal';
 import { Carousel, CarouselContent, CarouselItem, CarouselApi } from '@/components/ui/carousel';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,6 +87,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const { user } = useUser();
   const { toggleLike, toggleSave, incrementShare, deletePost } = usePostMutations();
   const { toggleFollow, checkFollowStatus } = useFollowMutations();
+  const queryClient = useQueryClient();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     const checkInitialFollowStatus = async () => {
@@ -157,11 +171,16 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
   const handleDelete = async () => {
     if (!user || !post.user.id) return;
-    if (window.confirm('Are you sure you want to delete this post?')) {
-      await deletePost(String(post.id), user.id);
-      toast({ title: "Post deleted" });
-      window.location.reload();
-    }
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!user || !post.user.id) return;
+    await deletePost(String(post.id), user.id);
+    toast({ title: "Post deleted" });
+    queryClient.invalidateQueries({ queryKey: ['posts'] });
+    queryClient.invalidateQueries({ queryKey: ['feed'] });
+    setShowDeleteDialog(false);
   };
 
   const handleCircleClick = (e: React.MouseEvent) => {
@@ -455,7 +474,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <div className="relative overflow-hidden rounded-xl border border-white/5 bg-muted/5 backdrop-blur-sm p-4 mt-2">
             <div className="max-h-24 overflow-hidden blur-[8px] opacity-20 pointer-events-none select-none grayscale">
               {isRichText(post.content) ? (
-                <div dangerouslySetInnerHTML={{ __html: post.content }} />
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }} />
               ) : (
                 <p>{post.content}</p>
               )}
@@ -485,7 +504,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                   "prose prose-sm dark:prose-invert max-w-none text-foreground inline-block",
                   !expanded && "line-clamp-3"
                 )}
-                dangerouslySetInnerHTML={{ __html: post.content }} 
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }} 
               />
             ) : (
               <>
@@ -524,6 +543,24 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       <PublicProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} userId={post.user.id || ''} />
       <LikersModal isOpen={showLikersModal} onClose={() => setShowLikersModal(false)} postId={String(post.id)} />
       <SharePostToStoryModal isOpen={showShareToStory} onClose={() => setShowShareToStory(false)} post={post} />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </article>
   );
 };
