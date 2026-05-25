@@ -203,6 +203,16 @@ export default {
 						transform: 'scale(0.8) translateY(-40px)',
 						opacity: '0'
 					}
+				},
+				'color-reveal': {
+					'0%': {
+						filter: 'grayscale(100%) brightness(0.7)',
+						transform: 'scale(0.95)'
+					},
+					'100%': {
+						filter: 'grayscale(0%) brightness(1)',
+						transform: 'scale(1)'
+					}
 				}
 			},
 			padding: {
@@ -216,7 +226,8 @@ export default {
 				'slide-up': 'slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
 				'swipe-up': 'swipe-up 0.3s ease-out',
 				'bounce-in': 'bounce-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-				'double-tap-heart': 'double-tap-heart 0.9s ease-out forwards'
+				'double-tap-heart': 'double-tap-heart 0.9s ease-out forwards',
+				'color-reveal': 'color-reveal 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards'
 			}
 		}
 	},

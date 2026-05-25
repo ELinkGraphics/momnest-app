@@ -47,14 +47,10 @@ export const AppLoader = ({ onComplete }: AppLoaderProps) => {
         fadeOut ? 'opacity-0' : 'opacity-100'
       }`}
     >
-      <video
-        ref={videoRef}
-        src="/loading-animation.mp4"
-        autoPlay
-        muted
-        playsInline
-        loop
-        className="w-40 h-40 object-contain"
+      <img
+        src="/lovable-uploads/SerkleMainLogo.svg"
+        alt="Serkle Logo"
+        className="w-40 h-40 object-contain animate-color-reveal"
       />
     </div>
   );
