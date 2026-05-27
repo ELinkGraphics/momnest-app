@@ -203,7 +203,7 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
             
             <button
               type="button"
-              className="ml-1 inline-flex items-center gap-2 rounded-full border border-border px-2 py-1 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
+              className="ml-1 inline-flex items-center gap-2 rounded-full px-2 py-1 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
               onClick={() => {
