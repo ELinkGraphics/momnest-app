@@ -308,6 +308,15 @@ export const storyService = {
     const gradientEntry = rawArr.find((s: any) => s.type === 'background_gradient');
     const storyStateEntry = rawArr.find((s: any) => s.type === 'story_state');
 
+    let storyState = storyStateEntry?.data || undefined;
+    
+    // BACKWARD COMPATIBILITY FIX: 
+    // If the story was saved with a broken blob: URL for the background during early testing,
+    // patch it on-the-fly using the correctly saved media_url.
+    if (storyState?.background?.value?.startsWith('blob:')) {
+      storyState.background.value = rawStory.media_url;
+    }
+
     return {
       id: rawStory.id,
       user: {
@@ -324,7 +333,7 @@ export const storyService = {
       isOwn: rawStory.user_id === userId,
       isLive: rawStory.live_streams?.status === 'live',
       liveStreamId: rawStory.live_stream_id,
-      story_state: storyStateEntry?.data || undefined,
+      story_state: storyState,
       stickerData: allStickerData.length > 0 ? allStickerData : undefined,
       overlayUrl: overlayEntry?.content || undefined,
       videoTransform: transformEntry ? {
