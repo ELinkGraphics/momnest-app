@@ -62,10 +62,6 @@ export const StoryMediaRenderer: React.FC<StoryMediaRendererProps> = ({
               setVideoDuration(vid.duration);
             }}
           />
-          {/* TEMP DEBUG OVERLAY */}
-          <div className="absolute top-4 left-4 z-50 bg-black/80 text-white text-[10px] font-mono p-2 rounded max-w-[200px] break-all">
-            BG: {JSON.stringify(story.story_state.background)}
-          </div>
         </div>
       </>
     );

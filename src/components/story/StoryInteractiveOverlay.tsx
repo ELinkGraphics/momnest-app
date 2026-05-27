@@ -159,7 +159,7 @@ export const StoryInteractiveOverlay: React.FC<StoryInteractiveOverlayProps> = (
 
   return (
     <div
-      className="relative w-full h-full flex items-center justify-center touch-none"
+      className="relative z-20 w-full h-full flex items-center justify-center touch-none"
       style={{
         transform: `translateY(${swipeTranslateY}px) scale(${swipeScale})`,
         opacity: swipeOpacity,
