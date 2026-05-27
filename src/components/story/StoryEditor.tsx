@@ -1,417 +1,312 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Trash2 } from 'lucide-react';
-import StoryTextOverlay, { TextOverlay } from './StoryTextOverlay';
-import StoryStickerPicker, { StickerItem } from './StoryStickerPicker';
-import StoryFilterPicker, { STORY_FILTERS } from './StoryFilterPicker';
-import { EditorToolbar } from './EditorToolbar';
-import { useStoryExport, ImageSticker, EditorExtraData } from '@/hooks/useStoryExport';
-import { useEditorGestures } from '@/hooks/useEditorGestures';
-
-interface InitialPostElement {
-  postCardImageUrl?: string;
-}
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { X, Type, Sticker, Sparkles, PenTool, Trash2, Eye, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { StoryState, StoryElement, DrawingPath, EditorExtraData } from '@/types/storyTypes';
+import { StoryCanvas, CANVAS_W, CANVAS_H } from './StoryCanvas';
+import { StoryDrawingOverlay } from './StoryDrawingOverlay';
+import StoryTextOverlay from './StoryTextOverlay';
+import StoryStickerPicker from './StoryStickerPicker';
+import StoryFilterPicker from './StoryFilterPicker';
+import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
 
 interface Props {
   previewUrl: string;
   mediaType?: 'image' | 'video';
-  initialPostElements?: InitialPostElement;
+  initialPostElements?: { postCardImageUrl?: string };
   resharedPostId?: string;
   onDone: (editedImageBlob: Blob, mentionedUserIds?: string[], extraData?: EditorExtraData) => void;
   onCancel: () => void;
 }
 
-const CANVAS_W = 390;
-const CANVAS_H = 844;
-const TRASH_ZONE_H = 80;
+export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElements, resharedPostId, onDone, onCancel }: Props) {
+  const [state, setState] = useState<StoryState>({
+    background: { type: mediaType, value: previewUrl },
+    elements: [],
+    drawingPaths: []
+  });
 
-// Safe-frame margin (px inside the canvas) — visible boundary
-const SAFE_MARGIN_X = 12;
-const SAFE_MARGIN_Y = 12;
-const SAFE_W = CANVAS_W - SAFE_MARGIN_X * 2;
-const SAFE_H = CANVAS_H - SAFE_MARGIN_Y * 2;
-const ADDED_IMG_MAX = 150;
+  const [activeTool, setActiveTool] = useState<'text' | 'sticker' | 'filter' | 'draw' | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isOverTrash, setIsOverTrash] = useState(false);
 
-const StoryEditor: React.FC<Props> = ({ previewUrl, mediaType = 'image', initialPostElements, resharedPostId, onDone, onCancel }) => {
-  const isInitialVideo = mediaType === 'video';
+  // Canvas interaction refs
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ id: string, startX: number, startY: number, elStartX: number, elStartY: number } | null>(null);
 
-  const buildInitialImageStickers = (): ImageSticker[] => {
-    const stickers: ImageSticker[] = [
-      { id: `img-initial-${Date.now()}`, src: previewUrl, x: CANVAS_W / 2, y: CANVAS_H / 2, scale: 1, rotation: 0, isVideo: isInitialVideo },
-    ];
-    if (initialPostElements?.postCardImageUrl) {
-      stickers.push({
-        id: `img-postcard-${Date.now()}`,
-        src: initialPostElements.postCardImageUrl,
-        x: CANVAS_W / 2,
-        y: CANVAS_H / 2,
-        scale: 1,
-        rotation: 0,
-        isVideo: false,
-      });
+  // File manager for image stickers
+  const imageStickerManager = useFileManager();
+
+  // Initialize elements
+  useEffect(() => {
+    if (initialPostElements?.postCardImageUrl && state.elements.length === 0) {
+      setState(prev => ({
+        ...prev,
+        elements: [{
+          id: 'post-card',
+          type: 'image',
+          content: initialPostElements.postCardImageUrl,
+          x: 50, y: 50, scale: 1, rotation: 0, zIndex: 1
+        }]
+      }));
     }
-    return stickers;
+  }, [initialPostElements]);
+
+  // Pointer events for dragging elements
+  const handlePointerDown = (e: React.PointerEvent, id: string, currentX: number, currentY: number) => {
+    if (isPreviewMode) return;
+    e.stopPropagation();
+    e.target.setPointerCapture(e.pointerId);
+    setSelectedId(id);
+    dragRef.current = { id, startX: e.clientX, startY: e.clientY, elStartX: currentX, elStartY: currentY };
   };
 
-  const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([]);
-  const [emojiStickers, setEmojiStickers] = useState<StickerItem[]>([]);
-  const [imageStickers, setImageStickers] = useState<ImageSticker[]>(buildInitialImageStickers);
-  const [initialMediaRatio, setInitialMediaRatio] = useState<number | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState('none');
-  const [activeTool, setActiveTool] = useState<'text' | 'sticker' | 'filter' | null>(null);
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current || !canvasRef.current || isPreviewMode) return;
+    const { id, startX, startY, elStartX, elStartY } = dragRef.current;
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    
+    const dxPct = (dx / rect.width) * 100;
+    const dyPct = (dy / rect.height) * 100;
 
-  const imageStickersRef = useRef(imageStickers);
-  const textOverlaysRef = useRef(textOverlays);
-  const emojiStickersRef = useRef(emojiStickers);
-  useEffect(() => { imageStickersRef.current = imageStickers; }, [imageStickers]);
-  useEffect(() => { textOverlaysRef.current = textOverlays; }, [textOverlays]);
-  useEffect(() => { emojiStickersRef.current = emojiStickers; }, [emojiStickers]);
+    // Check trash zone (bottom 100px of the screen)
+    if (e.clientY > window.innerHeight - 100) {
+      setIsOverTrash(true);
+    } else {
+      setIsOverTrash(false);
+    }
 
-  const adjustInitialSticker = (mediaW: number, mediaH: number) => {
-    // Calculate scale so the media fits within the safe zone of the canvas
-    const scaleX = SAFE_W / mediaW;
-    const scaleY = SAFE_H / mediaH;
-    const fitScale = Math.min(scaleX, scaleY, 1); // never upscale beyond 1
-
-    setImageStickers(prev => prev.map(s => {
-      if (s.id.startsWith('img-initial-')) {
-        return { ...s, scale: fitScale };
-      }
-      return s;
+    setState(prev => ({
+      ...prev,
+      elements: prev.elements.map(el => el.id === id ? { ...el, x: elStartX + dxPct, y: elStartY + dyPct } : el)
     }));
   };
 
-  useEffect(() => {
-    if (isInitialVideo) {
-      const v = document.createElement('video');
-      v.src = previewUrl;
-      v.onloadedmetadata = () => {
-        const ratio = v.videoWidth / v.videoHeight;
-        setInitialMediaRatio(ratio);
-        adjustInitialSticker(v.videoWidth, v.videoHeight);
-      };
-    } else {
-      const img = new Image();
-      img.src = previewUrl;
-      img.onload = () => {
-        const ratio = img.width / img.height;
-        setInitialMediaRatio(ratio);
-        adjustInitialSticker(img.width, img.height);
-      };
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    const { id } = dragRef.current;
+    
+    if (isOverTrash) {
+      setState(prev => ({
+        ...prev,
+        elements: prev.elements.filter(el => el.id !== id)
+      }));
+      setSelectedId(null);
     }
-  }, [previewUrl, isInitialVideo]);
+    
+    setIsOverTrash(false);
+    dragRef.current = null;
+  };
 
-  const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
-  const canvasRef = useRef<HTMLDivElement>(null);
-
-  const [snapH, setSnapH] = useState(false);
-  const [snapV, setSnapV] = useState(false);
-  const [overTrash, setOverTrash] = useState(false);
-  const [showTrash, setShowTrash] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
-
-  const getRect = () => canvasRef.current?.getBoundingClientRect();
-
-  const toCanvas = useCallback((cx: number, cy: number) => {
-    const r = getRect();
-    if (!r) return { x: 0, y: 0 };
-    return { x: ((cx - r.left) / r.width) * CANVAS_W, y: ((cy - r.top) / r.height) * CANVAS_H };
-  }, []);
-
-  const isOverTrash = useCallback((clientY: number) => {
-    const r = getRect();
-    if (!r) return false;
-    return clientY > r.bottom - (TRASH_ZONE_H * r.height / CANVAS_H);
-  }, []);
-
-  useEffect(() => {
-    const el = canvasRef.current;
-    if (!el) return;
-    const prevent = (e: TouchEvent) => { e.preventDefault(); };
-    el.addEventListener('touchstart', prevent, { passive: false });
-    el.addEventListener('touchmove', prevent, { passive: false });
-    el.addEventListener('touchend', prevent, { passive: false });
-    return () => {
-      el.removeEventListener('touchstart', prevent);
-      el.removeEventListener('touchmove', prevent);
-      el.removeEventListener('touchend', prevent);
+  const handleAddText = (overlay: any) => {
+    const newElement: StoryElement = {
+      id: Math.random().toString(36).substr(2, 9),
+      type: 'text',
+      content: overlay.text,
+      x: overlay.x, y: overlay.y,
+      scale: 1, rotation: 0, zIndex: Date.now(),
+      fontSize: overlay.fontSize,
+      fontWeight: overlay.fontWeight,
+      fontStyle: overlay.fontStyle,
+      textAlign: overlay.textAlign,
+      color: overlay.color,
+      bgColor: overlay.bgColor
     };
-  }, []);
+    setState(prev => ({ ...prev, elements: [...prev.elements, newElement] }));
+    setActiveTool(null);
+  };
 
-  const {
-    onImageDown,
-    onImageMove,
-    onImageUp,
-    onOverlayDown,
-    onGlobalPointerMove,
-    onGlobalPointerUp,
-  } = useEditorGestures({
-    imageStickersRef,
-    textOverlaysRef,
-    emojiStickersRef,
-    setImageStickers,
-    setTextOverlays,
-    setEmojiStickers,
-    setSelectedImageId,
-    setShowTrash,
-    setDeletingId,
-    setSnapV,
-    setSnapH,
-    setOverTrash,
-    toCanvas,
-    isOverTrash,
-  });
-
-  const filterCss = STORY_FILTERS.find(f => f.id === selectedFilter)?.css || 'none';
-
-  const { handleExport } = useStoryExport({
-    canvasW: CANVAS_W,
-    canvasH: CANVAS_H,
-    safeW: SAFE_W,
-    safeH: SAFE_H,
-    addedImgMax: ADDED_IMG_MAX,
-    initialMediaRatio,
-    imageStickers,
-    textOverlays,
-    emojiStickers,
-    deletingId,
-    videoRefs,
-    isInitialVideo,
-    previewUrl,
-    filterCss,
-    onDone,
-  });
+  const handleAddSticker = (sticker: any) => {
+    const newElement: StoryElement = {
+      id: Math.random().toString(36).substr(2, 9),
+      type: sticker.type === 'emoji' ? 'emoji' : 'info',
+      content: sticker.content,
+      infoType: sticker.infoType,
+      mentionUserId: sticker.mentionUserId,
+      x: 50, y: 50, scale: 1, rotation: 0, zIndex: Date.now()
+    };
+    setState(prev => ({ ...prev, elements: [...prev.elements, newElement] }));
+    setActiveTool(null);
+  };
 
   const handleAddImageSticker = (file: File | Blob) => {
     const url = URL.createObjectURL(file);
-    const isVid = file.type.startsWith('video/');
-    setImageStickers(prev => [...prev, { id: `img-${Date.now()}`, src: url, x: CANVAS_W / 2, y: CANVAS_H / 2, scale: 1, rotation: 0, isVideo: isVid }]);
+    const newElement: StoryElement = {
+      id: Math.random().toString(36).substr(2, 9),
+      type: 'image',
+      content: url,
+      x: 50, y: 50, scale: 1, rotation: 0, zIndex: Date.now()
+    };
+    setState(prev => ({ ...prev, elements: [...prev.elements, newElement] }));
   };
 
-  const handleAddText = (overlay: TextOverlay) => setTextOverlays(prev => [...prev, overlay]);
-  const handleAddSticker = (sticker: StickerItem) => {
-    const offsetX = Math.random() * 10 - 5; // -5% to +5%
-    const offsetY = Math.random() * 10 - 5;
-    setEmojiStickers(prev => [...prev, { ...sticker, x: sticker.x + offsetX, y: sticker.y + offsetY }]);
-  };
-  const handleRemoveOverlay = (id: string) => {
-    setTextOverlays(prev => prev.filter(t => t.id !== id));
-    setEmojiStickers(prev => prev.filter(s => s.id !== id));
-    setImageStickers(prev => prev.filter(s => s.id !== id));
-  };
+  // Watch for new image stickers
+  useEffect(() => {
+    const item = imageStickerManager.files[0];
+    if (item) {
+      handleAddImageSticker(item.file);
+      imageStickerManager.removeFile(item.id);
+    }
+  }, [imageStickerManager.files]);
 
-  const isPortrait916 = initialMediaRatio && Math.abs(initialMediaRatio - (CANVAS_W / CANVAS_H)) < 0.05;
+  const handleDone = async () => {
+    // We need to return a blob for the media_url. 
+    // We can fetch the previewUrl to get the original blob.
+    const blob = await fetch(previewUrl).then(r => r.blob());
+    
+    // Extract mentions
+    const mentionedUserIds = state.elements
+      .filter(e => e.infoType === 'mention' && e.mentionUserId)
+      .map(e => e.mentionUserId as string);
+
+    onDone(blob, mentionedUserIds, {
+      mediaType: mediaType,
+      story_state: state
+    });
+  };
 
   return (
-    <div
-      className="fixed inset-0 z-[110] bg-black flex flex-col items-center"
-      style={{ touchAction: 'none', overscrollBehavior: 'none' }}
-      onPointerMove={onGlobalPointerMove}
-      onPointerUp={onGlobalPointerUp}
-      onPointerCancel={onGlobalPointerUp}
-    >
-      <EditorToolbar
-        onCancel={onCancel}
-        onAddImageSticker={handleAddImageSticker}
-        onToolSelect={setActiveTool}
-        onExport={handleExport}
-      />
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col overflow-hidden" style={{ touchAction: 'none' }}>
+      
+      {/* Top Bar */}
+      <div className={`absolute top-0 inset-x-0 flex items-center justify-between p-4 z-20 transition-opacity duration-300 ${isPreviewMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <button onClick={onCancel} className="p-2 rounded-full bg-white/10 text-white backdrop-blur-md">
+          <X className="w-6 h-6" />
+        </button>
+        <span className="text-white font-semibold drop-shadow-md">Your story</span>
+        <button onClick={() => setIsPreviewMode(true)} className="p-2 rounded-full bg-white/10 text-white backdrop-blur-md hover:bg-white/20 transition-colors">
+          <Eye className="w-6 h-6" />
+        </button>
+      </div>
 
-      {/* Editor Canvas Container */}
-      <div className="flex-1 w-full max-w-[390px] relative overflow-hidden flex items-center justify-center pointer-events-none">
-        
-        {/* Aspect Ratio Forced Canvas */}
-        <div
+      {/* Canvas Area */}
+      <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out ${isPreviewMode ? 'p-0' : 'p-4 md:py-8'}`}>
+        <div 
+          className={`relative w-full h-full mx-auto flex items-center justify-center transition-all duration-300 ease-in-out ${isPreviewMode ? 'max-w-full max-h-full' : 'md:max-w-[450px] md:max-h-[85vh]'}`}
           ref={canvasRef}
-          className="relative pointer-events-auto bg-black"
-          style={{
-            width: '100%',
-            maxWidth: '390px',
-            aspectRatio: '9/16',
-            maxHeight: '100%',
-            overflow: 'hidden',
-            borderRadius: '16px'
-          }}
+          onClick={(e) => { if (e.target === canvasRef.current) setSelectedId(null); }}
         >
-          {/* Blurred Background Logic */}
-          {!isPortrait916 && (
-            <div className="absolute inset-0 pointer-events-none -z-10">
-              {(() => {
-                const initS = imageStickers.find(s => s.id.startsWith('img-initial-'));
-                if (!initS) return null;
-                return initS.isVideo ? (
-                  <video
-                    src={initS.src}
-                    className="w-full h-full object-cover"
-                    style={{ filter: 'blur(40px) brightness(0.7)', transform: 'scale(1.15)' }}
-                    autoPlay loop muted playsInline
-                  />
-                ) : (
-                  <img
-                    src={initS.src}
-                    className="w-full h-full object-cover"
-                    style={{ filter: 'blur(40px) brightness(0.7)', transform: 'scale(1.15)' }}
-                    alt=""
-                  />
-                );
-              })()}
-              <div className="absolute inset-0 bg-black/30" />
-            </div>
-          )}
-
-          {/* Standard Gradient Background (only for 9:16) */}
-          {isPortrait916 && (
-            <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary opacity-30 pointer-events-none" />
-          )}
-
-          {/* Canvas content area */}
-          <div className="absolute inset-0" style={{ filter: filterCss }}>
-            {imageStickers.map(s => (
+          {/* We pass children to StoryCanvas to render the interactive overlays ON TOP of the scaled elements */}
+          <StoryCanvas state={state}>
+            
+            {/* Interactive Layer (rendered inside the 1080x1920 scaled space) */}
+            {!isPreviewMode && state.elements.map(el => (
               <div
-                key={s.id}
+                key={el.id}
                 className="absolute origin-center"
                 style={{
-                  left: `${(s.x / CANVAS_W) * 100}%`,
-                  top: `${(s.y / CANVAS_H) * 100}%`,
-                  transform: `translate(-50%, -50%) scale(${s.scale}) rotate(${s.rotation}deg)`,
-                  zIndex: s.id.startsWith('img-initial-') ? 0 : 10,
-                  opacity: s.id === deletingId ? 0.5 : 1,
-                  transition: s.id === deletingId ? 'opacity 0.2s' : 'none',
-                  filter: s.id.startsWith('img-initial-') && !isPortrait916
-                    ? 'drop-shadow(0px 10px 40px rgba(0,0,0,0.4))'
-                    : 'none'
-                }}
-                onPointerDown={(e) => onImageDown(e, s.id)}
-                onPointerMove={onImageMove}
-                onPointerUp={onImageUp}
-                onPointerCancel={onImageUp}
-              >
-                {s.isVideo ? (
-                  <video
-                    ref={(el) => { if (el) videoRefs.current.set(s.id, el); else videoRefs.current.delete(s.id); }}
-                    src={s.src}
-                    className={`max-w-none max-h-none pointer-events-none ${s.id === selectedImageId && !s.id.startsWith('img-initial-') ? 'ring-2 ring-white/50' : ''}`}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                  />
-                ) : (
-                  <img
-                    src={s.src}
-                    alt=""
-                    draggable={false}
-                    className={`max-w-none max-h-none pointer-events-none select-none ${s.id === selectedImageId && !s.id.startsWith('img-initial-') ? 'ring-2 ring-white/50' : ''}`}
-                  />
-                )}
-              </div>
-            ))}
-
-            {textOverlays.map(t => (
-              <div
-                key={t.id}
-                className="absolute origin-center px-4 py-2 cursor-move"
-                style={{
-                  left: `${t.x}%`,
-                  top: `${t.y}%`,
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: 20,
-                  opacity: t.id === deletingId ? 0.5 : 1,
-                  transition: t.id === deletingId ? 'opacity 0.2s' : 'none',
-                  fontFamily: 'sans-serif',
-                  fontWeight: t.fontWeight,
-                  fontStyle: t.fontStyle,
-                  fontSize: `${(t.fontSize / CANVAS_W) * 100}cqw`,
-                  color: t.color,
-                  backgroundColor: t.bgColor,
-                  textAlign: t.textAlign,
-                  borderRadius: '8px',
-                  whiteSpace: 'nowrap',
-                }}
-                onPointerDown={(e) => onOverlayDown(e, t.id)}
-                onClick={() => {
-                  const nt = prompt('Edit text:', t.text);
-                  if (nt !== null) {
-                    setTextOverlays(prev => prev.map(o => o.id === t.id ? { ...o, text: nt } : o));
-                  }
+                  left: `${el.x}%`, top: `${el.y}%`,
+                  transform: `translate(-50%, -50%) scale(${el.scale}) rotate(${el.rotation}deg)`,
+                  width: '100%', height: '100%', // Take full canvas size, then use pointer-events to isolate
+                  pointerEvents: 'none'
                 }}
               >
-                {t.text}
+                {/* The actual hit box */}
+                <div 
+                  className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto cursor-move ${selectedId === el.id ? 'ring-2 ring-white ring-offset-2 ring-offset-black rounded-lg' : ''}`}
+                  style={{ minWidth: '100px', minHeight: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  onPointerDown={(e) => handlePointerDown(e, el.id, el.x, el.y)}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
+                >
+                  {/* We don't render the content here, StoryCanvas does. We just overlay a hit box. 
+                      Wait, this is an invisible hit box over the element. 
+                      Actually, rendering the hit box this way works to capture dragging. */}
+                </div>
               </div>
             ))}
-
-            {emojiStickers.map(s => (
-              <div
-                key={s.id}
-                className="absolute origin-center cursor-move"
-                style={{
-                  left: `${s.x}%`,
-                  top: `${s.y}%`,
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: 20,
-                  opacity: s.id === deletingId ? 0.5 : 1,
-                  transition: s.id === deletingId ? 'opacity 0.2s' : 'none',
-                }}
-                onPointerDown={(e) => onOverlayDown(e, s.id)}
-              >
-                {s.type === 'emoji' ? (
-                  <span className="text-4xl filter drop-shadow-md">{s.content}</span>
-                ) : (
-                  <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 shadow-xl flex items-center gap-2">
-                    <span className="text-white font-bold">{s.content}</span>
-                  </div>
-                )}
+            
+            {/* Safe Zone Overlay */}
+            {!isPreviewMode && selectedId && (
+              <div className="absolute inset-0 pointer-events-none border-[2px] border-dashed border-white/30 rounded-3xl z-[200]">
+                <div className="absolute top-0 inset-x-0 h-[250px] bg-red-500/10 border-b border-dashed border-red-500/50" />
+                <div className="absolute bottom-0 inset-x-0 h-[250px] bg-red-500/10 border-t border-dashed border-red-500/50" />
               </div>
-            ))}
+            )}
+          </StoryCanvas>
+        </div>
 
-            {snapV && <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-white/50 -translate-x-1/2 z-50 pointer-events-none" />}
-            {snapH && <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-white/50 -translate-y-1/2 z-50 pointer-events-none" />}
-          </div>
+        {/* Right Floating Toolbar */}
+        <div className={`absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 bg-black/40 backdrop-blur-md p-2 rounded-full z-20 transition-opacity duration-300 ${isPreviewMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+          <button onClick={() => setActiveTool('text')} className="p-3 text-white hover:bg-white/20 rounded-full">
+            <Type className="w-6 h-6" />
+          </button>
+          <button onClick={() => setActiveTool('sticker')} className="p-3 text-white hover:bg-white/20 rounded-full">
+            <Sticker className="w-6 h-6" />
+          </button>
+          <CustomFilePicker
+            manager={imageStickerManager}
+            accept="image/*"
+            hidePreviewList
+          >
+            <div className="p-3 text-white hover:bg-white/20 rounded-full cursor-pointer">
+              <ImageIcon className="w-6 h-6" />
+            </div>
+          </CustomFilePicker>
+          <button onClick={() => setActiveTool('draw')} className="p-3 text-white hover:bg-white/20 rounded-full">
+            <PenTool className="w-6 h-6" />
+          </button>
+          <button onClick={() => setActiveTool('filter')} className="p-3 text-white hover:bg-white/20 rounded-full">
+            <Sparkles className="w-6 h-6" />
+          </button>
+        </div>
+      </div>
 
-          <div
-            className={`absolute inset-4 border-2 border-white/30 border-dashed rounded-xl pointer-events-none transition-opacity duration-300 z-[100] ${
-              showTrash ? 'opacity-100' : 'opacity-0'
-            }`}
+      {/* Bottom Toolbar */}
+      <div className={`absolute bottom-0 inset-x-0 p-4 z-20 flex justify-end items-center transition-opacity duration-300 ${isPreviewMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <button onClick={handleDone} className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-full font-semibold shadow-lg active:scale-95 transition-transform hover:bg-gray-100">
+          Share <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Trash Zone */}
+      <div className={`absolute bottom-0 inset-x-0 h-[100px] bg-gradient-to-t from-red-600/80 to-transparent flex items-center justify-center z-[150] transition-opacity duration-200 pointer-events-none ${dragRef.current ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`p-4 rounded-full bg-black/50 text-white transition-transform ${isOverTrash ? 'scale-125 bg-red-600' : ''}`}>
+          <Trash2 className="w-8 h-8" />
+        </div>
+      </div>
+
+      {/* Tool Overlays */}
+      {activeTool === 'text' && <StoryTextOverlay onAdd={handleAddText} onClose={() => setActiveTool(null)} />}
+      {activeTool === 'sticker' && <StoryStickerPicker onSelect={handleAddSticker} onClose={() => setActiveTool(null)} />}
+      {activeTool === 'filter' && (
+        <div className="absolute inset-x-0 bottom-0 z-[150]">
+          <StoryFilterPicker 
+            selectedId={state.background.filterCss || 'none'} 
+            onSelect={(id, css) => {
+              setState(prev => ({ ...prev, background: { ...prev.background, filterCss: css } }));
+            }} 
+            onClose={() => setActiveTool(null)} 
           />
         </div>
-      </div>
-
-      <div
-        className={`w-full max-w-[390px] h-[80px] flex items-center justify-center transition-all duration-300 ${
-          showTrash ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none absolute bottom-0'
-        }`}
-      >
-        <div className={`p-4 rounded-full transition-all duration-200 ${overTrash ? 'bg-red-500 scale-125' : 'bg-black/50'}`}>
-          <Trash2 className={`size-6 ${overTrash ? 'text-white' : 'text-white/70'}`} />
-        </div>
-      </div>
-
-      {activeTool === 'text' && (
-        <StoryTextOverlay
-          onAdd={handleAddText}
-          onClose={() => setActiveTool(null)}
-        />
       )}
+      
+      {/* Drawing Overlay */}
+      <StoryDrawingOverlay 
+        isActive={activeTool === 'draw'} 
+        initialPaths={state.drawingPaths}
+        onDone={(paths) => {
+          setState(prev => ({ ...prev, drawingPaths: paths }));
+          setActiveTool(null);
+        }}
+        onCancel={() => setActiveTool(null)}
+      />
 
-      {activeTool === 'sticker' && (
-        <StoryStickerPicker
-          onSelect={handleAddSticker}
-          onClose={() => setActiveTool(null)}
-        />
-      )}
-
-      {activeTool === 'filter' && (
-        <StoryFilterPicker
-          selectedId={selectedFilter}
-          onSelect={(id) => {
-            setSelectedFilter(id);
-            setActiveTool(null);
-          }}
-          onClose={() => setActiveTool(null)}
-        />
+      {/* Preview Mode Exit */}
+      {isPreviewMode && (
+        <button 
+          onClick={() => setIsPreviewMode(false)}
+          className="absolute top-12 left-4 z-[200] p-3 rounded-full bg-black/50 text-white backdrop-blur-md active:scale-90"
+        >
+          <X className="w-6 h-6" />
+        </button>
       )}
     </div>
   );
-};
+}
 
 export default StoryEditor;
+

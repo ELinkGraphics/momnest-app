@@ -12,67 +12,82 @@ export interface StoryFilter {
   id: string;
   name: string;
   css: string;
-  canvasFilter?: string; // Phase 2 addition for export support
+  canvasFilter?: string;
 }
 
-export interface TextOverlay {
+export interface DrawingPath {
   id: string;
-  text: string;
-  x: number;
-  y: number;
-  fontSize: number;
-  fontWeight: 'normal' | 'bold';
-  fontStyle: 'normal' | 'italic';
-  textAlign: 'left' | 'center' | 'right';
+  points: number[][]; // [x, y, pressure] points relative to 1080x1920
   color: string;
-  bgColor: string;
+  size: number;
 }
 
-// Canonical Sticker Item type (merges StoryStickerData and StickerItem)
-export interface StoryStickerData {
-  id?: string;
-  type: 'emoji' | 'info' | 'overlay' | 'video_transform' | 'background_gradient';
-  content: string;
+export interface StoryElement {
+  id: string;
+  type: 'text' | 'emoji' | 'info' | 'image' | 'video';
+  x: number; // Percentage 0-100
+  y: number; // Percentage 0-100
+  scale: number;
+  rotation: number;
+  zIndex: number;
+  
+  // Type-specific properties
+  content?: string; // Text content, emoji character, or URL
+  
+  // For text
+  fontSize?: number; // Base 1920 scale
+  fontFamily?: string;
+  fontWeight?: 'normal' | 'bold';
+  fontStyle?: 'normal' | 'italic';
+  textAlign?: 'left' | 'center' | 'right';
+  color?: string;
+  bgColor?: string;
+  
+  // For info stickers
   infoType?: 'location' | 'hashtag' | 'mention' | 'link';
   mentionUserId?: string;
-  x?: number;
-  y?: number;
-  // Extra fields for specific types
-  scale?: number;
-  rotation?: number;
-  canvasW?: number;
-  canvasH?: number;
-  from?: string;
-  to?: string;
+  
+  // For media
+  filterCss?: string; // Story filter + drop shadow
+}
+
+export interface StoryBackground {
+  type: 'color' | 'gradient' | 'image' | 'video';
+  value: string; // Hex color, gradient string, or media URL
+  mediaWidth?: number;
+  mediaHeight?: number;
+  filterCss?: string; // Story filter for background
+}
+
+export interface StoryState {
+  background: StoryBackground;
+  elements: StoryElement[];
+  drawingPaths: DrawingPath[];
 }
 
 export interface Story {
   id: number | string;
   user: StoryUser;
-  image: string;
+  image: string; // The flattened background/media (legacy fallback, or current bg)
   mediaType?: 'image' | 'video';
+  
+  // NEW: Unified state for the DOM-based renderer
+  story_state?: StoryState;
+  
+  // Legacy fields (kept for backward compatibility with old drafts/stories)
   overlayUrl?: string;
-  videoTransform?: {
-    x: number;
-    y: number;
-    scale: number;
-    rotation: number;
-    canvasW: number;
-    canvasH: number;
-  };
-  backgroundGradient?: {
-    from: string;
-    to: string;
-  };
+  videoTransform?: { x: number; y: number; scale: number; rotation: number; canvasW: number; canvasH: number; };
+  backgroundGradient?: { from: string; to: string; };
+  stickerData?: any[]; // Legacy sticker array
+  
   isOwn?: boolean;
   isViewed?: boolean;
   isLive?: boolean;
   liveStreamId?: string;
   allStories?: Story[];
-  stickerData?: StoryStickerData[];
   resharedPostId?: string;
   createdAt?: string;
-  originalIndex?: number; // Phase 1 addition for navigation tracking
+  originalIndex?: number;
 }
 
 export interface StoryMention {
@@ -97,19 +112,12 @@ export interface StoryMessage {
 
 export interface EditorExtraData {
   mediaType: 'image' | 'video';
+  story_state?: StoryState; // New field for saving state
+  
+  // Legacy fields
   overlayUrl?: string;
-  videoTransform?: {
-    x: number;
-    y: number;
-    scale: number;
-    rotation: number;
-    canvasW: number;
-    canvasH: number;
-  };
-  backgroundGradient?: {
-    from: string;
-    to: string;
-  };
+  videoTransform?: { x: number; y: number; scale: number; rotation: number; canvasW: number; canvasH: number; };
+  backgroundGradient?: { from: string; to: string; };
 }
 
 export type PauseReason = 'hold' | 'menu' | 'input' | 'activity' | 'visibility' | 'link-overlay' | 'profile' | 'emoji-picker';

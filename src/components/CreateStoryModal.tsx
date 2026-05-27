@@ -47,6 +47,11 @@ const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ isOpen, onClose, on
       return;
     }
 
+    // Clear the active file immediately to prevent useEffect from re-opening the editor
+    if (storyManager.files[0]) {
+      storyManager.removeFile(storyManager.files[0].id);
+    }
+
     setShowEditor(false);
     setIsUploading(true);
 
@@ -65,19 +70,14 @@ const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ isOpen, onClose, on
       toast({ title: "Upload failed", description: "Could not create your story. Please try again.", variant: "destructive" });
     } finally {
       setIsUploading(false);
-      
-      // Clear the active file so it can be picked again
-      if (storyManager.files[0]) {
-        storyManager.removeFile(storyManager.files[0].id);
-      }
     }
   };
 
   const handleEditorCancel = () => {
-    setShowEditor(false);
     if (storyManager.files[0]) {
       storyManager.removeFile(storyManager.files[0].id);
     }
+    setShowEditor(false);
   };
 
   const handleCreateStory = async () => {
@@ -121,7 +121,8 @@ const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ isOpen, onClose, on
         />
       )}
 
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80">
+      {/* Hide the modal UI when editor is open so it doesn't cover the editor */}
+      <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/80 ${showEditor ? 'hidden' : ''}`}>
         <div className="bg-background rounded-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-hidden relative">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">

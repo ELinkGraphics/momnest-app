@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Story } from '@/types/storyTypes';
+import { StoryCanvas } from './StoryCanvas';
 
 interface StoryMediaRendererProps {
   story: Story;
@@ -38,6 +39,35 @@ export const StoryMediaRenderer: React.FC<StoryMediaRendererProps> = ({
     );
   }
 
+  const transitionClass = isTransitioning && isImagePreloaded
+    ? (transitionDirection === 'next' ? 'story-exit-left' : 'story-exit-right')
+    : '';
+
+  // NEW DOM-BASED RENDERER (if story_state exists)
+  if (story.story_state) {
+    return (
+      <>
+        {/* Background Blur Layer is handled directly by StoryCanvas for uniform behavior or we can keep the blur effect outside.
+            Wait, if the canvas has a 9:16 aspect ratio, the viewer background behind the canvas should be black.
+            The user requested: "Viewer Mode: Background behind the canvas is always #000."
+            So we don't need a blurred background for new stories, they will just sit on black! */}
+        <div className="absolute inset-0 z-0 bg-black" />
+
+        <div className={`absolute inset-0 z-10 story-media-transition flex items-center justify-center ${transitionClass}`}>
+          <StoryCanvas 
+            state={story.story_state} 
+            videoRef={videoRef}
+            onVideoLoadedMetadata={(e) => {
+              const vid = e.currentTarget;
+              setVideoDuration(vid.duration);
+            }}
+          />
+        </div>
+      </>
+    );
+  }
+
+  // LEGACY FALLBACK (for existing old stories without story_state)
   return (
     <>
       {/* Background Blur Layer */}
@@ -47,26 +77,15 @@ export const StoryMediaRenderer: React.FC<StoryMediaRendererProps> = ({
             ref={bgVideoRef}
             src={story.image}
             className="story-bg-media"
-            style={{
-              filter: 'blur(40px) brightness(0.7)',
-              transform: 'scale(1.15)',
-              objectFit: 'cover'
-            }}
-            autoPlay
-            loop
-            muted
-            playsInline
+            style={{ filter: 'blur(40px) brightness(0.7)', transform: 'scale(1.15)', objectFit: 'cover' }}
+            autoPlay loop muted playsInline
           />
         ) : (
           <img
             src={story.image}
             alt=""
             className="story-bg-media"
-            style={{
-              filter: 'blur(40px) brightness(0.7)',
-              transform: 'scale(1.15)',
-              objectFit: 'cover'
-            }}
+            style={{ filter: 'blur(40px) brightness(0.7)', transform: 'scale(1.15)', objectFit: 'cover' }}
             draggable={false}
           />
         )}
@@ -74,11 +93,7 @@ export const StoryMediaRenderer: React.FC<StoryMediaRendererProps> = ({
       </div>
 
       {/* Main Media Content */}
-      <div className={`absolute inset-0 story-media-transition ${
-        isTransitioning && isImagePreloaded
-          ? (transitionDirection === 'next' ? 'story-exit-left' : 'story-exit-right')
-          : ''
-      }`}>
+      <div className={`absolute inset-0 story-media-transition ${transitionClass}`}>
         {isVideo ? (
           <>
             {story.videoTransform ? (
@@ -95,11 +110,7 @@ export const StoryMediaRenderer: React.FC<StoryMediaRendererProps> = ({
                     maxWidth: 'none',
                     maxHeight: 'none',
                   }}
-                  autoPlay
-                  loop
-                  playsInline
-                  preload="auto"
-                  muted={false}
+                  autoPlay loop playsInline preload="auto" muted={false}
                   onLoadedMetadata={(e) => {
                     const vid = e.currentTarget;
                     setVideoDuration(vid.duration);
@@ -111,10 +122,7 @@ export const StoryMediaRenderer: React.FC<StoryMediaRendererProps> = ({
                       vid.style.height = 'auto';
                     }
                   }}
-                  onError={(e) => {
-                    console.error('Video playback error:', e);
-                    setHasError(true);
-                  }}
+                  onError={() => setHasError(true)}
                 />
               </div>
             ) : (
@@ -122,19 +130,9 @@ export const StoryMediaRenderer: React.FC<StoryMediaRendererProps> = ({
                 ref={videoRef}
                 src={story.image}
                 className="w-full h-full object-contain"
-                autoPlay
-                loop
-                playsInline
-                preload="auto"
-                muted={false}
-                onLoadedMetadata={(e) => {
-                  const vid = e.currentTarget;
-                  setVideoDuration(vid.duration);
-                }}
-                onError={(e) => {
-                  console.error('Video playback error:', e);
-                  setHasError(true);
-                }}
+                autoPlay loop playsInline preload="auto" muted={false}
+                onLoadedMetadata={(e) => setVideoDuration(e.currentTarget.duration)}
+                onError={() => setHasError(true)}
               />
             )}
             {story.overlayUrl && (
@@ -149,7 +147,7 @@ export const StoryMediaRenderer: React.FC<StoryMediaRendererProps> = ({
         ) : (
           <img
             src={story.image}
-            alt={`${story.user.name}'s story`}
+            alt={`${story.user?.name || 'User'}'s story`}
             className="w-full h-full object-contain"
             draggable={false}
             onError={() => setHasError(true)}

@@ -196,7 +196,6 @@ export const storyService = {
       publicUrl = supabase.storage.from('story-media').getPublicUrl(filePath).data.publicUrl;
     }
 
-    // Build sticker_data including overlay URL, video transform, and background gradient
     const stickerDataPayload = extraData?.stickerData || [];
     const metaEntries: any[] = [];
     
@@ -208,6 +207,9 @@ export const storyService = {
     }
     if (extraData?.backgroundGradient) {
       metaEntries.push({ type: 'background_gradient', from: extraData.backgroundGradient.from, to: extraData.backgroundGradient.to });
+    }
+    if (extraData?.story_state) {
+      metaEntries.push({ type: 'story_state', data: extraData.story_state });
     }
 
     const finalStickerData = [...stickerDataPayload, ...metaEntries].length > 0
@@ -251,7 +253,7 @@ export const storyService = {
       const raw = rawStory.sticker_data;
       if (!raw || !Array.isArray(raw)) return [];
       return (raw as any[]).filter((s: any) => 
-        s.type !== 'overlay' && s.type !== 'video_transform' && s.type !== 'background_gradient'
+        s.type !== 'overlay' && s.type !== 'video_transform' && s.type !== 'background_gradient' && s.type !== 'story_state'
       ).map((s: any) => ({
         type: s.type || 'info',
         content: s.content || '',
@@ -282,6 +284,7 @@ export const storyService = {
     const overlayEntry = rawArr.find((s: any) => s.type === 'overlay');
     const transformEntry = rawArr.find((s: any) => s.type === 'video_transform');
     const gradientEntry = rawArr.find((s: any) => s.type === 'background_gradient');
+    const storyStateEntry = rawArr.find((s: any) => s.type === 'story_state');
 
     return {
       id: rawStory.id,
@@ -299,6 +302,7 @@ export const storyService = {
       isOwn: rawStory.user_id === userId,
       isLive: rawStory.live_streams?.status === 'live',
       liveStreamId: rawStory.live_stream_id,
+      story_state: storyStateEntry?.data || undefined,
       stickerData: allStickerData.length > 0 ? allStickerData : undefined,
       overlayUrl: overlayEntry?.content || undefined,
       videoTransform: transformEntry ? {

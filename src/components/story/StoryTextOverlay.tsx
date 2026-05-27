@@ -1,20 +1,6 @@
 import React, { useState } from 'react';
 import { Type, Bold, Italic, AlignLeft, AlignCenter, AlignRight, Check, X, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-
-export interface TextOverlay {
-  id: string;
-  text: string;
-  x: number;
-  y: number;
-  fontSize: number;
-  fontWeight: 'normal' | 'bold';
-  fontStyle: 'normal' | 'italic';
-  textAlign: 'left' | 'center' | 'right';
-  color: string;
-  bgColor: string;
-}
 
 const TEXT_COLORS = [
   '#FFFFFF', '#000000', '#FF3B30', '#FF9500', '#FFCC00',
@@ -26,15 +12,24 @@ const BG_OPTIONS = [
   'rgba(255,59,48,0.7)', 'rgba(0,122,255,0.7)', 'rgba(175,82,222,0.7)',
 ];
 
+const FONTS = [
+  { id: 'classic', name: 'Classic', value: 'sans-serif' },
+  { id: 'modern', name: 'Modern', value: 'system-ui, -apple-system, sans-serif' },
+  { id: 'neon', name: 'Neon', value: 'cursive' },
+  { id: 'typewriter', name: 'Typewriter', value: 'monospace' },
+  { id: 'strong', name: 'Strong', value: 'Impact, sans-serif' }
+];
+
 interface Props {
-  onAdd: (overlay: TextOverlay) => void;
+  onAdd: (overlay: any) => void;
   onClose: () => void;
 }
 
 const StoryTextOverlay: React.FC<Props> = ({ onAdd, onClose }) => {
   const [text, setText] = useState('');
-  const [fontSize, setFontSize] = useState(24);
-  const [fontWeight, setFontWeight] = useState<'normal' | 'bold'>('normal');
+  const [fontSize, setFontSize] = useState(60); // 1080x1920 scale
+  const [fontFamily, setFontFamily] = useState(FONTS[0].value);
+  const [fontWeight, setFontWeight] = useState<'normal' | 'bold'>('bold');
   const [fontStyle, setFontStyle] = useState<'normal' | 'italic'>('normal');
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('center');
   const [color, setColor] = useState('#FFFFFF');
@@ -43,114 +38,107 @@ const StoryTextOverlay: React.FC<Props> = ({ onAdd, onClose }) => {
   const handleConfirm = () => {
     if (!text.trim()) return;
     onAdd({
-      id: `text-${Date.now()}`,
       text: text.trim(),
       x: 50,
       y: 50,
       fontSize,
+      fontFamily,
       fontWeight,
       fontStyle,
       textAlign,
       color,
       bgColor,
     });
-    onClose();
   };
 
   return (
-    <div className="absolute inset-0 z-20 bg-black/60 flex flex-col">
+    <div className="absolute inset-0 z-[150] bg-black/60 flex flex-col pointer-events-auto backdrop-blur-sm">
       {/* Top bar */}
-      <div className="flex items-center justify-between p-3">
-        <button onClick={onClose} className="p-2 rounded-full bg-black/40 text-white">
-          <X className="size-5" />
+      <div className="flex items-center justify-between p-4">
+        <button onClick={onClose} className="p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors">
+          <X className="w-6 h-6" />
         </button>
         <Button size="sm" onClick={handleConfirm} disabled={!text.trim()}
-          className="bg-primary text-primary-foreground rounded-full px-4">
-          <Check className="size-4 mr-1" /> Done
+          className="bg-white text-black hover:bg-white/90 rounded-full px-6 font-semibold shadow-lg">
+          Done
         </Button>
       </div>
 
       {/* Text input area */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 relative">
+      <div className="flex-1 flex flex-col items-center justify-center px-8 relative">
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Type something..."
           autoFocus
-          maxLength={200}
-          className="bg-transparent border-none outline-none resize-none text-center w-full max-w-[280px]"
+          className="bg-transparent border-none outline-none resize-none w-full max-w-[1080px] leading-tight"
           style={{
-            fontSize: `${fontSize}px`,
+            // Scale font size down for typing preview to fit screen nicely
+            fontSize: `${fontSize / 1.5}px`, 
+            fontFamily,
             fontWeight,
             fontStyle,
             textAlign,
             color,
             backgroundColor: bgColor,
-            borderRadius: bgColor !== 'transparent' ? '8px' : undefined,
-            padding: bgColor !== 'transparent' ? '8px 12px' : undefined,
+            borderRadius: bgColor !== 'transparent' ? '16px' : undefined,
+            padding: bgColor !== 'transparent' ? '16px 24px' : undefined,
+            boxShadow: color === '#FFFFFF' && fontFamily === 'cursive' && bgColor === 'transparent' ? '0 0 10px #fff, 0 0 20px #fff' : 'none'
           }}
-          rows={3}
+          rows={4}
         />
-        <div className="mt-6 text-[10px] font-medium text-white/50 bg-black/40 px-2 py-0.5 rounded-full backdrop-blur-sm absolute bottom-4">
-          {text.length}/200
-        </div>
       </div>
 
       {/* Tools */}
-      <div className="p-3 space-y-3">
+      <div className="p-4 space-y-4 bg-gradient-to-t from-black/90 via-black/60 to-transparent pb-8">
+        
+        {/* Font Selector */}
+        <div className="flex justify-center gap-2 overflow-x-auto snap-x px-2 py-1">
+          {FONTS.map(f => (
+            <button 
+              key={f.id}
+              onClick={() => setFontFamily(f.value)}
+              className={`px-4 py-1.5 rounded-full whitespace-nowrap snap-center text-sm font-semibold transition-colors ${fontFamily === f.value ? 'bg-white text-black' : 'bg-black/50 text-white border border-white/20'}`}
+              style={{ fontFamily: f.value }}
+            >
+              {f.name}
+            </button>
+          ))}
+        </div>
+
         {/* Font size slider */}
-        <div className="flex items-center gap-3 px-2">
+        <div className="flex items-center gap-4 px-4 max-w-sm mx-auto">
           <span className="text-white/70 text-xs">A</span>
           <input
-            type="range" min={14} max={48} value={fontSize}
+            type="range" min={30} max={150} value={fontSize}
             onChange={(e) => setFontSize(Number(e.target.value))}
-            className="flex-1 accent-primary"
+            className="flex-1 accent-white"
           />
-          <span className="text-white/70 text-lg font-bold">A</span>
+          <span className="text-white text-lg font-bold">A</span>
         </div>
 
         {/* Format buttons */}
-        <div className="flex items-center justify-center gap-2">
-          <button onClick={() => setFontWeight(fontWeight === 'bold' ? 'normal' : 'bold')}
-            className={`p-2 rounded-lg ${fontWeight === 'bold' ? 'bg-card/30' : 'bg-card/10'} text-white`}>
-            <Bold className="size-4" />
+        <div className="flex items-center justify-center gap-3">
+          <button onClick={() => setTextAlign(textAlign === 'left' ? 'center' : textAlign === 'center' ? 'right' : 'left')}
+            className="p-2.5 rounded-full bg-white/10 text-white hover:bg-white/20">
+            {textAlign === 'left' && <AlignLeft className="w-5 h-5" />}
+            {textAlign === 'center' && <AlignCenter className="w-5 h-5" />}
+            {textAlign === 'right' && <AlignRight className="w-5 h-5" />}
           </button>
-          <button onClick={() => setFontStyle(fontStyle === 'italic' ? 'normal' : 'italic')}
-            className={`p-2 rounded-lg ${fontStyle === 'italic' ? 'bg-card/30' : 'bg-card/10'} text-white`}>
-            <Italic className="size-4" />
-          </button>
-          <button onClick={() => setTextAlign('left')}
-            className={`p-2 rounded-lg ${textAlign === 'left' ? 'bg-card/30' : 'bg-card/10'} text-white`}>
-            <AlignLeft className="size-4" />
-          </button>
-          <button onClick={() => setTextAlign('center')}
-            className={`p-2 rounded-lg ${textAlign === 'center' ? 'bg-card/30' : 'bg-card/10'} text-white`}>
-            <AlignCenter className="size-4" />
-          </button>
-          <button onClick={() => setTextAlign('right')}
-            className={`p-2 rounded-lg ${textAlign === 'right' ? 'bg-card/30' : 'bg-card/10'} text-white`}>
-            <AlignRight className="size-4" />
+          
+          {/* Background pills toggle */}
+          <button onClick={() => setBgColor(bgColor === 'transparent' ? 'rgba(0,0,0,0.6)' : bgColor === 'rgba(0,0,0,0.6)' ? 'rgba(255,255,255,0.8)' : 'transparent')}
+            className={`p-2.5 rounded-full text-white ${bgColor !== 'transparent' ? 'bg-white text-black' : 'bg-white/10'}`}>
+            <span className="font-serif font-bold px-1">A**</span>
           </button>
         </div>
 
         {/* Text colors */}
-        <div className="flex items-center gap-2 justify-center">
-          <Palette className="size-4 text-white/60" />
+        <div className="flex items-center gap-3 justify-center overflow-x-auto px-2 snap-x py-2">
           {TEXT_COLORS.map((c) => (
             <button key={c} onClick={() => setColor(c)}
-              className={`size-6 rounded-full border-2 ${color === c ? 'border-white scale-110' : 'border-white/30'} transition-transform`}
-              style={{ backgroundColor: c }}
-            />
-          ))}
-        </div>
-
-        {/* Background colors */}
-        <div className="flex items-center gap-2 justify-center">
-          <span className="text-white/60 text-[10px] font-medium">BG</span>
-          {BG_OPTIONS.map((c) => (
-            <button key={c} onClick={() => setBgColor(c)}
-              className={`size-6 rounded-full border-2 ${bgColor === c ? 'border-white scale-110' : 'border-white/30'} transition-transform ${c === 'transparent' ? 'bg-[conic-gradient(#fff_0_25%,#ccc_25%_50%,#fff_50%_75%,#ccc_75%)]' : ''}`}
-              style={c !== 'transparent' ? { backgroundColor: c } : undefined}
+              className={`w-8 h-8 rounded-full flex-shrink-0 snap-center border-2 ${color === c ? 'border-white scale-110' : 'border-transparent'} transition-transform`}
+              style={{ backgroundColor: c, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
             />
           ))}
         </div>

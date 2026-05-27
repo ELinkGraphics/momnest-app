@@ -88,7 +88,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
     };
   }, []);
 
-  if (!isOpen || !user) return null;
+
 
   useEffect(() => {
     const item = avatarManager.files[0];
@@ -250,6 +250,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) 
         return null;
     }
   };
+
+  if (!isOpen || !user) return null;
 
   return (
     <>
