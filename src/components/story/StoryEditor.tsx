@@ -272,7 +272,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
 
       {/* Tool Overlays */}
       {activeTool === 'text' && <StoryTextOverlay onAdd={handleAddText} onClose={() => setActiveTool(null)} />}
-      {activeTool === 'sticker' && <StoryStickerPicker onSelect={handleAddSticker} onClose={() => setActiveTool(null)} />}
+      {activeTool === 'sticker' && <StoryStickerPicker onAdd={handleAddSticker} onClose={() => setActiveTool(null)} />}
       {activeTool === 'filter' && (
         <div className="absolute inset-x-0 bottom-0 z-[150]">
           <StoryFilterPicker 
