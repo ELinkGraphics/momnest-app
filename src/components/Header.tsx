@@ -156,7 +156,7 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
       <header className="sticky top-0 z-30 border-b border-border">
         <div className="bg-background">
             <div className="px-4 h-10 flex items-center justify-between">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full border border-border overflow-hidden">
+            <div className="flex items-center justify-center w-8 h-8">
               <img 
                 src="/lovable-uploads/SerkleMainLogo.svg" 
                 alt="Serkle" 
@@ -176,7 +176,7 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
     <header className="sticky top-0 z-30 border-b border-border">
       <div className="bg-background">
         <div className="px-4 h-10 flex items-center justify-between">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full border border-border overflow-hidden">
+          <div className="flex items-center justify-center w-8 h-8">
             <img 
               src="/lovable-uploads/SerkleMainLogo.svg" 
               alt="Serkle" 
