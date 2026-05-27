@@ -31,7 +31,23 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
 
   // Canvas interaction refs
   const canvasRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ id: string, startX: number, startY: number, elStartX: number, elStartY: number } | null>(null);
+  
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  const pointersRef = useRef<Map<number, { x: number, y: number }>>(new Map());
+  const gestureStateRef = useRef<{
+    id: string;
+    elStartX: number;
+    elStartY: number;
+    elStartScale: number;
+    elStartRot: number;
+    gestureStartDist: number | null;
+    gestureStartAngle: number | null;
+    gestureStartCenter: { x: number, y: number } | null;
+  } | null>(null);
 
   // File manager for image stickers
   const imageStickerManager = useFileManager();
@@ -51,54 +67,153 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
     }
   }, [initialPostElements]);
 
-  // Pointer events for dragging elements
-  const handlePointerDown = (e: React.PointerEvent, id: string, currentX: number, currentY: number) => {
+  const updateGestureBaseline = useCallback((el: StoryElement) => {
+    const pts = Array.from(pointersRef.current.values());
+    let dist = null;
+    let angle = null;
+    let center = null;
+
+    if (pts.length === 1) {
+      center = { x: pts[0].x, y: pts[0].y };
+    } else if (pts.length >= 2) {
+      const p1 = pts[0];
+      const p2 = pts[1];
+      dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+      center = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+    }
+
+    gestureStateRef.current = {
+      id: el.id,
+      elStartX: el.x,
+      elStartY: el.y,
+      elStartScale: el.scale,
+      elStartRot: el.rotation,
+      gestureStartDist: dist,
+      gestureStartAngle: angle,
+      gestureStartCenter: center
+    };
+  }, []);
+
+  const handlePointerDown = (e: React.PointerEvent, id: string) => {
     if (isPreviewMode) return;
     e.stopPropagation();
     e.target.setPointerCapture(e.pointerId);
+    
     setSelectedId(id);
-    dragRef.current = { id, startX: e.clientX, startY: e.clientY, elStartX: currentX, elStartY: currentY };
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    
+    const el = stateRef.current.elements.find(e => e.id === id);
+    if (el) updateGestureBaseline(el);
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!dragRef.current || !canvasRef.current || isPreviewMode) return;
-    const { id, startX, startY, elStartX, elStartY } = dragRef.current;
+  const handleCanvasPointerDown = (e: React.PointerEvent) => {
+    if (isPreviewMode) return;
     
-    const rect = canvasRef.current.getBoundingClientRect();
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    
-    const dxPct = (dx / rect.width) * 100;
-    const dyPct = (dy / rect.height) * 100;
-
-    // Check trash zone (bottom 100px of the screen)
-    if (e.clientY > window.innerHeight - 100) {
-      setIsOverTrash(true);
+    if (selectedId) {
+      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const el = stateRef.current.elements.find(el => el.id === selectedId);
+      if (el) updateGestureBaseline(el);
     } else {
-      setIsOverTrash(false);
-    }
-
-    setState(prev => ({
-      ...prev,
-      elements: prev.elements.map(el => el.id === id ? { ...el, x: elStartX + dxPct, y: elStartY + dyPct } : el)
-    }));
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (!dragRef.current) return;
-    const { id } = dragRef.current;
-    
-    if (isOverTrash) {
-      setState(prev => ({
-        ...prev,
-        elements: prev.elements.filter(el => el.id !== id)
-      }));
       setSelectedId(null);
     }
-    
-    setIsOverTrash(false);
-    dragRef.current = null;
   };
+
+  useEffect(() => {
+    const handleGlobalPointerMove = (e: PointerEvent) => {
+      if (isPreviewMode || !gestureStateRef.current) return;
+      
+      if (pointersRef.current.has(e.pointerId)) {
+        pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        
+        const pts = Array.from(pointersRef.current.values());
+        const g = gestureStateRef.current;
+        
+        if (!canvasRef.current) return;
+        const rect = canvasRef.current.getBoundingClientRect();
+
+        let newX = g.elStartX;
+        let newY = g.elStartY;
+        let newScale = g.elStartScale;
+        let newRot = g.elStartRot;
+        
+        if (pts.length === 1 && g.gestureStartCenter) {
+          const dx = pts[0].x - g.gestureStartCenter.x;
+          const dy = pts[0].y - g.gestureStartCenter.y;
+          newX = g.elStartX + (dx / rect.width) * 100;
+          newY = g.elStartY + (dy / rect.height) * 100;
+        } 
+        else if (pts.length >= 2 && g.gestureStartDist !== null && g.gestureStartAngle !== null && g.gestureStartCenter) {
+          const p1 = pts[0];
+          const p2 = pts[1];
+          
+          const curDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+          const curAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+          const curCenter = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+          
+          const scaleDelta = curDist / (g.gestureStartDist || 1);
+          newScale = Math.max(0.1, g.elStartScale * scaleDelta); // Prevent scaling to 0
+          
+          const angleDelta = curAngle - g.gestureStartAngle;
+          newRot = g.elStartRot + angleDelta;
+          
+          const dx = curCenter.x - g.gestureStartCenter.x;
+          const dy = curCenter.y - g.gestureStartCenter.y;
+          newX = g.elStartX + (dx / rect.width) * 100;
+          newY = g.elStartY + (dy / rect.height) * 100;
+        }
+        
+        setState(prev => ({
+          ...prev,
+          elements: prev.elements.map(el => 
+            el.id === g.id ? { ...el, x: newX, y: newY, scale: newScale, rotation: newRot } : el
+          )
+        }));
+        
+        if (e.clientY > window.innerHeight - 100) {
+          setIsOverTrash(true);
+        } else {
+          setIsOverTrash(false);
+        }
+      }
+    };
+
+    const handleGlobalPointerUp = (e: PointerEvent) => {
+      if (pointersRef.current.has(e.pointerId)) {
+        pointersRef.current.delete(e.pointerId);
+        
+        if (isOverTrash && gestureStateRef.current) {
+          const id = gestureStateRef.current.id;
+          setState(prev => ({
+            ...prev,
+            elements: prev.elements.filter(el => el.id !== id)
+          }));
+          setSelectedId(null);
+          gestureStateRef.current = null;
+          pointersRef.current.clear();
+        } 
+        else if (pointersRef.current.size > 0 && gestureStateRef.current) {
+          const el = stateRef.current.elements.find(el => el.id === gestureStateRef.current!.id);
+          if (el) updateGestureBaseline(el);
+        } 
+        else {
+          gestureStateRef.current = null;
+        }
+        
+        setIsOverTrash(false);
+      }
+    };
+
+    window.addEventListener('pointermove', handleGlobalPointerMove);
+    window.addEventListener('pointerup', handleGlobalPointerUp);
+    window.addEventListener('pointercancel', handleGlobalPointerUp);
+
+    return () => {
+      window.removeEventListener('pointermove', handleGlobalPointerMove);
+      window.removeEventListener('pointerup', handleGlobalPointerUp);
+      window.removeEventListener('pointercancel', handleGlobalPointerUp);
+    };
+  }, [isPreviewMode, isOverTrash, updateGestureBaseline]);
 
   const handleAddText = (overlay: any) => {
     const newElement: StoryElement = {
@@ -187,7 +302,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
         <div 
           className={`relative w-full h-full mx-auto flex items-center justify-center transition-all duration-300 ease-in-out ${isPreviewMode ? 'max-w-full max-h-full' : 'md:max-w-[450px] md:max-h-[85vh]'}`}
           ref={canvasRef}
-          onClick={(e) => { if (e.target === canvasRef.current) setSelectedId(null); }}
+          onPointerDown={handleCanvasPointerDown}
         >
           {/* We pass children to StoryCanvas to render the interactive overlays ON TOP of the scaled elements */}
           <StoryCanvas state={state}>
@@ -205,13 +320,9 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
                 }}
               >
                 {/* The actual hit box */}
-                <div 
                   className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto cursor-move ${selectedId === el.id ? 'ring-2 ring-white ring-offset-2 ring-offset-black rounded-lg' : ''}`}
                   style={{ minWidth: '100px', minHeight: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  onPointerDown={(e) => handlePointerDown(e, el.id, el.x, el.y)}
-                  onPointerMove={handlePointerMove}
-                  onPointerUp={handlePointerUp}
-                  onPointerCancel={handlePointerUp}
+                  onPointerDown={(e) => handlePointerDown(e, el.id)}
                 >
                   {/* We don't render the content here, StoryCanvas does. We just overlay a hit box. 
                       Wait, this is an invisible hit box over the element. 
@@ -264,7 +375,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
       </div>
 
       {/* Trash Zone */}
-      <div className={`absolute bottom-0 inset-x-0 h-[100px] bg-gradient-to-t from-red-600/80 to-transparent flex items-center justify-center z-[150] transition-opacity duration-200 pointer-events-none ${dragRef.current ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`absolute bottom-0 inset-x-0 h-[100px] bg-gradient-to-t from-red-600/80 to-transparent flex items-center justify-center z-[150] transition-opacity duration-200 pointer-events-none ${gestureStateRef.current ? 'opacity-100' : 'opacity-0'}`}>
         <div className={`p-4 rounded-full bg-black/50 text-white transition-transform ${isOverTrash ? 'scale-125 bg-red-600' : ''}`}>
           <Trash2 className="w-8 h-8" />
         </div>
