@@ -320,6 +320,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
                 }}
               >
                 {/* The actual hit box */}
+                <div 
                   className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto cursor-move ${selectedId === el.id ? 'ring-2 ring-white ring-offset-2 ring-offset-black rounded-lg' : ''}`}
                   style={{ minWidth: '100px', minHeight: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   onPointerDown={(e) => handlePointerDown(e, el.id)}
