@@ -7,9 +7,12 @@ import WebRTCLiveViewer from './live/WebRTCLiveViewer';
 import { useUser } from '@/contexts/UserContext';
 import { useStoryPersistence } from '@/hooks/useStoryPersistence';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useNavigation } from '@/contexts/NavigationContext';
+import { StoryErrorBoundary } from './story/StoryErrorBoundary';
 
 const StoriesBar: React.FC = () => {
   const { user } = useUser();
+  const { pushModalState } = useNavigation();
   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
   const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
   const [isLiveViewerOpen, setIsLiveViewerOpen] = useState(false);
@@ -21,14 +24,20 @@ const StoriesBar: React.FC = () => {
     if ((story as any).isLive && (story as any).liveStreamId) {
       setSelectedLiveStreamId((story as any).liveStreamId);
       setIsLiveViewerOpen(true);
+      pushModalState('live-viewer', () => {
+        setIsLiveViewerOpen(false);
+        setSelectedLiveStreamId(null);
+      });
       return;
     }
     if (story.isOwn && (!story.allStories || story.allStories.length === 0)) {
       setIsCreateStoryOpen(true);
+      pushModalState('create-story', () => setIsCreateStoryOpen(false));
       return;
     }
     setSelectedStoryIndex(index);
     setIsStoryViewerOpen(true);
+    pushModalState('story-viewer', () => setIsStoryViewerOpen(false));
   };
 
   const handleCreateStory = () => {
@@ -50,11 +59,18 @@ const StoriesBar: React.FC = () => {
             const isViewed = story.isViewed;
 
             return (
-              <button
+              <div
                 key={story.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => handleStoryClick(story, index)}
-                className="flex flex-col items-center shrink-0 gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl transition-transform hover:scale-105"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleStoryClick(story, index);
+                  }
+                }}
+                className="flex flex-col items-center shrink-0 gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl transition-transform hover:scale-105 cursor-pointer"
                 aria-label={isOwn && !hasStories ? "Add your story" : `View ${story.user.name}'s story`}
               >
                 <div className="relative">
@@ -72,9 +88,14 @@ const StoriesBar: React.FC = () => {
                       </Avatar>
                       {/* Plus badge */}
                       <div
-                        onClick={(e) => { e.stopPropagation(); setIsCreateStoryOpen(true); }}
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setIsCreateStoryOpen(true); 
+                          pushModalState('create-story', () => setIsCreateStoryOpen(false));
+                        }}
                         className="absolute bottom-0 right-0 size-5 bg-primary rounded-full flex items-center justify-center border-2 border-background cursor-pointer"
                         role="button"
+                        tabIndex={0}
                         aria-label="Add story"
                       >
                         <Plus className="size-3 text-white" />
@@ -112,7 +133,7 @@ const StoriesBar: React.FC = () => {
                                   // Per-segment colour: grey if that specific story is viewed
                                   const segStory = story.allStories?.[i];
                                   const segViewed = segStory?.isViewed || isViewed;
-                                  return segViewed ? '#9ca3af' : 'url(#storyGradient)';
+                                  return segViewed ? '#9ca3af' : `url(#storyGradient-${story.id})`;
                                 })()}
                                 strokeWidth={strokeWidth}
                                 strokeDasharray={`${segmentLength} ${circumference - segmentLength}`}
@@ -124,7 +145,7 @@ const StoriesBar: React.FC = () => {
                           });
                         })()}
                         <defs>
-                          <linearGradient id="storyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <linearGradient id={`storyGradient-${story.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stopColor="hsl(var(--primary))" />
                             <stop offset="50%" stopColor="hsl(var(--secondary))" />
                             <stop offset="100%" stopColor="#f59e0b" />
@@ -157,9 +178,14 @@ const StoriesBar: React.FC = () => {
                   {/* Plus for own story with existing stories */}
                   {isOwn && hasStories && !isLive && (
                     <div
-                      onClick={(e) => { e.stopPropagation(); setIsCreateStoryOpen(true); }}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setIsCreateStoryOpen(true); 
+                        pushModalState('create-story', () => setIsCreateStoryOpen(false));
+                      }}
                       className="absolute bottom-0 right-0 size-5 bg-primary rounded-full flex items-center justify-center border-2 border-background cursor-pointer"
                       role="button"
+                      tabIndex={0}
                       aria-label="Add story"
                     >
                       <Plus className="size-3 text-white" />
@@ -170,7 +196,7 @@ const StoriesBar: React.FC = () => {
                 <span className="text-[11px] font-medium text-muted-foreground max-w-[64px] truncate text-center leading-tight">
                   {isOwn ? "Your Nest" : getFirstName(story.user.name)}
                 </span>
-              </button>
+              </div>
             );
           })}
         </div>
@@ -190,13 +216,15 @@ const StoriesBar: React.FC = () => {
         }
 
         return (
-          <StoryViewer
-            stories={allUserStories}
-            initialIndex={initialFlatIndex}
-            isOpen={isStoryViewerOpen}
-            onClose={() => setIsStoryViewerOpen(false)}
-            onStoryViewed={markStoryViewed}
-          />
+          <StoryErrorBoundary>
+            <StoryViewer
+              stories={allUserStories}
+              initialIndex={initialFlatIndex}
+              isOpen={isStoryViewerOpen}
+              onClose={() => setIsStoryViewerOpen(false)}
+              onStoryViewed={markStoryViewed}
+            />
+          </StoryErrorBoundary>
         );
       })()}
 

@@ -8,6 +8,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import StoryEditor from '@/components/story/StoryEditor';
 import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
+import { storyService } from '@/services/storyService';
 
 interface CreateStoryModalProps {
   isOpen: boolean;
@@ -50,94 +51,8 @@ const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ isOpen, onClose, on
     setIsUploading(true);
 
     try {
-      
-
       const isVideo = extraData?.mediaType === 'video' && extraData?.originalVideoUrl;
-
-      let publicUrl: string;
-      let overlayPublicUrl: string | null = null;
-
-      if (isVideo) {
-        // For video stories: upload the original video
-        const videoBlob = await fetch(extraData.originalVideoUrl).then(r => r.blob());
-        const videoFile = new File([videoBlob], `story-${Date.now()}.mp4`, { type: 'video/mp4' });
-        const videoPath = `${user.id}/${Date.now()}.mp4`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('story-media')
-          .upload(videoPath, videoFile, { cacheControl: '3600', upsert: false });
-        if (uploadError) throw uploadError;
-
-        publicUrl = supabase.storage.from('story-media').getPublicUrl(videoPath).data.publicUrl;
-
-        // Upload transparent overlay PNG if present (contains stickers, text, images on top of video)
-        if (extraData.overlayBlob) {
-          const overlayFile = new File([extraData.overlayBlob], `overlay-${Date.now()}.png`, { type: 'image/png' });
-          const overlayPath = `${user.id}/overlay-${Date.now()}.png`;
-
-          const { error: overlayUploadError } = await supabase.storage
-            .from('story-media')
-            .upload(overlayPath, overlayFile, { cacheControl: '3600', upsert: false });
-          if (overlayUploadError) throw overlayUploadError;
-
-          overlayPublicUrl = supabase.storage.from('story-media').getPublicUrl(overlayPath).data.publicUrl;
-        }
-      } else {
-        // For image stories: upload the canvas snapshot
-        const file = new File([editedBlob], `story-${Date.now()}.jpg`, { type: 'image/jpeg' });
-        const filePath = `${user.id}/${Date.now()}.jpg`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('story-media')
-          .upload(filePath, file, { cacheControl: '3600', upsert: false });
-        if (uploadError) throw uploadError;
-
-        publicUrl = supabase.storage.from('story-media').getPublicUrl(filePath).data.publicUrl;
-      }
-
-      // Build sticker_data including overlay URL, video transform, and background gradient
-      const stickerDataPayload = extraData?.stickerData || [];
-      const metaEntries: any[] = [];
-      
-      if (overlayPublicUrl) {
-        metaEntries.push({ type: 'overlay', content: overlayPublicUrl, x: 0, y: 0 });
-      }
-      if (extraData?.videoTransform) {
-        metaEntries.push({ type: 'video_transform', ...extraData.videoTransform });
-      }
-      if (extraData?.backgroundGradient) {
-        metaEntries.push({ type: 'background_gradient', from: extraData.backgroundGradient.from, to: extraData.backgroundGradient.to });
-      }
-
-      const finalStickerData = [...stickerDataPayload, ...metaEntries].length > 0
-        ? [...stickerDataPayload, ...metaEntries]
-        : null;
-
-      const { data: storyData, error: dbError } = await supabase.from('stories').insert({
-        user_id: user.id,
-        media_url: publicUrl,
-        media_type: isVideo ? 'video' : 'image',
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        sticker_data: finalStickerData,
-      } as any).select('id').single();
-
-      if (dbError) throw dbError;
-
-      // Save mentions
-      if (storyData && mentionedUserIds && mentionedUserIds.length > 0) {
-        await supabase.from('story_mentions').insert(
-          mentionedUserIds.map(uid => ({ story_id: storyData.id, mentioned_user_id: uid }))
-        );
-        for (const mentionedUserId of mentionedUserIds) {
-          await supabase.from('push_notifications').insert([{
-            user_id: mentionedUserId,
-            notification_type: 'story_mention',
-            title: `${user.name} mentioned you in their story`,
-            body: 'Tap to view and reshare to your story',
-            data: JSON.stringify({ type: 'story_mention', story_id: storyData.id, mentioner_id: user.id }),
-          }]);
-        }
-      }
+      await storyService.createStory(user.id, editedBlob, isVideo, mentionedUserIds, extraData);
 
       onCreateStory(null);
       toast({ title: "Story created!", description: "Your story has been shared successfully." });
@@ -177,46 +92,8 @@ const CreateStoryModal: React.FC<CreateStoryModalProps> = ({ isOpen, onClose, on
 
     setIsUploading(true);
     try {
-      const fileExt = selectedMedia.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
-
-      
-
-      const { error: uploadError } = await supabase.storage
-        .from('story-media')
-        .upload(filePath, selectedMedia, { cacheControl: '3600', upsert: false });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage.from('story-media').getPublicUrl(filePath);
-
-      const { data: storyData, error: dbError } = await supabase.from('stories').insert({
-        user_id: user.id,
-        media_url: publicUrl,
-        media_type: selectedMedia.type.startsWith('video/') ? 'video' : 'image',
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      }).select('id').single();
-
-      if (dbError) throw dbError;
-
-      // Save mentions and send notifications
-      if (storyData && pendingMentionIds.length > 0) {
-        await supabase.from('story_mentions').insert(
-          pendingMentionIds.map(uid => ({ story_id: storyData.id, mentioned_user_id: uid }))
-        );
-        // Send notification to each mentioned user
-        for (const mentionedUserId of pendingMentionIds) {
-          await supabase.from('push_notifications').insert([{
-            user_id: mentionedUserId,
-            notification_type: 'story_mention',
-            title: `${user.name} mentioned you in their story`,
-            body: 'Tap to view and reshare to your story',
-            data: JSON.stringify({ type: 'story_mention', story_id: storyData.id, mentioner_id: user.id }),
-          }]);
-        }
-        setPendingMentionIds([]);
-      }
+      const isVideo = selectedMedia.type.startsWith('video/');
+      await storyService.createStory(user.id, selectedMedia, isVideo, pendingMentionIds);
 
       onCreateStory(null);
       toast({ title: "Story created!", description: "Your story has been shared successfully." });

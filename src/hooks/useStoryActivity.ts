@@ -161,13 +161,43 @@ export const useStoryActivity = (storyId: string | null) => {
   // Send a reply message in chat
   const sendReply = useCallback(async (receiverId: string, content: string) => {
     if (!storyId || !user?.id) return;
-    await supabase.from('story_messages').insert({
-      story_id: storyId,
+
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg: StoryMessage = {
+      id: tempId,
       sender_id: user.id,
       receiver_id: receiverId,
       content,
-    });
-  }, [storyId, user?.id]);
+      created_at: new Date().toISOString(),
+      profile: {
+        name: user.name || '',
+        initials: user.initials || '',
+        avatar_color: user.avatarColor || '',
+        avatar_url: user.avatar || null,
+      },
+    };
+
+    // Optimistically add message
+    setData(prev => ({ ...prev, messages: [optimisticMsg, ...prev.messages] }));
+
+    try {
+      const { error } = await supabase.from('story_messages').insert({
+        story_id: storyId,
+        sender_id: user.id,
+        receiver_id: receiverId,
+        content,
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.error('Failed to send reply:', err);
+      // Revert on error
+      setData(prev => ({
+        ...prev,
+        messages: prev.messages.filter(m => m.id !== tempId),
+      }));
+      throw err;
+    }
+  }, [storyId, user]);
 
   return { ...data, sendReply, refetch: fetchActivity };
 };

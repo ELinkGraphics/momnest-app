@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { X, Heart, Send, BarChart3, Repeat2, Loader2, ExternalLink, MoreVertical, Trash2, EyeOff, Flag, ChevronUp } from 'lucide-react';
+
 import { useNavigate } from 'react-router-dom';
-import EmojiPicker from '@/components/EmojiPicker';
-import { Story, StoryStickerData } from '@/data/mock';
+import { Story, StoryStickerData, PauseReason } from '@/types/storyTypes';
 import { useHapticFeedback } from '@/hooks/useHapticFeedback';
 import { useVisibilityHandler } from '@/hooks/useVisibilityHandler';
 import PublicProfileModal from '@/components/PublicProfileModal';
@@ -10,8 +9,14 @@ import StoryActivityModal from '@/components/StoryActivityModal';
 import { useUser } from '@/contexts/UserContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { enqueueStoryAction } from '@/lib/sync';
 import { storyPreloader } from '@/lib/storyPreloader';
+import { storyService } from '@/services/storyService';
+import { StoryProgressBar } from './story/StoryProgressBar';
+import { StoryHeader } from './story/StoryHeader';
+import { StoryMediaRenderer } from './story/StoryMediaRenderer';
+import { StoryInteractiveOverlay } from './story/StoryInteractiveOverlay';
+import { StoryLinkOverlay, StoryStickers } from './story/StoryLinkOverlay';
+import { StoryBottomBar } from './story/StoryBottomBar';
 
 interface StoryViewerProps {
   stories: Story[];
@@ -21,8 +26,7 @@ interface StoryViewerProps {
   onStoryViewed?: (storyId: string) => void;
 }
 
-// ─── Pause Reason Tracker (BUG-9 FIX) ─────────────────────────────────
-type PauseReason = 'hold' | 'menu' | 'input' | 'activity' | 'visibility' | 'link-overlay' | 'profile';
+// (PauseReason moved to types)
 
 const StoryViewer: React.FC<StoryViewerProps> = ({ 
   stories, 
@@ -53,8 +57,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   }, []);
 
   const [isLiked, setIsLiked] = useState(false);
-  const [message, setMessage] = useState('');
-  const [isMessageFocused, setIsMessageFocused] = useState(false);
+
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [isResharing, setIsResharing] = useState(false);
@@ -108,16 +111,19 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     if (!v || !bgV) return;
 
     // Sync playing state and time
+    let rafId: number;
     const syncVideos = () => {
       if (Math.abs(bgV.currentTime - v.currentTime) > 0.1) {
         bgV.currentTime = v.currentTime;
       }
       if (v.paused && !bgV.paused) bgV.pause();
       if (!v.paused && bgV.paused) bgV.play().catch(() => {});
+      
+      rafId = requestAnimationFrame(syncVideos);
     };
 
-    const interval = setInterval(syncVideos, 100);
-    return () => clearInterval(interval);
+    rafId = requestAnimationFrame(syncVideos);
+    return () => cancelAnimationFrame(rafId);
   }, [isCurrentVideo, isOpen, isPaused, isTransitioning]);
 
   // ─── Record view when story changes ──────────────────────────────────
@@ -134,10 +140,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     
     const recordView = async () => {
       try {
-        await enqueueStoryAction('story_view', { 
-          story_id: storyId, 
-          viewer_id: user.id
-        });
+        await storyService.markStoryViewed(storyId, user.id);
         if (controller.signal.aborted) return;
         viewedStoryIds.current.add(storyId);
         onStoryViewed?.(storyId);
@@ -155,14 +158,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     if (!currentStoryDbId || !user?.id) return;
     const controller = new AbortController();
     
-    supabase.from('story_likes')
-      .select('id')
-      .eq('story_id', currentStoryDbId)
-      .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
+    storyService.checkHasLiked(currentStoryDbId, user.id)
+      .then((hasLiked) => {
         if (controller.signal.aborted) return;
-        setIsLiked(!!data);
+        setIsLiked(hasLiked);
       });
       
     return () => controller.abort();
@@ -178,30 +177,21 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     
     const controller = new AbortController();
     
-    supabase.from('story_mentions')
-      .select(`
-        mentioned_user_id,
-        profiles!mentioned_user_id (id, name, username)
-      `)
-      .eq('story_id', currentStoryDbId)
-      .then(({ data }) => {
+    storyService.fetchStoryMentions(currentStoryDbId)
+      .then((mentions) => {
         if (controller.signal.aborted) return;
         
-        if (!data || data.length === 0) {
+        if (!mentions || mentions.length === 0) {
           setStoryMentions([]);
           setIsMentionedInStory(false);
           return;
         }
         
         if (user?.id) {
-          setIsMentionedInStory(data.some((m: any) => m.mentioned_user_id === user.id) && !isOwnStory);
+          setIsMentionedInStory(mentions.some((m: any) => m.user_id === user.id) && !isOwnStory);
         }
         
-        setStoryMentions(data.map((m: any) => ({
-          user_id: m.mentioned_user_id,
-          username: m.profiles?.username || m.profiles?.name || 'User',
-          name: m.profiles?.name || 'User',
-        })));
+        setStoryMentions(mentions);
       });
       
     return () => controller.abort();
@@ -212,13 +202,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     if (!currentStoryDbId || !user?.id || !currentStory?.image) return;
     setIsResharing(true);
     try {
-      const { error } = await supabase.from('stories').insert({
-        user_id: user.id,
-        media_url: currentStory.image,
-        media_type: currentStory.mediaType || 'image',
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        reshared_story_id: currentStoryDbId,
-      } as any);
+      const { error } = await storyService.reshareStory(currentStoryDbId, user.id, currentStory.image, currentStory.mediaType || 'image');
       if (error) throw error;
       toast({ title: "Added to your story!", description: `Reshared from ${currentStory.user.name}` });
     } catch (err) {
@@ -239,11 +223,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     triggerHaptic("medium");
 
     try {
-      if (willLike) {
-        await enqueueStoryAction('story_like', { story_id: currentStoryDbId, user_id: user.id });
-      } else {
-        await enqueueStoryAction('story_unlike', { story_id: currentStoryDbId, user_id: user.id });
-      }
+      await storyService.toggleLike(currentStoryDbId, user.id, willLike);
     } catch (err) {
       console.error('Like toggle error:', err);
       setIsLiked(!willLike);
@@ -251,22 +231,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     } finally {
       setIsLikeLoading(false);
     }
-  };
-
-  // Send message
-  const handleSendMessage = async () => {
-    if (!message.trim() || !currentStoryDbId || !user?.id || !currentStory?.user?.id) return;
-    const msgText = message.trim();
-    setMessage('');
-    
-    await enqueueStoryAction('story_message', {
-      story_id: currentStoryDbId,
-      sender_id: user.id,
-      receiver_id: currentStory.user.id,
-      content: msgText,
-    });
-    setIsMessageFocused(false);
-    removePauseReason('input');
   };
 
   // Preload image helper
@@ -679,7 +643,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     setShowStoryMenu(false);
     removePauseReason('menu');
     try {
-      const { error } = await supabase.from('stories').delete().eq('id', currentStoryDbId);
+      const { error } = await storyService.deleteStory(currentStoryDbId);
       if (error) throw error;
       toast({ title: 'Story deleted', description: 'Your story has been removed.' });
       triggerHaptic('medium');
@@ -695,7 +659,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     setShowStoryMenu(false);
     removePauseReason('menu');
     try {
-      const { error } = await supabase.from('stories').update({ expires_at: new Date().toISOString() } as any).eq('id', currentStoryDbId);
+      const { error } = await storyService.hideStory(currentStoryDbId);
       if (error) throw error;
       toast({ title: 'Story hidden', description: 'Your story is now hidden from viewers.' });
       triggerHaptic('medium');
@@ -711,12 +675,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     setShowStoryMenu(false);
     removePauseReason('menu');
     try {
-      await supabase.from('abuse_reports').insert({
-        reporter_user_id: user.id,
-        reported_user_id: currentStory.user.id || null,
-        report_type: 'story',
-        description: `Reported story ID: ${currentStoryDbId}`,
-      });
+      await storyService.reportStory(currentStoryDbId, user.id, currentStory.user.id || null);
       toast({ title: 'Story reported', description: 'Thank you for your report. We will review it.' });
       triggerHaptic('medium');
     } catch (err) {
@@ -724,6 +683,42 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       toast({ title: 'Error', description: 'Could not submit report.', variant: 'destructive' });
     }
   };
+
+  // ─── KEYBOARD SUPPORT ──────────────────────────────────────────
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input/textarea
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement ||
+        e.target instanceof HTMLButtonElement // Sometimes buttons capture space
+      ) {
+        return;
+      }
+
+      switch (e.key) {
+        case 'ArrowLeft':
+          goToPrevious();
+          break;
+        case 'ArrowRight':
+        case ' ': // spacebar for next
+          e.preventDefault();
+          goToNext();
+          break;
+        case 'Escape':
+          onClose();
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, goToNext, goToPrevious, onClose]);
 
   if (!isOpen) return null;
 
@@ -734,478 +729,110 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] animate-in fade-in duration-200">
-      {/* ─── BLUR BACKGROUND LAYER ────────────────────────────────── */}
-      <div className="story-bg-blur">
-        {isCurrentVideo ? (
-          <video
-            ref={bgVideoRef}
-            src={currentStory.image}
-            className="story-bg-media"
-            style={{
-              filter: 'blur(40px) brightness(0.7)',
-              transform: 'scale(1.15)',
-              objectFit: 'cover'
-            }}
-            autoPlay
-            loop
-            muted
-            playsInline
-          />
-        ) : (
-          <img
-            src={currentStory.image}
-            alt=""
-            className="story-bg-media"
-            style={{
-              filter: 'blur(40px) brightness(0.7)',
-              transform: 'scale(1.15)',
-              objectFit: 'cover'
-            }}
-            draggable={false}
-          />
-        )}
-        <div className="story-bg-overlay" />
-      </div>
+      <StoryMediaRenderer 
+        story={currentStory} 
+        videoRef={videoRef} 
+        bgVideoRef={bgVideoRef} 
+        setVideoDuration={setVideoDuration} 
+      />
+      {/* Next story preview */}
+      {isTransitioning && nextStory && (
+        <StoryMediaRenderer 
+          story={nextStory} 
+          videoRef={useRef<HTMLVideoElement>(null)} 
+          bgVideoRef={useRef<HTMLVideoElement>(null)} 
+          setVideoDuration={() => {}} 
+          isTransitioning={isTransitioning}
+          transitionDirection={transitionDirection}
+          isImagePreloaded={isImagePreloaded}
+        />
+      )}
 
-      {/* ─── MAIN STORY CONTAINER (swipe-down-to-close) ────────── */}
-      <div
-        className="relative w-full h-full flex items-center justify-center touch-none"
-        style={{
-          transform: `translateY(${swipeTranslateY}px) scale(${swipeScale})`,
-          opacity: swipeOpacity,
-          transition: isSwipingDown ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0, 0, 1), opacity 0.3s ease',
-          willChange: 'transform, opacity',
+      <StoryInteractiveOverlay
+        onNext={goToNext}
+        onPrevious={goToPrevious}
+        onClose={onClose}
+        onPause={addPauseReason}
+        onResume={removePauseReason}
+        onSwipeDown={(dy, swiping) => {
+          setSwipeDownY(dy);
+          setIsSwipingDown(swiping);
         }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
+        hasLinkContent={!!currentStory?.stickerData?.some(s => s.infoType === 'link')}
+        onShowLinkOverlay={() => {
+          setShowLinkOverlay(true);
+          addPauseReason('link-overlay');
+          triggerHaptic('light');
+        }}
+        resharedPostId={currentStory?.resharedPostId}
+        onNavigateToPost={(postId) => {
+          onClose();
+          navigate(`/post/${postId}`);
+        }}
+        swipeTranslateY={swipeTranslateY}
+        swipeScale={swipeScale}
+        swipeOpacity={swipeOpacity}
+        isSwipingDown={isSwipingDown}
+        swipeDownY={swipeDownY}
       >
-        {/* Aspect Ratio Container */}
-        <div className="story-content-frame">
-          {/* ─── PROGRESS BARS ──────────────────────────────────── */}
-          <div className="absolute top-3 left-3 right-3 flex gap-[3px] z-20">
-            {progressBarConfig.map((bar, index) => (
-              <div
-                key={index}
-                className="story-progress-track"
-              >
-                <div
-                  className="story-progress-fill"
-                  style={{
-                    width: bar.isComplete ? '100%' : 
-                           bar.isCurrent ? `${progress}%` : '0%',
-                    transition: bar.isCurrent ? 'none' : 'none',
-                  }}
-                />
-              </div>
-            ))}
-          </div>
+        <StoryProgressBar config={progressBarConfig} progress={progress} />
+        
+        <StoryHeader
+          story={currentStory}
+          isOwnStory={isOwnStory}
+          onClose={onClose}
+          onShowProfile={() => {
+            setShowProfileModal(true);
+            addPauseReason('profile');
+          }}
+          onPause={addPauseReason}
+          onResume={removePauseReason}
+          onDelete={handleDeleteStory}
+          onHide={handleHideStory}
+          onReport={handleReportStory}
+        />
 
-          {/* ─── TOP HEADER: Menu + User Info + Close ───────────── */}
-          <div className="absolute top-7 left-3 right-3 z-30 flex items-center gap-2">
-            {/* Menu button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (showStoryMenu) {
-                  setShowStoryMenu(false);
-                  removePauseReason('menu');
-                } else {
-                  setShowStoryMenu(true);
-                  addPauseReason('menu');
-                }
-              }}
-              className="story-icon-btn"
-              data-story-controls
-              aria-label="Story options"
-            >
-              <MoreVertical className="size-5" />
-            </button>
+        <StoryStickers stickerData={currentStory?.stickerData} />
+        
+        <StoryLinkOverlay
+          showLinkOverlay={showLinkOverlay}
+          stickerData={currentStory?.stickerData}
+          onClose={(reason) => {
+            setShowLinkOverlay(false);
+            removePauseReason(reason);
+          }}
+        />
 
-            {/* User info */}
-            <div className="flex items-center gap-2 flex-1 min-w-0" data-story-controls>
-              <div 
-                className="size-8 rounded-full flex items-center justify-center text-white font-medium text-xs overflow-hidden shrink-0 ring-2 ring-white/30 cursor-pointer"
-                style={{ backgroundColor: currentStory.user.avatarColor }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowProfileModal(true);
-                  addPauseReason('profile');
-                }}
-              >
-                {currentStory.user.avatar ? (
-                  <img src={currentStory.user.avatar} alt={currentStory.user.name} className="w-full h-full object-cover" />
-                ) : (
-                  currentStory.user.initials
-                )}
-              </div>
-              <div className="min-w-0">
-                <p 
-                  className="text-white text-sm font-semibold truncate cursor-pointer hover:underline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowProfileModal(true);
-                    addPauseReason('profile');
-                  }}
-                >
-                  {currentStory.user.name}
-                </p>
-                <p className="text-white/60 text-[11px]">
-                  {(() => {
-                    const created = currentStory.createdAt;
-                    if (!created) return '';
-                    const diff = Date.now() - new Date(created).getTime();
-                    const hours = Math.floor(diff / (1000 * 60 * 60));
-                    const minutes = Math.floor(diff / (1000 * 60));
-                    if (hours > 0) return `${hours}h ago`;
-                    if (minutes > 0) return `${minutes}m ago`;
-                    return 'Just now';
-                  })()}
-                </p>
-              </div>
-            </div>
-
-            {/* Close button */}
-            <button
-              onClick={onClose}
-              className="story-icon-btn"
-              data-story-controls
-              aria-label="Close story"
-            >
-              <X className="size-5" />
-            </button>
-          </div>
-
-          {/* ─── Story Menu Dropdown ────────────────────────────── */}
-          {showStoryMenu && (
-            <>
-              <div className="fixed inset-0 z-25" onClick={() => { setShowStoryMenu(false); removePauseReason('menu'); }} />
-              <div className="absolute top-14 left-3 z-30 story-dropdown" data-story-controls>
-                {isOwnStory ? (
-                  <>
-                    <button
-                      onClick={handleDeleteStory}
-                      className="story-dropdown-item text-red-400"
-                    >
-                      <Trash2 className="size-4" />
-                      Delete Story
-                    </button>
-                    <button
-                      onClick={handleHideStory}
-                      className="story-dropdown-item text-white"
-                    >
-                      <EyeOff className="size-4" />
-                      Hide Story
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={handleReportStory}
-                    className="story-dropdown-item text-red-400"
-                  >
-                    <Flag className="size-4" />
-                    Report Story
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* ─── STORY MEDIA CONTENT ───────────────────────────── */}
-          <div className={`absolute inset-0 story-media-transition ${
-            isTransitioning && isImagePreloaded
-              ? (transitionDirection === 'next' ? 'story-exit-left' : 'story-exit-right')
-              : ''
-          }`}>
-            {isCurrentVideo ? (
-              <>
-                {currentStory.videoTransform ? (
-                  <div className="w-full h-full relative overflow-hidden"
-                    style={{
-                      background: 'transparent',
-                    }}
-                  >
-                    <video
-                      ref={videoRef}
-                      src={currentStory.image}
-                      className="absolute"
-                      style={{
-                        left: `${(currentStory.videoTransform.x / currentStory.videoTransform.canvasW) * 100}%`,
-                        top: `${(currentStory.videoTransform.y / currentStory.videoTransform.canvasH) * 100}%`,
-                        transform: `translate(-50%, -50%) scale(${currentStory.videoTransform.scale}) rotate(${currentStory.videoTransform.rotation}deg)`,
-                        transformOrigin: 'center center',
-                        maxWidth: 'none',
-                        maxHeight: 'none',
-                      }}
-                      autoPlay
-                      loop
-                      playsInline
-                      preload="auto"
-                      muted={false}
-                      onLoadedMetadata={(e) => {
-                        const vid = e.currentTarget;
-                        setVideoDuration(vid.duration);
-                        const safeW = currentStory.videoTransform!.canvasW - 24;
-                        const safeH = currentStory.videoTransform!.canvasH - 24;
-                        const fitScale = Math.min(safeW / vid.videoWidth, safeH / vid.videoHeight, 1);
-                        vid.style.width = `${(vid.videoWidth * fitScale / currentStory.videoTransform!.canvasW) * 100}%`;
-                        vid.style.height = 'auto';
-                      }}
-                      onError={(e) => console.error('Video playback error:', e)}
-                    />
-                  </div>
-                ) : (
-                  <video
-                    ref={videoRef}
-                    src={currentStory.image}
-                    className="w-full h-full object-contain"
-                    autoPlay
-                    loop
-                    playsInline
-                    preload="auto"
-                    muted={false}
-                    onLoadedMetadata={(e) => {
-                      const vid = e.currentTarget;
-                      setVideoDuration(vid.duration);
-                    }}
-                    onError={(e) => console.error('Video playback error:', e)}
-                  />
-                )}
-                {currentStory.overlayUrl && (
-                  <img
-                    src={currentStory.overlayUrl}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-contain pointer-events-none z-[2]"
-                    draggable={false}
-                  />
-                )}
-              </>
-            ) : (
-              <img
-                src={currentStory.image}
-                alt={`${currentStory.user.name}'s story`}
-                className="w-full h-full object-contain"
-                draggable={false}
-              />
-            )}
-          </div>
-
-          {/* Next story preview (for crossfade transition) */}
-          {isTransitioning && nextStory && (
-            <div className={`absolute inset-0 story-media-transition ${
-              isImagePreloaded ? '' : (transitionDirection === 'next' ? 'story-enter-right' : 'story-enter-left')
-            }`}>
-              {nextStory.mediaType === 'video' ? (
-                <video src={nextStory.image} className="w-full h-full object-contain" playsInline muted preload="auto" />
-              ) : (
-                <img src={nextStory.image} alt={`${nextStory.user.name}'s story`} className="w-full h-full object-contain" draggable={false} />
-              )}
-            </div>
-          )}
-
-          {/* ─── Clickable link stickers ─────────────────────────── */}
-          {currentStory.stickerData && currentStory.stickerData.length > 0 && (
-            <div className="absolute inset-0 z-[5] pointer-events-none">
-              {currentStory.stickerData
-                .filter((s: StoryStickerData) => s.infoType === 'link')
-                .map((sticker: StoryStickerData, idx: number) => (
-                  <a
-                    key={`link-${idx}`}
-                    href={sticker.content.startsWith('http') ? sticker.content : `https://${sticker.content}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute pointer-events-auto story-sticker-link"
-                    style={{
-                      left: `${sticker.x}%`,
-                      top: `${sticker.y}%`,
-                      transform: 'translate(-50%, -50%)',
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    data-story-controls
-                  >
-                    <ExternalLink className="size-3" />
-                    <span className="max-w-[150px] truncate">{sticker.content.replace(/^https?:\/\//, '')}</span>
-                  </a>
-                ))}
-            </div>
-          )}
-
-          {/* CTA / Link overlay triggered by short tap */}
-          {showLinkOverlay && (
-            <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-auto">
-              <div 
-                className="fixed inset-0 z-30" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowLinkOverlay(false);
-                  removePauseReason('link-overlay');
-                }}
-                data-story-controls
-              />
-              <div className="z-40 story-link-modal animate-in fade-in zoom-in-95 duration-200" data-story-controls>
-                <ExternalLink className="size-6 text-primary" />
-                <p className="text-sm font-medium text-foreground">Story has links</p>
-                {currentStory.stickerData?.filter((s: StoryStickerData) => s.infoType === 'link').map((sticker, idx) => (
-                  <a
-                    key={idx}
-                    href={sticker.content.startsWith('http') ? sticker.content : `https://${sticker.content}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <ExternalLink className="size-4" />
-                    <span className="max-w-[200px] truncate">{sticker.content.replace(/^https?:\/\//, '')}</span>
-                  </a>
-                ))}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowLinkOverlay(false);
-                    removePauseReason('link-overlay');
-                  }}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Continue viewing
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ─── BOTTOM: User info + Mentions ───────────────────── */}
-          <div className="absolute bottom-20 left-3 right-3 z-10">
-            {/* Mentioned users tags */}
-            {storyMentions.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-2">
-                {storyMentions.map(mention => (
-                  <button
-                    key={mention.user_id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMentionProfileUserId(mention.user_id);
-                    }}
-                    className="story-mention-tag"
-                    data-story-controls
-                  >
-                    @{mention.username}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* ─── BOTTOM BAR: Like, Message, Activity ─────────── */}
-          {!isOwnStory && (
-            <div className="absolute bottom-3 left-3 right-3 z-[50] flex items-center gap-2" data-story-controls>
-              {/* Like button */}
-              <button
-                onClick={handleLikeToggle}
-                className="story-action-btn shrink-0"
-                aria-label={isLiked ? "Unlike story" : "Like story"}
-              >
-                <Heart 
-                  className={`size-6 transition-all duration-200 ${
-                    isLiked 
-                      ? 'fill-red-500 text-red-500 scale-110' 
-                      : 'text-white'
-                  }`}
-                />
-              </button>
-
-              {/* Reshare button */}
-              {isMentionedInStory && (
-                <button
-                  onClick={handleReshareStory}
-                  disabled={isResharing}
-                  className="story-action-btn shrink-0"
-                  aria-label="Reshare to your story"
-                >
-                  {isResharing ? (
-                    <Loader2 className="size-5 text-white animate-spin" />
-                  ) : (
-                    <Repeat2 className="size-5 text-white" />
-                  )}
-                </button>
-              )}
-
-              {/* Message input */}
-              <div className="story-message-input">
-                <EmojiPicker 
-                  onEmojiSelect={(emoji) => setMessage(prev => prev + emoji)}
-                  variant="compact"
-                  triggerClassName="text-white/60 hover:text-white hover:bg-white/10"
-                  className="z-[200]"
-                />
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Send message..."
-                  className="flex-1 bg-transparent text-white placeholder:text-white/50 outline-none text-sm"
-                  onFocus={() => { setIsMessageFocused(true); addPauseReason('input'); }}
-                  onBlur={() => {
-                    setTimeout(() => {
-                      setIsMessageFocused(false);
-                      removePauseReason('input');
-                    }, 150);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                />
-                {message && (
-                  <button
-                    onClick={handleSendMessage}
-                    className="text-white hover:text-white/80 transition-colors"
-                    aria-label="Send message"
-                  >
-                    <Send className="size-5" />
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Activity button - only for story owner */}
-          {isOwnStory && currentStoryDbId && (
-            <div className="absolute bottom-3 left-3 right-3 z-[50] flex justify-center" data-story-controls>
-              <button
-                onClick={() => {
-                  setShowActivityModal(true);
-                  addPauseReason('activity');
-                }}
-                className="story-activity-btn"
-              >
-                <ChevronUp className="size-4" />
-                <BarChart3 className="size-4" />
-                <span className="text-sm font-medium">Activity</span>
-              </button>
-            </div>
-          )}
-
-          {/* Hold indicator */}
-          {isHolding && (
-            <div className="absolute inset-0 bg-black/10 pointer-events-none transition-opacity duration-150 z-[3]" />
-          )}
-
-          {/* Swipe down indicator */}
-          {isSwipingDown && swipeDownY > 30 && (
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-              <div className="story-swipe-indicator" style={{ opacity: Math.min(1, swipeDownY / 120) }}>
-                <ChevronUp className="size-5 text-white rotate-180" />
-              </div>
-            </div>
-          )}
-
-          {/* Gradient overlays for readability */}
-          <div className="story-gradient-top" />
-          <div className="story-gradient-bottom" />
-        </div>
-      </div>
+        <StoryBottomBar
+          isOwnStory={isOwnStory}
+          storyDbId={currentStoryDbId}
+          isLiked={isLiked}
+          isLikeLoading={isLikeLoading}
+          onLikeToggle={handleLikeToggle}
+          isResharing={isResharing}
+          isMentionedInStory={isMentionedInStory}
+          onReshare={handleReshareStory}
+          onSendMessage={(msg) => {
+            setMessage(msg); // Set and trigger effect or just handle it directly
+            // Actually, handleSendMessage in Viewer takes the local message state.
+            // Let's adapt it:
+            if (!msg.trim() || !currentStoryDbId || !user?.id || !currentStory?.user?.id) return;
+            storyService.sendMessage(currentStoryDbId, user.id, currentStory.user.id, msg).then(() => {
+              removePauseReason('input');
+            });
+          }}
+          onShowActivity={() => {
+            setShowActivityModal(true);
+            addPauseReason('activity');
+          }}
+          onPause={addPauseReason}
+          onResume={removePauseReason}
+          storyMentions={storyMentions}
+          onMentionClick={(userId) => {
+            setMentionProfileUserId(userId);
+          }}
+        />
+      </StoryInteractiveOverlay>
 
       <PublicProfileModal
         isOpen={showProfileModal}

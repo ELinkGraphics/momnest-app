@@ -15,12 +15,54 @@ export interface StickerItem {
 }
 
 const EMOJI_STICKERS = [
-  '😀', '😂', '🥰', '😍', '🤩', '😎', '🥳', '🤗',
-  '❤️', '🔥', '✨', '🎉', '💯', '👑', '🌟', '💕',
-  '🎵', '🎶', '🌈', '☀️', '🌙', '⭐', '🦋', '🌸',
-  '🍕', '🎂', '🧁', '☕', '🍷', '🥂', '🎁', '💎',
-  '🏆', '🎯', '🚀', '💪', '👏', '🙌', '✌️', '🤟',
-  '📸', '🎬', '🎨', '📖', '🧳', '✈️', '🏖️', '🏔️',
+  { emoji: '😀', tags: ['smile', 'happy', 'face'] },
+  { emoji: '😂', tags: ['laugh', 'cry', 'tears', 'joy'] },
+  { emoji: '🥰', tags: ['love', 'hearts', 'face'] },
+  { emoji: '😍', tags: ['heart', 'eyes', 'love'] },
+  { emoji: '🤩', tags: ['star', 'eyes', 'excited'] },
+  { emoji: '😎', tags: ['cool', 'glasses', 'shades'] },
+  { emoji: '🥳', tags: ['party', 'celebrate', 'horn'] },
+  { emoji: '🤗', tags: ['hug', 'hands', 'open'] },
+  { emoji: '❤️', tags: ['heart', 'love', 'red'] },
+  { emoji: '🔥', tags: ['fire', 'hot', 'lit'] },
+  { emoji: '✨', tags: ['sparkles', 'magic', 'stars'] },
+  { emoji: '🎉', tags: ['party', 'popper', 'celebrate'] },
+  { emoji: '💯', tags: ['100', 'hundred', 'perfect'] },
+  { emoji: '👑', tags: ['crown', 'king', 'queen'] },
+  { emoji: '🌟', tags: ['star', 'glowing', 'shine'] },
+  { emoji: '💕', tags: ['hearts', 'two', 'love'] },
+  { emoji: '🎵', tags: ['music', 'note'] },
+  { emoji: '🎶', tags: ['music', 'notes'] },
+  { emoji: '🌈', tags: ['rainbow', 'colors'] },
+  { emoji: '☀️', tags: ['sun', 'sunny', 'weather'] },
+  { emoji: '🌙', tags: ['moon', 'night', 'sleep'] },
+  { emoji: '⭐', tags: ['star', 'yellow'] },
+  { emoji: '🦋', tags: ['butterfly', 'bug', 'insect'] },
+  { emoji: '🌸', tags: ['flower', 'blossom', 'pink'] },
+  { emoji: '🍕', tags: ['pizza', 'food', 'slice'] },
+  { emoji: '🎂', tags: ['cake', 'birthday', 'dessert'] },
+  { emoji: '🧁', tags: ['cupcake', 'sweet', 'dessert'] },
+  { emoji: '☕', tags: ['coffee', 'cup', 'drink'] },
+  { emoji: '🍷', tags: ['wine', 'glass', 'drink'] },
+  { emoji: '🥂', tags: ['cheers', 'glasses', 'toast'] },
+  { emoji: '🎁', tags: ['gift', 'present', 'box'] },
+  { emoji: '💎', tags: ['gem', 'diamond', 'jewel'] },
+  { emoji: '🏆', tags: ['trophy', 'win', 'award'] },
+  { emoji: '🎯', tags: ['target', 'bullseye', 'goal'] },
+  { emoji: '🚀', tags: ['rocket', 'launch', 'space'] },
+  { emoji: '💪', tags: ['muscle', 'flex', 'strong'] },
+  { emoji: '👏', tags: ['clap', 'hands', 'applause'] },
+  { emoji: '🙌', tags: ['hands', 'raise', 'celebrate'] },
+  { emoji: '✌️', tags: ['peace', 'victory', 'two'] },
+  { emoji: '🤟', tags: ['love', 'sign', 'hand'] },
+  { emoji: '📸', tags: ['camera', 'photo', 'picture'] },
+  { emoji: '🎬', tags: ['clapper', 'movie', 'film'] },
+  { emoji: '🎨', tags: ['palette', 'art', 'paint'] },
+  { emoji: '📖', tags: ['book', 'read'] },
+  { emoji: '🧳', tags: ['luggage', 'travel', 'bag'] },
+  { emoji: '✈️', tags: ['airplane', 'flight', 'travel'] },
+  { emoji: '🏖️', tags: ['beach', 'umbrella', 'vacation'] },
+  { emoji: '🏔️', tags: ['mountain', 'snow', 'nature'] },
 ];
 
 interface InfoStickerInput {
@@ -211,7 +253,10 @@ const StoryStickerPicker: React.FC<Props> = ({ onAdd, onClose }) => {
               />
             </div>
             <div className="grid grid-cols-8 gap-1">
-              {EMOJI_STICKERS.map((emoji) => (
+              {(search.trim() === '' 
+                ? EMOJI_STICKERS 
+                : EMOJI_STICKERS.filter(s => s.tags.some(t => t.includes(search.toLowerCase())))
+              ).map(({ emoji }) => (
                 <button key={emoji} onClick={() => handleEmojiSelect(emoji)}
                   className="aspect-square flex items-center justify-center text-2xl rounded-lg hover:bg-card/10 active:scale-90 transition-all">
                   {emoji}

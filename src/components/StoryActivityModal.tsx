@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useStoryActivity } from '@/hooks/useStoryActivity';
 import { useUser } from '@/contexts/UserContext';
 import { formatDistanceToNow } from 'date-fns';
+import { useRef, useEffect } from 'react';
 
 interface StoryActivityModalProps {
   isOpen: boolean;
@@ -19,9 +20,20 @@ const StoryActivityModal: React.FC<StoryActivityModalProps> = ({ isOpen, onClose
   const [chatUserName, setChatUserName] = useState('');
   const [replyText, setReplyText] = useState('');
 
+  const [visibleViews, setVisibleViews] = useState(20);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
   if (!isOpen) return null;
 
-  const chatMessages = messages.filter(m => m.sender_id === chatUserId || (m as any).receiver_id === chatUserId);
+  const chatMessages = [...messages]
+    .filter(m => m.sender_id === chatUserId || (m as any).receiver_id === chatUserId)
+    .reverse(); // Reverse to show oldest at top, newest at bottom
+
+  useEffect(() => {
+    if (chatUserId) {
+      chatScrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages.length, chatUserId]);
 
   const handleSendReply = async () => {
     if (!replyText.trim() || !chatUserId) return;
@@ -69,6 +81,7 @@ const StoryActivityModal: React.FC<StoryActivityModalProps> = ({ isOpen, onClose
                 </div>
               );
             })}
+            <div ref={chatScrollRef} />
           </div>
 
           {/* Reply input */}
@@ -140,7 +153,7 @@ const StoryActivityModal: React.FC<StoryActivityModalProps> = ({ isOpen, onClose
             ) : viewers.length === 0 ? (
               <p className="text-center text-muted-foreground text-sm py-8">No views yet</p>
             ) : (
-              viewers.map(viewer => (
+              viewers.slice(0, visibleViews).map(viewer => (
                 <div key={viewer.id} className="flex items-center gap-3 py-2">
                   <Avatar className="size-10">
                     <AvatarImage src={viewer.profile?.avatar_url || undefined} />
@@ -159,6 +172,14 @@ const StoryActivityModal: React.FC<StoryActivityModalProps> = ({ isOpen, onClose
                   )}
                 </div>
               ))
+            )}
+            {viewers.length > visibleViews && (
+              <button 
+                onClick={() => setVisibleViews(prev => prev + 20)}
+                className="w-full py-2 text-sm text-primary hover:bg-muted rounded-lg transition-colors"
+              >
+                Load more
+              </button>
             )}
           </TabsContent>
 

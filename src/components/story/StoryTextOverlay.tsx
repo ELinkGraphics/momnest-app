@@ -71,7 +71,7 @@ const StoryTextOverlay: React.FC<Props> = ({ onAdd, onClose }) => {
       </div>
 
       {/* Text input area */}
-      <div className="flex-1 flex items-center justify-center px-6">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 relative">
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -91,6 +91,9 @@ const StoryTextOverlay: React.FC<Props> = ({ onAdd, onClose }) => {
           }}
           rows={3}
         />
+        <div className="mt-6 text-[10px] font-medium text-white/50 bg-black/40 px-2 py-0.5 rounded-full backdrop-blur-sm absolute bottom-4">
+          {text.length}/200
+        </div>
       </div>
 
       {/* Tools */}

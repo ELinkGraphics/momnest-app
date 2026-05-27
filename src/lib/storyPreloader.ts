@@ -64,6 +64,11 @@ class StoryPreloadManager {
           el.pause();
           el.src = "";
           el.load();
+        } else if (el instanceof HTMLImageElement) {
+          el.src = "";
+        }
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
         }
         this.cache.delete(url);
       }

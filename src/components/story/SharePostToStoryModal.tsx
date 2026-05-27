@@ -40,7 +40,7 @@ const SharePostToStoryModal: React.FC<SharePostToStoryModalProps> = ({ isOpen, o
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.font = '24px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Shared from Serkle', 540, 1850);
+    ctx.fillText('Shared from MomNest', 540, 1850);
 
     return canvas.toDataURL('image/jpeg', 0.9);
   };
@@ -319,7 +319,7 @@ const SharePostToStoryModal: React.FC<SharePostToStoryModalProps> = ({ isOpen, o
   // Upload / success animation overlay
   if (isUploading || uploadDone) {
     return (
-      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90">
+      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
         {isUploading && (
           <div className="flex flex-col items-center gap-4 animate-fade-in">
             <div className="relative">
@@ -350,8 +350,9 @@ const SharePostToStoryModal: React.FC<SharePostToStoryModalProps> = ({ isOpen, o
   // Show loading state while preparing editor
   if (!showEditor || !backgroundUrl || !postCardUrl) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black">
+      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
         <VideoLoader size="lg" dark />
+        <p className="text-white/80 mt-6 font-medium animate-pulse">Preparing story...</p>
       </div>
     );
   }

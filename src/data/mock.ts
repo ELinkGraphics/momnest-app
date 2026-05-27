@@ -68,48 +68,7 @@ export interface Video {
   tags: string[];
 }
 
-export interface StoryStickerData {
-  type: 'emoji' | 'info';
-  content: string;
-  infoType?: 'location' | 'hashtag' | 'mention' | 'link';
-  mentionUserId?: string;
-  x: number;
-  y: number;
-}
-
-export interface Story {
-  id: number | string;
-  user: {
-    id?: string;
-    name: string;
-    initials: string;
-    avatarColor: string;
-    avatar?: string;
-  };
-  image: string;
-  mediaType?: 'image' | 'video';
-  overlayUrl?: string;
-  videoTransform?: {
-    x: number;
-    y: number;
-    scale: number;
-    rotation: number;
-    canvasW: number;
-    canvasH: number;
-  };
-  backgroundGradient?: {
-    from: string;
-    to: string;
-  };
-  isOwn?: boolean;
-  isViewed?: boolean;
-  isLive?: boolean;
-  liveStreamId?: string;
-  allStories?: Story[];
-  stickerData?: StoryStickerData[];
-  resharedPostId?: string;
-  createdAt?: string;
-}
+export type { Story, StoryStickerData } from '@/types/storyTypes';
 
 export const MOCK_POSTS: Post[] = [
   {

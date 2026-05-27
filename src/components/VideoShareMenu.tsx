@@ -4,11 +4,11 @@ import { VideoLoader } from '@/components/ui/VideoLoader';
 import { supabase } from '@/integrations/supabase/client';
 import { useUser } from '@/contexts/UserContext';
 import { useCreateConversation } from '@/hooks/useConversations';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import StoryEditor from '@/components/story/StoryEditor';
 
-const PUBLISHED_URL = 'https://heart-lens-studio.lovable.app';
+const PUBLISHED_URL = import.meta.env.VITE_APP_URL || window.location.origin;
 
 interface VideoShareMenuProps {
   isOpen: boolean;
@@ -84,10 +84,10 @@ export const VideoShareMenu: React.FC<VideoShareMenuProps> = ({
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(videoLink);
-      toast.success('Link copied!');
+      toast({ title: 'Link copied!', description: 'Video link copied to clipboard.' });
       onClose();
     } catch {
-      toast.error('Failed to copy link');
+      toast({ title: 'Failed to copy link', variant: 'destructive' });
     }
   };
 
@@ -102,9 +102,9 @@ export const VideoShareMenu: React.FC<VideoShareMenuProps> = ({
         content: `Check out this video! ${videoLink}`,
       });
       setSentTo((prev) => new Set(prev).add(friendId));
-      toast.success('Sent!');
+      toast({ title: 'Sent!', description: `Video shared with ${followers.find(f => f.id === friendId)?.name}` });
     } catch {
-      toast.error('Failed to send');
+      toast({ title: 'Failed to send', variant: 'destructive' });
     } finally {
       setSendingTo(null);
     }
@@ -123,10 +123,10 @@ export const VideoShareMenu: React.FC<VideoShareMenuProps> = ({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success('Video saved!');
+      toast({ title: 'Video saved!', description: 'Downloaded to your device.' });
       onClose();
     } catch {
-      toast.error('Failed to save video');
+      toast({ title: 'Failed to save video', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -148,7 +148,7 @@ export const VideoShareMenu: React.FC<VideoShareMenuProps> = ({
           onCancel={() => setShowStoryEditor(false)}
           onDone={async (editedBlob, mentionedUserIds, extraData) => {
             if (!user) {
-              toast.error('Please log in to share a story');
+              toast({ title: 'Please log in', description: 'You must be logged in to share a story.', variant: 'destructive' });
               return;
             }
 
@@ -218,12 +218,12 @@ export const VideoShareMenu: React.FC<VideoShareMenuProps> = ({
 
               if (dbError) throw dbError;
 
-              toast.success('Video shared to your story!');
+              toast({ title: 'Shared to story!', description: 'Video has been added to your story.' });
               setShowStoryEditor(false);
               onClose();
             } catch (error) {
               console.error('Story upload error:', error);
-              toast.error('Failed to share story. Please try again.');
+              toast({ title: 'Failed to share', description: 'Please try again.', variant: 'destructive' });
             } finally {
               setUploadingStory(false);
             }
