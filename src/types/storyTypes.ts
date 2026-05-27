@@ -33,6 +33,7 @@ export interface StoryElement {
   
   // Type-specific properties
   content?: string; // Text content, emoji character, or URL
+  file?: File | Blob; // Raw file for uploading image stickers
   
   // For text
   fontSize?: number; // Base 1920 scale

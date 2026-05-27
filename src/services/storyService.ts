@@ -209,7 +209,23 @@ export const storyService = {
       metaEntries.push({ type: 'background_gradient', from: extraData.backgroundGradient.from, to: extraData.backgroundGradient.to });
     }
     if (extraData?.story_state) {
-      metaEntries.push({ type: 'story_state', data: extraData.story_state });
+      const storyState = extraData.story_state;
+      if (storyState.elements) {
+        for (const el of storyState.elements) {
+          if (el.type === 'image' && el.file) {
+            const ext = el.file instanceof File ? (el.file.name.split('.').pop() || 'jpg') : 'jpg';
+            const stickerPath = `${userId}/stickers/${Date.now()}-${el.id}.${ext}`;
+            const { error: uploadError } = await supabase.storage
+              .from('story-media')
+              .upload(stickerPath, el.file, { cacheControl: '3600', upsert: false });
+            if (uploadError) throw uploadError;
+            
+            el.content = supabase.storage.from('story-media').getPublicUrl(stickerPath).data.publicUrl;
+            delete el.file;
+          }
+        }
+      }
+      metaEntries.push({ type: 'story_state', data: storyState });
     }
 
     const finalStickerData = [...stickerDataPayload, ...metaEntries].length > 0

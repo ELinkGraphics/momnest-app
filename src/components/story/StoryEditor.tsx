@@ -137,6 +137,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
       id: Math.random().toString(36).substr(2, 9),
       type: 'image',
       content: url,
+      file: file,
       x: 50, y: 50, scale: 1, rotation: 0, zIndex: Date.now()
     };
     setState(prev => ({ ...prev, elements: [...prev.elements, newElement] }));
