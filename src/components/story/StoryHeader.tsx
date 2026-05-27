@@ -105,19 +105,19 @@ export const StoryHeader: React.FC<StoryHeaderProps> = ({
       {/* Story Menu Dropdown */}
       {showStoryMenu && (
         <>
-          <div className="fixed inset-0 z-25" onClick={() => { setShowStoryMenu(false); onResume('menu'); }} />
+          <div className="fixed inset-0 z-25" onPointerDown={(e) => { e.stopPropagation(); setShowStoryMenu(false); onResume('menu'); }} />
           <div className="absolute top-14 left-3 z-30 story-dropdown" data-story-controls>
             {isOwnStory ? (
               <>
                 <button
-                  onClick={() => { setShowStoryMenu(false); onResume('menu'); onDelete(); }}
+                  onPointerDown={(e) => { e.stopPropagation(); setShowStoryMenu(false); onResume('menu'); onDelete(); }}
                   className="story-dropdown-item text-red-400"
                 >
                   <Trash2 className="size-4" />
                   Delete Story
                 </button>
                 <button
-                  onClick={() => { setShowStoryMenu(false); onResume('menu'); onHide(); }}
+                  onPointerDown={(e) => { e.stopPropagation(); setShowStoryMenu(false); onResume('menu'); onHide(); }}
                   className="story-dropdown-item text-white"
                 >
                   <EyeOff className="size-4" />
@@ -126,7 +126,7 @@ export const StoryHeader: React.FC<StoryHeaderProps> = ({
               </>
             ) : (
               <button
-                onClick={() => { setShowStoryMenu(false); onResume('menu'); onReport(); }}
+                onPointerDown={(e) => { e.stopPropagation(); setShowStoryMenu(false); onResume('menu'); onReport(); }}
                 className="story-dropdown-item text-red-400"
               >
                 <Flag className="size-4" />

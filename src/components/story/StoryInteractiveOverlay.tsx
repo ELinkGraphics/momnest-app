@@ -58,7 +58,7 @@ export const StoryInteractiveOverlay: React.FC<StoryInteractiveOverlayProps> = (
       isHoldingRef.current = true;
       setIsHolding(true);
       onPause('hold');
-    }, 200);
+    }, 400);
   }, [onPause]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
