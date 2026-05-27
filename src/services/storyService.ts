@@ -210,6 +210,12 @@ export const storyService = {
     }
     if (extraData?.story_state) {
       const storyState = extraData.story_state;
+      
+      // Update the background value with the real public URL instead of the local blob URL
+      if (storyState.background) {
+        storyState.background.value = publicUrl;
+      }
+      
       if (storyState.elements) {
         for (const el of storyState.elements) {
           if (el.type === 'image' && el.file) {
