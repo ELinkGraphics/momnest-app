@@ -6,6 +6,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import StoryEditor from '@/components/story/StoryEditor';
 import { Post } from '@/data/mock';
+import { storyService } from '@/services/storyService';
 
 interface SharePostToStoryModalProps {
   isOpen: boolean;
@@ -274,31 +275,18 @@ const SharePostToStoryModal: React.FC<SharePostToStoryModalProps> = ({ isOpen, o
 
   if (!isOpen) return null;
 
-  const handleEditorDone = async (editedBlob: Blob) => {
+  const handleEditorDone = async (editedBlob: Blob, mentionedUserIds?: string[], extraData?: any) => {
     if (!user) return;
     setShowEditor(false);
     setIsUploading(true);
     setUploadDone(false);
 
     try {
-      const fileName = `${Date.now()}.jpg`;
-      const filePath = `${user.id}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('story-media')
-        .upload(filePath, editedBlob, { cacheControl: '3600', upsert: false });
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage.from('story-media').getPublicUrl(filePath);
-
-      const { error: dbError } = await supabase.from('stories').insert({
-        user_id: user.id,
-        media_url: publicUrl,
-        media_type: 'image',
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        reshared_post_id: String(post.id),
+      const isVideo = extraData?.mediaType === 'video' && extraData?.originalVideoUrl;
+      await storyService.createStory(user.id, editedBlob, isVideo, mentionedUserIds, {
+        ...extraData,
+        reshared_post_id: String(post.id)
       });
-      if (dbError) throw dbError;
 
       setIsUploading(false);
       setUploadDone(true);

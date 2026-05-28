@@ -158,17 +158,22 @@ export const storyService = {
     let overlayPublicUrl: string | null = null;
 
     if (isVideo && extraData?.originalVideoUrl) {
-      // For video stories from the editor: upload the original video
-      const videoBlob = await fetch(extraData.originalVideoUrl).then(r => r.blob());
-      const videoFile = new File([videoBlob], `story-${Date.now()}.mp4`, { type: 'video/mp4' });
-      const videoPath = `${userId}/${Date.now()}.mp4`;
+      const originalVideoUrl = extraData.originalVideoUrl as string;
+      if (originalVideoUrl.startsWith('blob:')) {
+        // For video stories from the editor: upload the original video
+        const videoBlob = await fetch(originalVideoUrl).then(r => r.blob());
+        const videoFile = new File([videoBlob], `story-${Date.now()}.mp4`, { type: 'video/mp4' });
+        const videoPath = `${userId}/${Date.now()}.mp4`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('story-media')
-        .upload(videoPath, videoFile, { cacheControl: '3600', upsert: false });
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from('story-media')
+          .upload(videoPath, videoFile, { cacheControl: '3600', upsert: false });
+        if (uploadError) throw uploadError;
 
-      publicUrl = supabase.storage.from('story-media').getPublicUrl(videoPath).data.publicUrl;
+        publicUrl = supabase.storage.from('story-media').getPublicUrl(videoPath).data.publicUrl;
+      } else {
+        publicUrl = originalVideoUrl;
+      }
 
       // Upload transparent overlay PNG if present
       if (extraData.overlayBlob) {
@@ -244,6 +249,8 @@ export const storyService = {
       media_type: isVideo ? 'video' : 'image',
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       sticker_data: finalStickerData,
+      reshared_post_id: extraData?.reshared_post_id,
+      reshared_story_id: extraData?.reshared_story_id,
     } as any).select('id').single();
 
     if (dbError) throw dbError;

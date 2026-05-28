@@ -7,6 +7,7 @@ import { useCreateConversation } from '@/hooks/useConversations';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import StoryEditor from '@/components/story/StoryEditor';
+import { storyService } from '@/services/storyService';
 
 const PUBLISHED_URL = import.meta.env.VITE_APP_URL || window.location.origin;
 
@@ -155,68 +156,10 @@ export const VideoShareMenu: React.FC<VideoShareMenuProps> = ({
             setUploadingStory(true);
             try {
               const isVideo = extraData?.mediaType === 'video' && extraData?.originalVideoUrl;
-              let publicUrl: string;
-              let overlayPublicUrl: string | null = null;
-
-              if (isVideo) {
-                const originalVideoUrl = extraData.originalVideoUrl as string;
-                const videoPath = `${user.id}/${Date.now()}.mp4`;
-
-                // Existing feed videos are often already public URLs; re-use them directly.
-                // Only fetch+upload when the editor source is a local blob URL.
-                if (originalVideoUrl.startsWith('blob:')) {
-                  const videoResponse = await fetch(originalVideoUrl);
-                  if (!videoResponse.ok) throw new Error('Failed to read local video for story upload');
-                  const videoBlob = await videoResponse.blob();
-                  const videoFile = new File([videoBlob], `story-${Date.now()}.mp4`, { type: 'video/mp4' });
-
-                  const { error: uploadError } = await supabase.storage
-                    .from('story-media')
-                    .upload(videoPath, videoFile, { cacheControl: '3600', upsert: false });
-                  if (uploadError) throw uploadError;
-
-                  publicUrl = supabase.storage.from('story-media').getPublicUrl(videoPath).data.publicUrl;
-                } else {
-                  publicUrl = originalVideoUrl;
-                }
-
-                if (extraData.overlayBlob) {
-                  const overlayFile = new File([extraData.overlayBlob], `overlay-${Date.now()}.png`, { type: 'image/png' });
-                  const overlayPath = `${user.id}/overlay-${Date.now()}.png`;
-                  const { error: olErr } = await supabase.storage
-                    .from('story-media')
-                    .upload(overlayPath, overlayFile, { cacheControl: '3600', upsert: false });
-                  if (olErr) throw olErr;
-                  overlayPublicUrl = supabase.storage.from('story-media').getPublicUrl(overlayPath).data.publicUrl;
-                }
-              } else {
-                const file = new File([editedBlob], `story-${Date.now()}.jpg`, { type: 'image/jpeg' });
-                const filePath = `${user.id}/${Date.now()}.jpg`;
-                const { error: uploadError } = await supabase.storage
-                  .from('story-media')
-                  .upload(filePath, file, { cacheControl: '3600', upsert: false });
-                if (uploadError) throw uploadError;
-                publicUrl = supabase.storage.from('story-media').getPublicUrl(filePath).data.publicUrl;
-              }
-
-              const stickerDataPayload = extraData?.stickerData || [];
-              const metaEntries: any[] = [];
-              if (overlayPublicUrl) metaEntries.push({ type: 'overlay', content: overlayPublicUrl, x: 0, y: 0 });
-              if (extraData?.videoTransform) metaEntries.push({ type: 'video_transform', ...extraData.videoTransform });
-              if (extraData?.backgroundGradient) metaEntries.push({ type: 'background_gradient', from: extraData.backgroundGradient.from, to: extraData.backgroundGradient.to });
-
-              const finalStickerData = [...stickerDataPayload, ...metaEntries].length > 0
-                ? [...stickerDataPayload, ...metaEntries] : null;
-
-              const { error: dbError } = await supabase.from('stories').insert({
-                user_id: user.id,
-                media_url: publicUrl,
-                media_type: isVideo ? 'video' : 'image',
-                expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-                sticker_data: finalStickerData,
-              } as any);
-
-              if (dbError) throw dbError;
+              await storyService.createStory(user.id, editedBlob, isVideo, mentionedUserIds, {
+                ...extraData,
+                reshared_post_id: videoId
+              });
 
               toast({ title: 'Shared to story!', description: 'Video has been added to your story.' });
               setShowStoryEditor(false);
