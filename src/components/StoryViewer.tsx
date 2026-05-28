@@ -84,6 +84,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const bgVideoRef = useRef<HTMLVideoElement>(null);
+  const nextVideoRef = useRef<HTMLVideoElement>(null);
+  const nextBgVideoRef = useRef<HTMLVideoElement>(null);
 
   // BUG-5 FIX: Track transition timeouts for cleanup
   const transitionTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -739,8 +741,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       {isTransitioning && nextStory && (
         <StoryMediaRenderer 
           story={nextStory} 
-          videoRef={useRef<HTMLVideoElement>(null)} 
-          bgVideoRef={useRef<HTMLVideoElement>(null)} 
+          videoRef={nextVideoRef} 
+          bgVideoRef={nextBgVideoRef} 
           setVideoDuration={() => {}} 
           isTransitioning={isTransitioning}
           transitionDirection={transitionDirection}
