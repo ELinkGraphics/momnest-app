@@ -58,6 +58,10 @@ export interface StoryBackground {
   mediaWidth?: number;
   mediaHeight?: number;
   filterCss?: string; // Story filter for background
+  x?: number;
+  y?: number;
+  scale?: number;
+  rotation?: number;
 }
 
 export interface StoryState {

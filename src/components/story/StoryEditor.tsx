@@ -19,7 +19,7 @@ interface Props {
 
 export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElements, resharedPostId, onDone, onCancel }: Props) {
   const [state, setState] = useState<StoryState>({
-    background: { type: mediaType, value: previewUrl },
+    background: { type: mediaType, value: previewUrl, x: 50, y: 50, scale: 1, rotation: 0 },
     elements: [],
     drawingPaths: []
   });
@@ -141,7 +141,17 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
         return el;
       }
     }
-    return null;
+    
+    // If no element hit, return the background!
+    return {
+      id: 'background',
+      type: stateRef.current.background.type as any,
+      x: stateRef.current.background.x ?? 50,
+      y: stateRef.current.background.y ?? 50,
+      scale: stateRef.current.background.scale ?? 1,
+      rotation: stateRef.current.background.rotation ?? 0,
+      zIndex: -1
+    };
   }, []);
 
   // ─── Pointer handlers (all at canvas level for reliable multi-touch) ───
@@ -170,7 +180,21 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
       }
     } else if (pointersRef.current.size >= 2 && gestureStateRef.current) {
       // Second finger added while dragging: transition to pinch/rotate
-      const el = stateRef.current.elements.find(el => el.id === gestureStateRef.current!.id);
+      const id = gestureStateRef.current.id;
+      let el;
+      if (id === 'background') {
+        el = { 
+          id: 'background', 
+          x: stateRef.current.background.x ?? 50, 
+          y: stateRef.current.background.y ?? 50, 
+          scale: stateRef.current.background.scale ?? 1, 
+          rotation: stateRef.current.background.rotation ?? 0,
+          type: 'image' as any,
+          zIndex: -1
+        };
+      } else {
+        el = stateRef.current.elements.find(e => e.id === id);
+      }
       if (el) updateGestureBaseline(el);
     }
   }, [isPreviewMode, activeTool, hitTestElement, updateGestureBaseline]);
@@ -224,12 +248,27 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
       newY = g.elStartY + (dy / rect.height) * 100;
     }
     
-    setState(prev => ({
-      ...prev,
-      elements: prev.elements.map(el => 
-        el.id === g.id ? { ...el, x: newX, y: newY, scale: newScale, rotation: newRot } : el
-      )
-    }));
+    setState(prev => {
+      if (g.id === 'background') {
+        return {
+          ...prev,
+          background: {
+            ...prev.background,
+            x: newX,
+            y: newY,
+            scale: newScale,
+            rotation: newRot
+          }
+        };
+      } else {
+        return {
+          ...prev,
+          elements: prev.elements.map(el => 
+            el.id === g.id ? { ...el, x: newX, y: newY, scale: newScale, rotation: newRot } : el
+          )
+        };
+      }
+    });
     
     // Check if over trash zone (bottom 100px of screen)
     const maxY = Math.max(...pts.map(p => p.y));
@@ -244,10 +283,12 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
     if (isOverTrash && gestureStateRef.current) {
       // Delete the element
       const id = gestureStateRef.current.id;
-      setState(prev => ({
-        ...prev,
-        elements: prev.elements.filter(el => el.id !== id)
-      }));
+      if (id !== 'background') {
+        setState(prev => ({
+          ...prev,
+          elements: prev.elements.filter(el => el.id !== id)
+        }));
+      }
       setSelectedId(null);
       gestureStateRef.current = null;
       pointersRef.current.clear();
@@ -255,7 +296,21 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
       setIsOverTrash(false);
     } else if (pointersRef.current.size > 0 && gestureStateRef.current) {
       // A finger was lifted but others remain: re-baseline for smooth transition
-      const el = stateRef.current.elements.find(el => el.id === gestureStateRef.current!.id);
+      const id = gestureStateRef.current.id;
+      let el;
+      if (id === 'background') {
+         el = { 
+          id: 'background', 
+          x: stateRef.current.background.x ?? 50, 
+          y: stateRef.current.background.y ?? 50, 
+          scale: stateRef.current.background.scale ?? 1, 
+          rotation: stateRef.current.background.rotation ?? 0,
+          type: 'image' as any,
+          zIndex: -1
+        };
+      } else {
+        el = stateRef.current.elements.find(e => e.id === id);
+      }
       if (el) updateGestureBaseline(el);
     } else {
       // All fingers lifted

@@ -63,18 +63,30 @@ export function StoryCanvas({ state, className = '', children, videoRef, onVideo
     const { background } = state;
     if (!background) return <div className="absolute inset-0 bg-black" />;
 
+    const transform = `translate(-50%, -50%) scale(${background.scale ?? 1}) rotate(${background.rotation ?? 0}deg)`;
+    const bgStyle: React.CSSProperties = {
+      position: 'absolute',
+      left: background.x !== undefined ? `${background.x}%` : '50%',
+      top: background.y !== undefined ? `${background.y}%` : '50%',
+      width: '100%',
+      height: '100%',
+      transform,
+      transformOrigin: 'center center',
+      pointerEvents: 'none'
+    };
+
     switch (background.type) {
       case 'color':
-        return <div className="absolute inset-0" style={{ backgroundColor: background.value }} />;
+        return <div style={{ ...bgStyle, backgroundColor: background.value }} />;
       case 'gradient':
-        return <div className="absolute inset-0" style={{ background: background.value }} />;
+        return <div style={{ ...bgStyle, background: background.value }} />;
       case 'image':
         return (
           <img 
             src={background.value} 
             alt="background" 
-            className="absolute inset-0 w-full h-full object-cover" 
-            style={{ filter: background.filterCss || 'none' }}
+            className="object-cover" 
+            style={{ ...bgStyle, filter: background.filterCss || 'none' }}
           />
         );
       case 'video':
@@ -82,9 +94,9 @@ export function StoryCanvas({ state, className = '', children, videoRef, onVideo
           <video 
             ref={videoRef}
             src={background.value} 
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none" 
+            className="object-cover" 
             autoPlay loop muted playsInline
-            style={{ filter: background.filterCss || 'none' }}
+            style={{ ...bgStyle, filter: background.filterCss || 'none' }}
             onLoadedMetadata={onVideoLoadedMetadata}
           />
         );
