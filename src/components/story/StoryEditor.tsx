@@ -28,6 +28,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isOverTrash, setIsOverTrash] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Canvas interaction refs
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -37,7 +38,8 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
     stateRef.current = state;
   }, [state]);
 
-  const pointersRef = useRef<Map<number, { x: number, y: number }>>(new Map());
+  // Multi-touch gesture tracking
+  const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const gestureStateRef = useRef<{
     id: string;
     elStartX: number;
@@ -46,7 +48,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
     elStartRot: number;
     gestureStartDist: number | null;
     gestureStartAngle: number | null;
-    gestureStartCenter: { x: number, y: number } | null;
+    gestureStartCenter: { x: number; y: number } | null;
   } | null>(null);
 
   // File manager for image stickers
@@ -67,6 +69,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
     }
   }, [initialPostElements]);
 
+  // Recalculate the gesture baseline from the current pointer positions and element state
   const updateGestureBaseline = useCallback((el: StoryElement) => {
     const pts = Array.from(pointersRef.current.values());
     let dist = null;
@@ -95,125 +98,202 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
     };
   }, []);
 
-  const handlePointerDown = (e: React.PointerEvent, id: string) => {
-    if (isPreviewMode) return;
-    e.stopPropagation();
-    e.target.setPointerCapture(e.pointerId);
+  // Hit test: find which element is under a given screen coordinate
+  const hitTestElement = useCallback((clientX: number, clientY: number): StoryElement | null => {
+    if (!canvasRef.current) return null;
+    const rect = canvasRef.current.getBoundingClientRect();
     
-    setSelectedId(id);
+    // Convert to percentage coordinates within the canvas
+    const pctX = ((clientX - rect.left) / rect.width) * 100;
+    const pctY = ((clientY - rect.top) / rect.height) * 100;
+
+    // Check elements in reverse z-order (top-most first)
+    const sorted = [...stateRef.current.elements].sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0));
+    
+    for (const el of sorted) {
+      // Calculate a reasonable hit radius based on element type and scale
+      let hitW = 8; // percent of canvas width
+      let hitH = 5; // percent of canvas height
+      
+      if (el.type === 'text') {
+        hitW = 15;
+        hitH = 5;
+      } else if (el.type === 'emoji') {
+        hitW = 8;
+        hitH = 5;
+      } else if (el.type === 'info') {
+        hitW = 18;
+        hitH = 4;
+      } else if (el.type === 'image') {
+        hitW = 15;
+        hitH = 10;
+      }
+      
+      // Scale the hit area with the element's scale
+      hitW *= el.scale;
+      hitH *= el.scale;
+
+      // Simple AABB check (ignores rotation, but good enough for touch)
+      if (
+        pctX >= el.x - hitW && pctX <= el.x + hitW &&
+        pctY >= el.y - hitH && pctY <= el.y + hitH
+      ) {
+        return el;
+      }
+    }
+    return null;
+  }, []);
+
+  // ─── Pointer handlers (all at canvas level for reliable multi-touch) ───
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (isPreviewMode || activeTool) return;
+    
+    // Don't interfere with UI buttons
+    if ((e.target as HTMLElement).closest('[data-editor-controls]')) return;
+    
+    e.preventDefault();
+    
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointersRef.current.size === 1) {
+      // First finger: hit-test and start drag
+      const hitEl = hitTestElement(e.clientX, e.clientY);
+      if (hitEl) {
+        setSelectedId(hitEl.id);
+        setIsDragging(true);
+        updateGestureBaseline(hitEl);
+      } else {
+        setSelectedId(null);
+        setIsDragging(false);
+        gestureStateRef.current = null;
+      }
+    } else if (pointersRef.current.size >= 2 && gestureStateRef.current) {
+      // Second finger added while dragging: transition to pinch/rotate
+      const el = stateRef.current.elements.find(el => el.id === gestureStateRef.current!.id);
+      if (el) updateGestureBaseline(el);
+    }
+  }, [isPreviewMode, activeTool, hitTestElement, updateGestureBaseline]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (isPreviewMode || !gestureStateRef.current) return;
+    if (!pointersRef.current.has(e.pointerId)) return;
+    
+    e.preventDefault();
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     
-    const el = stateRef.current.elements.find(e => e.id === id);
-    if (el) updateGestureBaseline(el);
-  };
-
-  const handleCanvasPointerDown = (e: React.PointerEvent) => {
-    if (isPreviewMode) return;
+    const pts = Array.from(pointersRef.current.values());
+    const g = gestureStateRef.current;
     
-    if (selectedId) {
-      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      const el = stateRef.current.elements.find(el => el.id === selectedId);
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+
+    let newX = g.elStartX;
+    let newY = g.elStartY;
+    let newScale = g.elStartScale;
+    let newRot = g.elStartRot;
+    
+    if (pts.length === 1 && g.gestureStartCenter) {
+      // Single finger drag
+      const dx = pts[0].x - g.gestureStartCenter.x;
+      const dy = pts[0].y - g.gestureStartCenter.y;
+      newX = g.elStartX + (dx / rect.width) * 100;
+      newY = g.elStartY + (dy / rect.height) * 100;
+    } 
+    else if (pts.length >= 2 && g.gestureStartDist !== null && g.gestureStartAngle !== null && g.gestureStartCenter) {
+      // Multi-finger: pinch + rotate + drag
+      const p1 = pts[0];
+      const p2 = pts[1];
+      
+      const curDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      const curAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+      const curCenter = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+      
+      // Scale
+      const scaleDelta = curDist / (g.gestureStartDist || 1);
+      newScale = Math.max(0.1, Math.min(5, g.elStartScale * scaleDelta));
+      
+      // Rotation
+      const angleDelta = curAngle - g.gestureStartAngle;
+      newRot = g.elStartRot + angleDelta;
+      
+      // Pan (from center movement)
+      const dx = curCenter.x - g.gestureStartCenter.x;
+      const dy = curCenter.y - g.gestureStartCenter.y;
+      newX = g.elStartX + (dx / rect.width) * 100;
+      newY = g.elStartY + (dy / rect.height) * 100;
+    }
+    
+    setState(prev => ({
+      ...prev,
+      elements: prev.elements.map(el => 
+        el.id === g.id ? { ...el, x: newX, y: newY, scale: newScale, rotation: newRot } : el
+      )
+    }));
+    
+    // Check if over trash zone (bottom 100px of screen)
+    const maxY = Math.max(...pts.map(p => p.y));
+    setIsOverTrash(maxY > window.innerHeight - 100);
+  }, [isPreviewMode]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!pointersRef.current.has(e.pointerId)) return;
+    
+    pointersRef.current.delete(e.pointerId);
+    
+    if (isOverTrash && gestureStateRef.current) {
+      // Delete the element
+      const id = gestureStateRef.current.id;
+      setState(prev => ({
+        ...prev,
+        elements: prev.elements.filter(el => el.id !== id)
+      }));
+      setSelectedId(null);
+      gestureStateRef.current = null;
+      pointersRef.current.clear();
+      setIsDragging(false);
+      setIsOverTrash(false);
+    } else if (pointersRef.current.size > 0 && gestureStateRef.current) {
+      // A finger was lifted but others remain: re-baseline for smooth transition
+      const el = stateRef.current.elements.find(el => el.id === gestureStateRef.current!.id);
       if (el) updateGestureBaseline(el);
     } else {
-      setSelectedId(null);
+      // All fingers lifted
+      gestureStateRef.current = null;
+      setIsDragging(false);
+      setIsOverTrash(false);
     }
-  };
+  }, [isOverTrash, updateGestureBaseline]);
 
+  const handlePointerCancel = useCallback((e: React.PointerEvent) => {
+    pointersRef.current.delete(e.pointerId);
+    if (pointersRef.current.size === 0) {
+      gestureStateRef.current = null;
+      setIsDragging(false);
+      setIsOverTrash(false);
+    }
+  }, []);
+
+  // Prevent default touch behaviors on the editor container
   useEffect(() => {
-    const handleGlobalPointerMove = (e: PointerEvent) => {
-      if (isPreviewMode || !gestureStateRef.current) return;
-      
-      if (pointersRef.current.has(e.pointerId)) {
-        pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-        
-        const pts = Array.from(pointersRef.current.values());
-        const g = gestureStateRef.current;
-        
-        if (!canvasRef.current) return;
-        const rect = canvasRef.current.getBoundingClientRect();
-
-        let newX = g.elStartX;
-        let newY = g.elStartY;
-        let newScale = g.elStartScale;
-        let newRot = g.elStartRot;
-        
-        if (pts.length === 1 && g.gestureStartCenter) {
-          const dx = pts[0].x - g.gestureStartCenter.x;
-          const dy = pts[0].y - g.gestureStartCenter.y;
-          newX = g.elStartX + (dx / rect.width) * 100;
-          newY = g.elStartY + (dy / rect.height) * 100;
-        } 
-        else if (pts.length >= 2 && g.gestureStartDist !== null && g.gestureStartAngle !== null && g.gestureStartCenter) {
-          const p1 = pts[0];
-          const p2 = pts[1];
-          
-          const curDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-          const curAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
-          const curCenter = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
-          
-          const scaleDelta = curDist / (g.gestureStartDist || 1);
-          newScale = Math.max(0.1, g.elStartScale * scaleDelta); // Prevent scaling to 0
-          
-          const angleDelta = curAngle - g.gestureStartAngle;
-          newRot = g.elStartRot + angleDelta;
-          
-          const dx = curCenter.x - g.gestureStartCenter.x;
-          const dy = curCenter.y - g.gestureStartCenter.y;
-          newX = g.elStartX + (dx / rect.width) * 100;
-          newY = g.elStartY + (dy / rect.height) * 100;
-        }
-        
-        setState(prev => ({
-          ...prev,
-          elements: prev.elements.map(el => 
-            el.id === g.id ? { ...el, x: newX, y: newY, scale: newScale, rotation: newRot } : el
-          )
-        }));
-        
-        if (e.clientY > window.innerHeight - 100) {
-          setIsOverTrash(true);
-        } else {
-          setIsOverTrash(false);
-        }
+    const el = canvasRef.current;
+    if (!el) return;
+    
+    const preventTouch = (e: TouchEvent) => {
+      // Only prevent when we have an active gesture or more than 1 touch
+      if (gestureStateRef.current || e.touches.length > 1) {
+        e.preventDefault();
       }
     };
-
-    const handleGlobalPointerUp = (e: PointerEvent) => {
-      if (pointersRef.current.has(e.pointerId)) {
-        pointersRef.current.delete(e.pointerId);
-        
-        if (isOverTrash && gestureStateRef.current) {
-          const id = gestureStateRef.current.id;
-          setState(prev => ({
-            ...prev,
-            elements: prev.elements.filter(el => el.id !== id)
-          }));
-          setSelectedId(null);
-          gestureStateRef.current = null;
-          pointersRef.current.clear();
-        } 
-        else if (pointersRef.current.size > 0 && gestureStateRef.current) {
-          const el = stateRef.current.elements.find(el => el.id === gestureStateRef.current!.id);
-          if (el) updateGestureBaseline(el);
-        } 
-        else {
-          gestureStateRef.current = null;
-        }
-        
-        setIsOverTrash(false);
-      }
-    };
-
-    window.addEventListener('pointermove', handleGlobalPointerMove);
-    window.addEventListener('pointerup', handleGlobalPointerUp);
-    window.addEventListener('pointercancel', handleGlobalPointerUp);
-
+    
+    el.addEventListener('touchstart', preventTouch, { passive: false });
+    el.addEventListener('touchmove', preventTouch, { passive: false });
+    
     return () => {
-      window.removeEventListener('pointermove', handleGlobalPointerMove);
-      window.removeEventListener('pointerup', handleGlobalPointerUp);
-      window.removeEventListener('pointercancel', handleGlobalPointerUp);
+      el.removeEventListener('touchstart', preventTouch);
+      el.removeEventListener('touchmove', preventTouch);
     };
-  }, [isPreviewMode, isOverTrash, updateGestureBaseline]);
+  }, []);
 
   const handleAddText = (overlay: any) => {
     const newElement: StoryElement = {
@@ -287,7 +367,10 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
     <div className="fixed inset-0 z-[100] bg-black flex flex-col overflow-hidden" style={{ touchAction: 'none' }}>
       
       {/* Top Bar */}
-      <div className={`absolute top-0 inset-x-0 flex items-center justify-between p-4 z-20 transition-opacity duration-300 ${isPreviewMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      <div 
+        data-editor-controls
+        className={`absolute top-0 inset-x-0 flex items-center justify-between p-4 z-20 transition-opacity duration-300 ${isPreviewMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      >
         <button onClick={onCancel} className="p-2 rounded-full bg-white/10 text-white backdrop-blur-md">
           <X className="w-6 h-6" />
         </button>
@@ -297,38 +380,34 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
         </button>
       </div>
 
-      {/* Canvas Area */}
-      <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out ${isPreviewMode ? 'p-0' : 'p-4 md:py-8'}`}>
+      {/* Canvas Area — all pointer events are captured here */}
+      <div 
+        className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out ${isPreviewMode ? 'p-0' : 'p-4 md:py-8'}`}
+        ref={canvasRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        style={{ touchAction: 'none' }}
+      >
         <div 
           className={`relative w-full h-full mx-auto flex items-center justify-center transition-all duration-300 ease-in-out ${isPreviewMode ? 'max-w-full max-h-full' : 'md:max-w-[450px] md:max-h-[85vh]'}`}
-          ref={canvasRef}
-          onPointerDown={handleCanvasPointerDown}
         >
-          {/* We pass children to StoryCanvas to render the interactive overlays ON TOP of the scaled elements */}
           <StoryCanvas state={state}>
             
-            {/* Interactive Layer (rendered inside the 1080x1920 scaled space) */}
+            {/* Interactive Layer: visual selection rings on selected elements */}
             {!isPreviewMode && state.elements.map(el => (
               <div
                 key={el.id}
-                className="absolute origin-center"
+                className="absolute origin-center pointer-events-none"
                 style={{
                   left: `${el.x}%`, top: `${el.y}%`,
                   transform: `translate(-50%, -50%) scale(${el.scale}) rotate(${el.rotation}deg)`,
-                  width: '100%', height: '100%', // Take full canvas size, then use pointer-events to isolate
-                  pointerEvents: 'none'
                 }}
               >
-                {/* The actual hit box */}
-                <div 
-                  className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto cursor-move ${selectedId === el.id ? 'ring-2 ring-white ring-offset-2 ring-offset-black rounded-lg' : ''}`}
-                  style={{ minWidth: '100px', minHeight: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  onPointerDown={(e) => handlePointerDown(e, el.id)}
-                >
-                  {/* We don't render the content here, StoryCanvas does. We just overlay a hit box. 
-                      Wait, this is an invisible hit box over the element. 
-                      Actually, rendering the hit box this way works to capture dragging. */}
-                </div>
+                {selectedId === el.id && (
+                  <div className="ring-2 ring-white ring-offset-2 ring-offset-black/50 rounded-lg p-2 min-w-[60px] min-h-[40px]" />
+                )}
               </div>
             ))}
             
@@ -343,7 +422,10 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
         </div>
 
         {/* Right Floating Toolbar */}
-        <div className={`absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 bg-black/40 backdrop-blur-md p-2 rounded-full z-20 transition-opacity duration-300 ${isPreviewMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <div 
+          data-editor-controls
+          className={`absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 bg-black/40 backdrop-blur-md p-2 rounded-full z-20 transition-opacity duration-300 ${isPreviewMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        >
           <button onClick={() => setActiveTool('text')} className="p-3 text-white hover:bg-white/20 rounded-full">
             <Type className="w-6 h-6" />
           </button>
@@ -369,15 +451,18 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
       </div>
 
       {/* Bottom Toolbar */}
-      <div className={`absolute bottom-0 inset-x-0 p-4 z-20 flex justify-end items-center transition-opacity duration-300 ${isPreviewMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+      <div 
+        data-editor-controls
+        className={`absolute bottom-0 inset-x-0 p-4 z-20 flex justify-end items-center transition-opacity duration-300 ${isPreviewMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      >
         <button onClick={handleDone} className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-full font-semibold shadow-lg active:scale-95 transition-transform hover:bg-gray-100">
           Share <ChevronRight className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Trash Zone */}
-      <div className={`absolute bottom-0 inset-x-0 h-[100px] bg-gradient-to-t from-red-600/80 to-transparent flex items-center justify-center z-[150] transition-opacity duration-200 pointer-events-none ${gestureStateRef.current ? 'opacity-100' : 'opacity-0'}`}>
-        <div className={`p-4 rounded-full bg-black/50 text-white transition-transform ${isOverTrash ? 'scale-125 bg-red-600' : ''}`}>
+      {/* Trash Zone — visible when dragging */}
+      <div className={`absolute bottom-0 inset-x-0 h-[100px] bg-gradient-to-t from-red-600/80 to-transparent flex items-center justify-center z-[150] transition-opacity duration-200 pointer-events-none ${isDragging ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`p-4 rounded-full bg-black/50 text-white transition-transform duration-150 ${isOverTrash ? 'scale-125 bg-red-600' : ''}`}>
           <Trash2 className="w-8 h-8" />
         </div>
       </div>
@@ -422,4 +507,3 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
 }
 
 export default StoryEditor;
-
