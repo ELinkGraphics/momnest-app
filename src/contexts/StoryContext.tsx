@@ -91,6 +91,12 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             }
           });
 
+          // Sort each user's stories oldest → newest so viewer plays chronologically
+          const sortAsc = (a: Story, b: Story) => 
+            new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+          ownStories.sort(sortAsc);
+          userStoriesMap.forEach(arr => arr.sort(sortAsc));
+
           const grouped: Story[] = [];
           if (user) {
             // BUG-10 FIX: Use unique placeholder ID instead of -1
