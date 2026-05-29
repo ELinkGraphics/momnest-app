@@ -69,29 +69,38 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
     }
   }, [initialPostElements]);
 
-  // Detect image aspect ratio and set objectFit mode
+  // Detect media aspect ratio and set objectFit mode
   useEffect(() => {
-    if (mediaType !== 'image') return;
-    
-    const img = new Image();
-    img.onload = () => {
-      const imgRatio = img.width / img.height;
-      const canvasRatio = CANVAS_W / CANVAS_H; // 9:16 = 0.5625
-      const tolerance = 0.08; // ~8% tolerance
+    if (!previewUrl) return;
 
-      const needsContain = Math.abs(imgRatio - canvasRatio) > tolerance;
+    const canvasRatio = CANVAS_W / CANVAS_H; // 9:16 = 0.5625
+    const tolerance = 0.08; // ~8% tolerance
+
+    const updateState = (width: number, height: number) => {
+      const mediaRatio = width / height;
+      const needsContain = Math.abs(mediaRatio - canvasRatio) > tolerance;
 
       setState(prev => ({
         ...prev,
         background: {
           ...prev.background,
-          mediaWidth: img.width,
-          mediaHeight: img.height,
+          mediaWidth: width,
+          mediaHeight: height,
           objectFit: needsContain ? 'contain' : 'cover',
         }
       }));
     };
-    img.src = previewUrl;
+
+    if (mediaType === 'image') {
+      const img = new Image();
+      img.onload = () => updateState(img.width, img.height);
+      img.src = previewUrl;
+    } else if (mediaType === 'video') {
+      const video = document.createElement('video');
+      video.onloadedmetadata = () => updateState(video.videoWidth, video.videoHeight);
+      video.src = previewUrl;
+      video.load();
+    }
   }, [previewUrl, mediaType]);
 
   // Recalculate the gesture baseline from the current pointer positions and element state
