@@ -22,7 +22,7 @@ const SharePostToStoryModal: React.FC<SharePostToStoryModalProps> = ({ isOpen, o
   const [backgroundUrl, setBackgroundUrl] = useState<string>('');
   const [postCardUrl, setPostCardUrl] = useState<string>('');
 
-  // Generate a simple gradient background for the canvas
+  // Generate a background from the post image (blurred) or a sleek dark gradient
   const generateBackgroundUrl = async (): Promise<string> => {
     const canvas = document.createElement('canvas');
     canvas.width = 1080;
@@ -30,20 +30,61 @@ const SharePostToStoryModal: React.FC<SharePostToStoryModalProps> = ({ isOpen, o
     const ctx = canvas.getContext('2d');
     if (!ctx) return '';
 
-    // Background gradient
-    const grad = ctx.createLinearGradient(0, 0, 0, 1920);
-    grad.addColorStop(0, '#713A20');
-    grad.addColorStop(1, '#E09F4D');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 1080, 1920);
+    let drawGradient = true;
+
+    if (post.media?.url) {
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = post.media!.url;
+        });
+
+        // Fill background with dark color first
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0, 0, 1080, 1920);
+
+        // Apply strong blur and darken for background
+        ctx.filter = 'blur(60px) brightness(0.6)';
+        
+        // Calculate cover dimensions
+        const scale = Math.max(1080 / img.width, 1920 / img.height);
+        const w = img.width * scale;
+        const h = img.height * scale;
+        const x = (1080 - w) / 2;
+        const y = (1920 - h) / 2;
+        
+        ctx.drawImage(img, x, y, w, h);
+        ctx.filter = 'none';
+
+        // Add a subtle dark overlay to ensure the post card pops
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(0, 0, 1080, 1920);
+        
+        drawGradient = false;
+      } catch (e) {
+        console.error('Failed to load post image for background:', e);
+      }
+    }
+
+    if (drawGradient) {
+      // Sleek dark gradient fallback instead of the brown one
+      const grad = ctx.createLinearGradient(0, 0, 1080, 1920);
+      grad.addColorStop(0, '#1e293b'); // slate-800
+      grad.addColorStop(1, '#0f172a'); // slate-900
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1080, 1920);
+    }
 
     // App watermark
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.font = '24px sans-serif';
+    ctx.font = '500 28px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('Shared from MomNest', 540, 1850);
 
-    return canvas.toDataURL('image/jpeg', 0.9);
+    return canvas.toDataURL('image/jpeg', 0.8);
   };
 
   // Generate a post card image that looks like the actual post (high DPI)
