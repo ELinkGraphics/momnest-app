@@ -553,6 +553,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
       {activeTool === 'filter' && (
         <div className="absolute inset-x-0 bottom-0 z-[150]">
           <StoryFilterPicker 
+            previewUrl={previewUrl}
             selectedId={state.background.filterCss || 'none'} 
             onSelect={(id, css) => {
               setState(prev => ({ ...prev, background: { ...prev.background, filterCss: css } }));

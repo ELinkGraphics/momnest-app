@@ -23,13 +23,18 @@ export const STORY_FILTERS: StoryFilter[] = [
 ];
 
 interface Props {
-  previewUrl: string;
-  selected: string;
-  onSelect: (filterId: string) => void;
+  previewUrl?: string;
+  selectedId: string;
+  onSelect: (filterId: string, filterCss: string) => void;
   onClose: () => void;
 }
 
-const StoryFilterPicker: React.FC<Props> = ({ previewUrl, selected, onSelect, onClose }) => {
+const StoryFilterPicker: React.FC<Props> = ({ previewUrl, selectedId, onSelect, onClose }) => {
+  // Find the currently selected filter ID — selectedId might be a CSS string from older code
+  const currentId = STORY_FILTERS.find(f => f.id === selectedId)?.id
+    || STORY_FILTERS.find(f => f.css === selectedId)?.id
+    || 'none';
+
   return (
     <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm rounded-t-2xl">
       {/* Header */}
@@ -43,17 +48,27 @@ const StoryFilterPicker: React.FC<Props> = ({ previewUrl, selected, onSelect, on
       {/* Filter strip */}
       <div className="flex gap-3 overflow-x-auto px-3 pb-4 scrollbar-hide">
         {STORY_FILTERS.map((filter) => (
-          <button key={filter.id} onClick={() => onSelect(filter.id)}
-            className={`flex flex-col items-center gap-1.5 shrink-0 transition-transform ${selected === filter.id ? 'scale-105' : ''}`}>
-            <div className={`size-16 rounded-xl overflow-hidden border-2 transition-colors ${selected === filter.id ? 'border-primary' : 'border-transparent'}`}>
-              <img
-                src={previewUrl}
-                alt={filter.name}
-                className="w-full h-full object-cover"
-                style={{ filter: filter.css }}
-              />
+          <button key={filter.id} onClick={() => onSelect(filter.id, filter.css)}
+            className={`flex flex-col items-center gap-1.5 shrink-0 transition-transform ${currentId === filter.id ? 'scale-105' : ''}`}>
+            <div className={`size-16 rounded-xl overflow-hidden border-2 transition-colors ${currentId === filter.id ? 'border-primary' : 'border-transparent'}`}>
+              {previewUrl ? (
+                <img
+                  src={previewUrl}
+                  alt={filter.name}
+                  className="w-full h-full object-cover"
+                  style={{ filter: filter.css }}
+                />
+              ) : (
+                <div
+                  className="w-full h-full"
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    filter: filter.css,
+                  }}
+                />
+              )}
             </div>
-            <span className={`text-[10px] font-medium ${selected === filter.id ? 'text-primary' : 'text-white/70'}`}>
+            <span className={`text-[10px] font-medium ${currentId === filter.id ? 'text-primary' : 'text-white/70'}`}>
               {filter.name}
             </span>
           </button>
