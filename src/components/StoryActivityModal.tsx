@@ -23,6 +23,17 @@ const StoryActivityModal: React.FC<StoryActivityModalProps> = ({ isOpen, onClose
   const [visibleViews, setVisibleViews] = useState(20);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
+  const safeFormatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return 'Just now';
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return 'Just now';
+      return formatDistanceToNow(date, { addSuffix: true });
+    } catch (e) {
+      return 'Just now';
+    }
+  };
+
   if (!isOpen) return null;
 
   const chatMessages = [...messages]
@@ -75,7 +86,7 @@ const StoryActivityModal: React.FC<StoryActivityModalProps> = ({ isOpen, onClose
                   <div className={isOwn ? 'text-right' : ''}>
                     <p className={`text-sm rounded-xl px-3 py-2 ${isOwn ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>{msg.content}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                      {safeFormatDate(msg.created_at)}
                     </p>
                   </div>
                 </div>
@@ -164,7 +175,7 @@ const StoryActivityModal: React.FC<StoryActivityModalProps> = ({ isOpen, onClose
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm text-foreground truncate">{viewer.profile?.name || 'Unknown'}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(viewer.viewed_at), { addSuffix: true })}
+                      {safeFormatDate(viewer.viewed_at)}
                     </p>
                   </div>
                   {viewer.hasLiked && (
@@ -218,7 +229,7 @@ const StoryActivityModal: React.FC<StoryActivityModalProps> = ({ isOpen, onClose
                     <p className="text-xs text-muted-foreground truncate">{msg.content}</p>
                   </div>
                   <span className="text-xs text-muted-foreground shrink-0">
-                    {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                    {safeFormatDate(msg.created_at)}
                   </span>
                 </button>
               ))
