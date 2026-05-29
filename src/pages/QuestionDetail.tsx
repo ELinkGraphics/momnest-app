@@ -484,7 +484,18 @@ export default function QuestionDetail() {
             Back
           </Button>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({ title: question?.title || '', url: window.location.href }).catch(() => {});
+                } else {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast({ title: 'Link copied to clipboard' });
+                }
+              }}
+            >
               <Share2 className="w-4 h-4" />
             </Button>
             <Button 

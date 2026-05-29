@@ -219,7 +219,19 @@ const ProductDetail: React.FC = () => {
             >
               <Heart className={`w-5 h-5 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
             </Button>
-            <Button variant="ghost" size="sm" className="p-2 active:bg-transparent active:text-primary">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="p-2 active:bg-transparent active:text-primary"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({ title: product.name, text: product.description, url: window.location.href }).catch(() => {});
+                } else {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast({ title: 'Link copied to clipboard' });
+                }
+              }}
+            >
               <Share2 className="w-5 h-5" />
             </Button>
             <Button variant="ghost" size="sm" className="p-2">

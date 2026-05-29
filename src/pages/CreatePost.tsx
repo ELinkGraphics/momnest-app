@@ -387,9 +387,9 @@ const CreatePost: React.FC = () => {
         )}
 
         {/* Location & Voice Badges */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2">
           {locationText && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-2xl border border-primary/20 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-2xl border border-primary/20 animate-in zoom-in-95 duration-200 w-fit">
               <MapPin className="w-3.5 h-3.5 text-primary" />
               <span className="text-xs text-primary font-bold truncate max-w-[200px]">{locationText}</span>
               <button onClick={() => setLocationText(null)} className="ml-1 p-0.5 hover:bg-primary/20 rounded-full transition-colors">
@@ -398,11 +398,16 @@ const CreatePost: React.FC = () => {
             </div>
           )}
           {voiceBlob && !recording && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-2xl border border-primary/20 animate-in zoom-in-95 duration-200">
-              <Mic className="w-3.5 h-3.5 text-primary" />
-              <span className="text-xs text-primary font-bold">Voice Note</span>
-              <button onClick={() => setVoiceBlob(null)} className="ml-1 p-0.5 hover:bg-primary/20 rounded-full transition-colors">
-                <X className="w-3.5 h-3.5 text-primary" />
+            <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-2xl border border-primary/20 animate-in zoom-in-95 duration-200 w-full max-w-sm">
+              <Mic className="w-4 h-4 text-primary shrink-0" />
+              <span className="text-sm text-primary font-bold shrink-0">Voice</span>
+              <audio 
+                src={URL.createObjectURL(voiceBlob)} 
+                controls 
+                className="h-8 flex-1 min-w-[120px]" 
+              />
+              <button onClick={() => setVoiceBlob(null)} className="ml-1 p-1 hover:bg-primary/20 rounded-full transition-colors shrink-0">
+                <X className="w-4 h-4 text-primary" />
               </button>
             </div>
           )}

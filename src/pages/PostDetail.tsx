@@ -711,7 +711,7 @@ const PostDetail: React.FC = () => {
               <span>{formatCount(comments.length)}</span>
             </button>
 
-            <button className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-secondary transition-colors">
+            <button onClick={handleSharePost} className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-secondary transition-colors">
               <Share2 className="size-5" />
               <span>{formatCount(post.post_stats?.shares_count || 0)}</span>
             </button>
