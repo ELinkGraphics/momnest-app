@@ -27,6 +27,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
   const [activeTool, setActiveTool] = useState<'text' | 'sticker' | 'filter' | 'draw' | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [isOverTrash, setIsOverTrash] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -437,19 +438,27 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
   }, [imageStickerManager.files]);
 
   const handleDone = async () => {
-    // We need to return a blob for the media_url. 
-    // We can fetch the previewUrl to get the original blob.
-    const blob = await fetch(previewUrl).then(r => r.blob());
+    if (isSharing) return;
+    setIsSharing(true);
     
-    // Extract mentions
-    const mentionedUserIds = state.elements
-      .filter(e => e.infoType === 'mention' && e.mentionUserId)
-      .map(e => e.mentionUserId as string);
+    try {
+      // We need to return a blob for the media_url. 
+      // We can fetch the previewUrl to get the original blob.
+      const blob = await fetch(previewUrl).then(r => r.blob());
+      
+      // Extract mentions
+      const mentionedUserIds = state.elements
+        .filter(e => e.infoType === 'mention' && e.mentionUserId)
+        .map(e => e.mentionUserId as string);
 
-    onDone(blob, mentionedUserIds, {
-      mediaType: mediaType,
-      story_state: state
-    });
+      onDone(blob, mentionedUserIds, {
+        mediaType: mediaType,
+        story_state: state
+      });
+    } catch (e) {
+      console.error('Failed to finalize story canvas:', e);
+      setIsSharing(false);
+    }
   };
 
   return (
@@ -544,8 +553,19 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
         data-editor-controls
         className={`absolute bottom-0 inset-x-0 p-4 z-20 flex justify-end items-center transition-opacity duration-300 ${isPreviewMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
       >
-        <button onClick={handleDone} className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-full font-semibold shadow-lg active:scale-95 transition-transform hover:bg-gray-100">
-          Share <ChevronRight className="w-5 h-5" />
+        <button 
+          onClick={handleDone} 
+          disabled={isSharing}
+          className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-full font-semibold shadow-lg active:scale-95 transition-transform hover:bg-gray-100 disabled:opacity-70 disabled:pointer-events-none"
+        >
+          {isSharing ? (
+            <>
+              <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+              <span>Sharing...</span>
+            </>
+          ) : (
+            <>Share <ChevronRight className="w-5 h-5" /></>
+          )}
         </button>
       </div>
 
