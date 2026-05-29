@@ -158,7 +158,6 @@ export const VideoShareMenu: React.FC<VideoShareMenuProps> = ({
               const isVideo = extraData?.mediaType === 'video' && extraData?.originalVideoUrl;
               await storyService.createStory(user.id, editedBlob, isVideo, mentionedUserIds, {
                 ...extraData,
-                reshared_post_id: videoId
               });
 
               toast({ title: 'Shared to story!', description: 'Video has been added to your story.' });
