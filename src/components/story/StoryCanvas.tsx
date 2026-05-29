@@ -63,6 +63,7 @@ export function StoryCanvas({ state, className = '', children, videoRef, onVideo
     const { background } = state;
     if (!background) return <div className="absolute inset-0 bg-black" />;
 
+    const fitMode = background.objectFit || 'cover';
     const transform = `translate(-50%, -50%) scale(${background.scale ?? 1}) rotate(${background.rotation ?? 0}deg)`;
     const bgStyle: React.CSSProperties = {
       position: 'absolute',
@@ -81,6 +82,30 @@ export function StoryCanvas({ state, className = '', children, videoRef, onVideo
       case 'gradient':
         return <div style={{ ...bgStyle, background: background.value }} />;
       case 'image':
+        if (fitMode === 'contain') {
+          return (
+            <>
+              {/* Blurred backdrop — fills canvas, always object-cover */}
+              <img
+                src={background.value}
+                alt=""
+                className="object-cover"
+                style={{
+                  ...bgStyle,
+                  filter: `blur(30px) brightness(0.6) ${background.filterCss || ''}`.trim(),
+                  transform: `translate(-50%, -50%) scale(${(background.scale ?? 1) * 1.15}) rotate(${background.rotation ?? 0}deg)`,
+                }}
+              />
+              {/* Main image — no cropping, object-contain */}
+              <img
+                src={background.value}
+                alt="background"
+                className="object-contain"
+                style={{ ...bgStyle, filter: background.filterCss || 'none' }}
+              />
+            </>
+          );
+        }
         return (
           <img 
             src={background.value} 
@@ -90,6 +115,30 @@ export function StoryCanvas({ state, className = '', children, videoRef, onVideo
           />
         );
       case 'video':
+        if (fitMode === 'contain') {
+          return (
+            <>
+              <video
+                src={background.value}
+                className="object-cover"
+                autoPlay loop muted playsInline
+                style={{
+                  ...bgStyle,
+                  filter: `blur(30px) brightness(0.6) ${background.filterCss || ''}`.trim(),
+                  transform: `translate(-50%, -50%) scale(${(background.scale ?? 1) * 1.15}) rotate(${background.rotation ?? 0}deg)`,
+                }}
+              />
+              <video 
+                ref={videoRef}
+                src={background.value} 
+                className="object-contain" 
+                autoPlay loop muted playsInline
+                style={{ ...bgStyle, filter: background.filterCss || 'none' }}
+                onLoadedMetadata={onVideoLoadedMetadata}
+              />
+            </>
+          );
+        }
         return (
           <video 
             ref={videoRef}

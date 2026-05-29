@@ -69,6 +69,31 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
     }
   }, [initialPostElements]);
 
+  // Detect image aspect ratio and set objectFit mode
+  useEffect(() => {
+    if (mediaType !== 'image') return;
+    
+    const img = new Image();
+    img.onload = () => {
+      const imgRatio = img.width / img.height;
+      const canvasRatio = CANVAS_W / CANVAS_H; // 9:16 = 0.5625
+      const tolerance = 0.08; // ~8% tolerance
+
+      const needsContain = Math.abs(imgRatio - canvasRatio) > tolerance;
+
+      setState(prev => ({
+        ...prev,
+        background: {
+          ...prev.background,
+          mediaWidth: img.width,
+          mediaHeight: img.height,
+          objectFit: needsContain ? 'contain' : 'cover',
+        }
+      }));
+    };
+    img.src = previewUrl;
+  }, [previewUrl, mediaType]);
+
   // Recalculate the gesture baseline from the current pointer positions and element state
   const updateGestureBaseline = useCallback((el: StoryElement) => {
     const pts = Array.from(pointersRef.current.values());

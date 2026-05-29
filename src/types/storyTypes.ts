@@ -58,6 +58,7 @@ export interface StoryBackground {
   mediaWidth?: number;
   mediaHeight?: number;
   filterCss?: string; // Story filter for background
+  objectFit?: 'cover' | 'contain'; // 'contain' = no crop + blurred bg, 'cover' = fill & crop
   x?: number;
   y?: number;
   scale?: number;
