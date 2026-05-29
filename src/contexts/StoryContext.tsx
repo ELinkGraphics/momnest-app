@@ -18,6 +18,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [stories, setStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const fetchVersion = useRef(0);
+  const hasLoadedOnce = useRef(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   // BUG-4 FIX: Use ref for debounce timer to prevent closure leak
   const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -34,7 +35,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return new Promise<void>((resolve) => {
       debounceTimer.current = setTimeout(async () => {
         const version = ++fetchVersion.current;
-        if (!silent) setIsLoading(true);
+        if (!silent && !hasLoadedOnce.current) setIsLoading(true);
 
         try {
           // PERF-2 FIX: Delegating to storyService for fetching
@@ -62,6 +63,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               }
               setStories(grouped);
               setIsLoading(false);
+              hasLoadedOnce.current = true;
             }
             resolve();
             return;
@@ -129,7 +131,10 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         } catch (err) {
           console.error('[StoryProvider] Fetch error:', err);
         } finally {
-          if (fetchVersion.current === version) setIsLoading(false);
+          if (fetchVersion.current === version) {
+            setIsLoading(false);
+            hasLoadedOnce.current = true;
+          }
           resolve();
         }
       }, silent ? 0 : 300);

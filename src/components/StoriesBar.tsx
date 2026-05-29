@@ -44,15 +44,28 @@ const StoriesBar: React.FC = () => {
     refreshStories();
   };
 
-  if (isLoading) return null;
-
   const getFirstName = (name: string) => name.split(' ')[0];
+
+  // Show skeleton only on initial load (no stories cached yet)
+  const showSkeleton = isLoading && stories.length === 0;
 
   return (
     <>
       <section aria-label="Stories" className="px-4 py-3">
         <div className="flex gap-4 overflow-x-auto scrollbar-hide" aria-live="polite">
-          {stories.map((story, index) => {
+          {showSkeleton && (
+            <>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={`skeleton-${i}`} className="flex flex-col items-center shrink-0 gap-1.5">
+                  <div className="relative">
+                    <div className="size-[66px] rounded-full bg-muted animate-pulse" />
+                  </div>
+                  <div className="h-3 w-12 rounded-full bg-muted animate-pulse" />
+                </div>
+              ))}
+            </>
+          )}
+          {!showSkeleton && stories.map((story, index) => {
             const isOwn = story.isOwn;
             const hasStories = story.allStories && story.allStories.length > 0;
             const isLive = (story as any).isLive;
