@@ -34,17 +34,17 @@ const StoryActivityModal: React.FC<StoryActivityModalProps> = ({ isOpen, onClose
     }
   };
 
-  if (!isOpen) return null;
-
   const chatMessages = [...messages]
     .filter(m => m.sender_id === chatUserId || (m as any).receiver_id === chatUserId)
     .reverse(); // Reverse to show oldest at top, newest at bottom
 
   useEffect(() => {
-    if (chatUserId) {
+    if (chatUserId && isOpen) {
       chatScrollRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [chatMessages.length, chatUserId]);
+  }, [chatMessages.length, chatUserId, isOpen]);
+
+  if (!isOpen) return null;
 
   const handleSendReply = async () => {
     if (!replyText.trim() || !chatUserId) return;
