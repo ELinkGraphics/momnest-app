@@ -82,11 +82,13 @@ export const useEditMessage = () => {
   return useMutation({
     mutationFn: async ({ messageId, content, conversationId }: { messageId: string; content: string; conversationId: string }) => {
       // 1. Optimistic local update
-      await chatDb.messages.update(messageId, { 
-        content, 
-        is_edited: true, 
-        updated_at: new Date().toISOString() 
-      });
+      const existingEdit = await chatDb.messages.get(messageId);
+      if (existingEdit) {
+        existingEdit.content = content;
+        existingEdit.is_edited = true;
+        existingEdit.updated_at = new Date().toISOString();
+        await chatDb.messages.put(existingEdit);
+      }
 
       // 2. Server update
       const { error } = await supabase
@@ -133,10 +135,12 @@ export const useDeleteMessage = () => {
   const deleteForEveryone = useMutation({
     mutationFn: async ({ messageId, conversationId }: { messageId: string; conversationId: string }) => {
       // 1. Optimistic local update
-      await chatDb.messages.update(messageId, { 
-        deleted_for_everyone: true, 
-        content: 'This message was deleted' 
-      });
+      const existingDel = await chatDb.messages.get(messageId);
+      if (existingDel) {
+        existingDel.deleted_for_everyone = true;
+        existingDel.content = 'This message was deleted';
+        await chatDb.messages.put(existingDel);
+      }
 
       // 2. Server update
       const { error } = await supabase

@@ -26,10 +26,10 @@ interface HeaderProps {
   onWalletModalChange?: (isOpen: boolean) => void;
 }
 
-const IconButton = ({ label, children, badge, onClick, 'data-testid': dataTestId }: { 
-  label: string; 
-  children: React.ReactNode; 
-  badge?: number; 
+const IconButton = ({ label, children, badge, onClick, 'data-testid': dataTestId }: {
+  label: string;
+  children: React.ReactNode;
+  badge?: number;
   onClick?: () => void;
   'data-testid'?: string;
 }) => (
@@ -43,7 +43,7 @@ const IconButton = ({ label, children, badge, onClick, 'data-testid': dataTestId
   >
     {children}
     {typeof badge === "number" && badge > 0 && (
-      <span 
+      <span
         className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] grid place-items-center bg-secondary text-white font-medium"
         aria-label={`${badge} unread`}
       >
@@ -53,9 +53,9 @@ const IconButton = ({ label, children, badge, onClick, 'data-testid': dataTestId
   </button>
 );
 
-const MenuItem = ({ icon, label, danger, badge, onClick, 'data-testid': dataTestId }: { 
-  icon: React.ReactNode; 
-  label: string; 
+const MenuItem = ({ icon, label, danger, badge, onClick, 'data-testid': dataTestId }: {
+  icon: React.ReactNode;
+  label: string;
   danger?: boolean;
   badge?: number;
   onClick?: () => void;
@@ -72,7 +72,7 @@ const MenuItem = ({ icon, label, danger, badge, onClick, 'data-testid': dataTest
     <span className="text-foreground">{icon}</span>
     <span className="text-sm text-foreground flex-1">{label}</span>
     {typeof badge === "number" && badge > 0 && (
-      <span 
+      <span
         className="min-w-[20px] h-[20px] px-1.5 rounded-full text-[11px] grid place-items-center bg-destructive text-white font-medium"
         aria-label={`${badge} unread`}
       >
@@ -155,12 +155,12 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
     return (
       <header className="sticky top-0 z-30 border-b border-border">
         <div className="bg-background">
-            <div className="px-4 h-10 flex items-center justify-between">
+          <div className="px-4 h-10 flex items-center justify-between">
             <div className="flex items-center justify-center">
-              <img 
-                src="/lovable-uploads/SerkleSecondaryLogo.svg" 
-                alt="Serkle" 
-                className="h-8 w-auto object-contain"
+              <img
+                src="/lovable-uploads/SerkleSecondaryLogo.svg"
+                alt="Serkle"
+                className="h-7 w-auto object-contain"
               />
             </div>
             <div className="flex items-center gap-1">
@@ -177,30 +177,30 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
       <div className="bg-background">
         <div className="px-4 h-10 flex items-center justify-between">
           <div className="flex items-center justify-center">
-            <img 
-              src="/lovable-uploads/SerkleSecondaryLogo.svg" 
-              alt="Serkle" 
+            <img
+              src="/lovable-uploads/SerkleSecondaryLogo.svg"
+              alt="Serkle"
               className="h-8 w-auto object-contain"
             />
           </div>
-          
+
           <div className="flex items-center gap-1">
-            <IconButton 
-              label="Notifications" 
-              badge={unreadCount} 
+            <IconButton
+              label="Notifications"
+              badge={unreadCount}
               onClick={navigateToNotifications}
               data-testid="header-notifications"
             >
               <Bell className="size-4 text-primary" />
             </IconButton>
-            <IconButton 
-              label="Search" 
+            <IconButton
+              label="Search"
               onClick={handleOpenSearch}
               data-testid="header-search"
             >
               <Search className="size-4 text-primary" />
             </IconButton>
-            
+
             <button
               type="button"
               className="ml-1 inline-flex items-center gap-2 rounded-full px-2 py-1 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
@@ -212,23 +212,23 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
               }}
               data-testid="header-user-menu"
             >
-                <span className="relative inline-block">
-                  <Avatar className="h-8 w-8 border-2 border-white shadow-sm">
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback className="text-xs font-medium bg-gradient-to-br from-primary to-secondary text-white">
-                      {user.initials}
-                    </AvatarFallback>
-                  </Avatar>
-                 {user.isOnline && (
-                   <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-white bg-success" />
-                 )}
-               </span>
+              <span className="relative inline-block">
+                <Avatar className="h-8 w-8 border-2 border-white shadow-sm">
+                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarFallback className="text-xs font-medium bg-gradient-to-br from-primary to-secondary text-white">
+                    {user.initials}
+                  </AvatarFallback>
+                </Avatar>
+                {user.isOnline && (
+                  <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-white bg-success" />
+                )}
+              </span>
               <span className="hidden sm:inline text-sm text-primary">{user.name}</span>
             </button>
           </div>
         </div>
       </div>
-      
+
       {menuOpen && (
         <>
           <button
@@ -250,12 +250,12 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
                   setMenuOpen(false);
                 }}
               >
-                 <Avatar className="h-10 w-10">
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback className="text-sm font-medium bg-gradient-to-br from-primary to-secondary text-white">
-                      {user.initials}
-                    </AvatarFallback>
-                  </Avatar>
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarFallback className="text-sm font-medium bg-gradient-to-br from-primary to-secondary text-white">
+                    {user.initials}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
                   <div className="font-semibold text-primary">{user.name}</div>
                   <div className="text-xs text-muted-foreground">@{user.username}</div>
@@ -283,25 +283,25 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
               <span className="text-xs text-primary font-medium">Top Up</span>
             </button>
             <div className="h-px bg-border" />
-            <MenuItem 
-              icon={<Search className="size-4" />} 
-              label="Search" 
+            <MenuItem
+              icon={<Search className="size-4" />}
+              label="Search"
               onClick={() => {
                 handleOpenSearch();
                 setMenuOpen(false);
-              }} 
+              }}
             />
-            <MenuItem 
-              icon={<UserIcon className="size-4" />} 
-              label="View profile" 
+            <MenuItem
+              icon={<UserIcon className="size-4" />}
+              label="View profile"
               onClick={() => {
                 handleOpenProfile();
                 setMenuOpen(false);
-              }} 
+              }}
             />
-            <MenuItem 
-              icon={<Mail className="size-4" />} 
-              label="Messages" 
+            <MenuItem
+              icon={<Mail className="size-4" />}
+              label="Messages"
               badge={totalUnreadMessages}
               onClick={() => {
                 navigateToMessages();
@@ -309,17 +309,17 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
               }}
               data-testid="menu-messages"
             />
-            <MenuItem 
-              icon={<Settings className="size-4" />} 
-              label="Settings" 
+            <MenuItem
+              icon={<Settings className="size-4" />}
+              label="Settings"
               onClick={() => {
                 handleOpenSettings();
                 setMenuOpen(false);
               }}
             />
-            <MenuItem 
-              icon={<Palette className="size-4" />} 
-              label="Appearance" 
+            <MenuItem
+              icon={<Palette className="size-4" />}
+              label="Appearance"
               onClick={() => setShowThemePicker(!showThemePicker)}
             />
             {showThemePicker && (
@@ -331,11 +331,10 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
                 ].map((opt) => (
                   <button
                     key={opt.value}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                      theme === opt.value 
-                        ? 'bg-primary text-primary-foreground' 
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${theme === opt.value
+                        ? 'bg-primary text-primary-foreground'
                         : 'hover:bg-background text-foreground'
-                    }`}
+                      }`}
                     onClick={() => {
                       setTheme(opt.value);
                       setShowThemePicker(false);
@@ -347,18 +346,18 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
                 ))}
               </div>
             )}
-            <MenuItem 
-              icon={<RotateCw className="size-4" />} 
-              label="Clear cache & refresh" 
+            <MenuItem
+              icon={<RotateCw className="size-4" />}
+              label="Clear cache & refresh"
               onClick={() => {
                 cacheManager.forceRefresh();
               }}
             />
             <div className="h-px bg-border" />
-            <MenuItem 
-              icon={<LogOut className="size-4" />} 
-              label="Log out" 
-              danger 
+            <MenuItem
+              icon={<LogOut className="size-4" />}
+              label="Log out"
+              danger
               onClick={async () => {
                 setMenuOpen(false);
                 await supabase.auth.signOut();
@@ -369,13 +368,13 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
           </div>
         </>
       )}
-      
-      <ProfileModal 
+
+      <ProfileModal
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
       />
-      
-      <SearchModal 
+
+      <SearchModal
         isOpen={showSearchModal}
         onClose={() => setShowSearchModal(false)}
       />

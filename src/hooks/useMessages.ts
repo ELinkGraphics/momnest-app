@@ -332,7 +332,11 @@ export const useRetryMessage = () => {
       }
 
       // Update status to pending
-      await chatDb.messages.update(messageId, { sync_status: 'pending' });
+      const existing = await chatDb.messages.get(messageId);
+      if (existing) {
+        existing.sync_status = 'pending';
+        await chatDb.messages.put(existing);
+      }
 
       toast({ title: 'Retrying message...', variant: 'default' });
 
@@ -408,7 +412,11 @@ export const useSendMessage = () => {
       // 3. Reliable Path: Push to Supabase Database
       if (navigator.onLine) {
         // Mark as sending
-        await chatDb.messages.update(messageId, { sync_status: 'sending' });
+        const existingSending = await chatDb.messages.get(messageId);
+        if (existingSending) {
+          existingSending.sync_status = 'sending';
+          await chatDb.messages.put(existingSending);
+        }
 
         // SANITIZATION: Replace empty strings with null for Supabase to avoid UUID error
         const supabaseData = {
@@ -423,7 +431,11 @@ export const useSendMessage = () => {
 
         if (error) {
           console.warn('Server push failed, queuing locally:', error);
-          await chatDb.messages.update(messageId, { sync_status: 'failed' }); 
+          const existingFailed = await chatDb.messages.get(messageId);
+          if (existingFailed) {
+            existingFailed.sync_status = 'failed';
+            await chatDb.messages.put(existingFailed);
+          }
           await chatDb.sync_queue.put({
             id: messageId,
             type: 'message_insert',
@@ -433,7 +445,11 @@ export const useSendMessage = () => {
           });
         } else {
           // Success, upgrade to sent
-          await chatDb.messages.update(messageId, { sync_status: 'sent' });
+          const existingSent = await chatDb.messages.get(messageId);
+          if (existingSent) {
+            existingSent.sync_status = 'sent';
+            await chatDb.messages.put(existingSent);
+          }
         }
       } else {
         // Offline: enqueue silently
@@ -487,10 +503,12 @@ export const useUpdateMessage = () => {
       syncStatus?: 'sent' | 'pending' | 'failed' 
     }) => {
       // 1. Update local DB
-      await chatDb.messages.update(messageId, { 
-        attachment_url: attachmentUrl,
-        sync_status: syncStatus
-      });
+      const existingUpdate = await chatDb.messages.get(messageId);
+      if (existingUpdate) {
+        existingUpdate.attachment_url = attachmentUrl;
+        existingUpdate.sync_status = syncStatus;
+        await chatDb.messages.put(existingUpdate);
+      }
 
       // 2. Fetch the updated message to queue it
       const msg = await chatDb.messages.get(messageId);

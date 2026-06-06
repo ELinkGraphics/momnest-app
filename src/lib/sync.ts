@@ -309,7 +309,11 @@ export async function processSyncQueue() {
  
       // Atomic local cleanup for the whole batch
       await chatDb.transaction('rw', chatDb.messages, chatDb.sync_queue, async () => {
-        await chatDb.messages.where('id').anyOf(messageIds).modify({ sync_status: 'delivered' });
+        const msgsToUpdate = await chatDb.messages.where('id').anyOf(messageIds).toArray();
+        for (const msg of msgsToUpdate) {
+          msg.sync_status = 'delivered';
+        }
+        await chatDb.messages.bulkPut(msgsToUpdate);
         await chatDb.sync_queue.bulkDelete(batchIds);
       });
  
@@ -323,7 +327,11 @@ export async function processSyncQueue() {
           const newRetryCount = (item.retry_count || 0) + 1;
           if (newRetryCount >= MAX_RETRIES) {
             // Permanent failure: mark message as failed and remove from queue
-            await chatDb.messages.update(item.payload.id, { sync_status: 'failed' });
+            const existingMsg = await chatDb.messages.get(item.payload.id);
+            if (existingMsg) {
+              existingMsg.sync_status = 'failed';
+              await chatDb.messages.put(existingMsg);
+            }
             await chatDb.sync_queue.delete(item.id);
           } else {
             // Incremental failure: update queue item
