@@ -160,7 +160,7 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
               <img
                 src="/lovable-uploads/SerkleSecondaryLogo.svg"
                 alt="Serkle"
-                className="h-7 w-auto object-contain"
+                className="h-6 w-auto object-contain"
               />
             </div>
             <div className="flex items-center gap-1">
@@ -180,7 +180,7 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
             <img
               src="/lovable-uploads/SerkleSecondaryLogo.svg"
               alt="Serkle"
-              className="h-8 w-auto object-contain"
+              className="h-6 w-auto object-contain"
             />
           </div>
 
@@ -332,8 +332,8 @@ const Header: React.FC<HeaderProps> = ({ onNotifications, onMessages, onMenuOpen
                   <button
                     key={opt.value}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${theme === opt.value
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-background text-foreground'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-background text-foreground'
                       }`}
                     onClick={() => {
                       setTheme(opt.value);

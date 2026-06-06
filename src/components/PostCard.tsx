@@ -367,7 +367,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                       src={url} 
                       type={/\.(mp4|webm|mov|ogg|m3u8)(\?|$)/i.test(url) ? 'video' : 'image'} 
                       alt={`${post.media?.alt || 'Post image'} ${index + 1}`}
-                      aspectRatio="aspect-square"
+                      aspectRatio="aspect-auto max-h-[75vh] [&_img]:object-contain [&_video]:object-contain bg-black/5"
                       showOverlay={false}
                       onPlay={() => setPlayingVideos(prev => new Set(prev).add(index))}
                       onPause={() => setPlayingVideos(prev => {
@@ -418,7 +418,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             <video
               src={post.media.url}
               poster={post.thumbnailUrl}
-              className="w-full aspect-square object-cover"
+              className="w-full h-auto max-h-[75vh] object-contain bg-black/5"
               controls
               preload="metadata"
               playsInline
@@ -439,7 +439,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             <img
               src={post.media.url}
               alt={post.media.alt || ""}
-              className="w-full aspect-square object-cover"
+              className="w-full h-auto max-h-[75vh] object-contain bg-black/5"
               loading="lazy"
             />
           )}
