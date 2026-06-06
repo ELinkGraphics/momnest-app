@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Heart, MessageCircle, Share2, MoreHorizontal, BadgeCheck, Send, Loader2, MapPin, Mic, Pencil, Trash2, Bookmark, Flag, BookmarkCheck, Image, Lock, Crown, Coins } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { ReportDialog } from '@/components/ReportDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { PersistentCommentComposer } from '@/components/PersistentCommentComposer';
@@ -88,6 +89,7 @@ const PostDetail: React.FC = () => {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [circleCreatorId, setCircleCreatorId] = useState<string | null>(null);
   const [userReaction, setUserReaction] = useState<string | undefined>(undefined);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [showLikersModal, setShowLikersModal] = useState(false);
 
   const { data: subscription } = useCircleSubscription(post?.circle_id);
@@ -398,13 +400,14 @@ const PostDetail: React.FC = () => {
     }
   };
 
-  const handleReportPost = async () => {
+  const handleReportPost = async (reason: string, details: string) => {
     if (!user || !postId) return;
     await supabase.from('abuse_reports').insert({
       reporter_user_id: user.id,
       reported_user_id: post.user_id,
       report_type: 'post',
-      description: `Reported post ID: ${postId}`,
+      reason: reason,
+      description: `Reported post ID: ${postId}. Details: ${details}`,
     });
     toast.success('Post reported');
   };
@@ -505,7 +508,7 @@ const PostDetail: React.FC = () => {
                 {!isOwnPost && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleReportPost} className="text-destructive focus:text-destructive">
+                    <DropdownMenuItem onClick={() => setIsReportDialogOpen(true)} className="text-destructive focus:text-destructive">
                       <Flag className="size-4 mr-2" /> Report
                     </DropdownMenuItem>
                   </>
@@ -895,6 +898,12 @@ const PostDetail: React.FC = () => {
         onDelete={() => commentAction && handleDeleteComment(commentAction.commentId)}
       />
       <LikersModal isOpen={showLikersModal} onClose={() => setShowLikersModal(false)} postId={postId!} />
+      <ReportDialog 
+        isOpen={isReportDialogOpen} 
+        onClose={() => setIsReportDialogOpen(false)} 
+        onSubmit={handleReportPost} 
+        itemType="post" 
+      />
     </div>
   );
 };

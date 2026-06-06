@@ -37,6 +37,7 @@ import {
 import { PDFCarousel } from './post/PDFCarousel';
 import { MediaGuardItem } from './post/MediaGuard';
 import ReactionPicker from './post/ReactionPicker';
+import { ReportDialog } from '@/components/ReportDialog';
 
 interface PostCardProps {
   post: Post;
@@ -89,6 +90,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const { toggleFollow, checkFollowStatus } = useFollowMutations();
   const queryClient = useQueryClient();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 
   useEffect(() => {
     const checkInitialFollowStatus = async () => {
@@ -162,6 +164,18 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         toast({ title: "Link copied" });
       } catch {}
     }
+  };
+
+  const handleReportPost = async (reason: string, details: string) => {
+    if (!user || !post.user.id) return;
+    await supabase.from('abuse_reports').insert({
+      reporter_user_id: user.id,
+      reported_user_id: post.user.id,
+      report_type: 'post',
+      reason: reason,
+      description: `Reported post ID: ${post.id}. Details: ${details}`,
+    });
+    toast({ title: "Post reported" });
   };
 
   const handleOpenPost = () => {
@@ -322,7 +336,11 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             <DropdownMenuItem onClick={handleShare}><Share2 className="size-4 mr-2" />Share</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShowShareToStory(true)}><BookImage className="size-4 mr-2" />Share to Story</DropdownMenuItem>
             <DropdownMenuItem onClick={handleSave}><Bookmark className="size-4 mr-2" />{saved ? 'Unsave' : 'Save'}</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast({ title: "Report submitted" })}><Flag className="size-4 mr-2" />Report</DropdownMenuItem>
+            {user?.id !== post.user.id && (
+              <DropdownMenuItem onClick={() => setIsReportDialogOpen(true)} className="text-destructive focus:text-destructive">
+                <Flag className="size-4 mr-2" />Report
+              </DropdownMenuItem>
+            )}
             {user?.id === post.user.id && (
               <>
                 <Separator className="my-1" />
@@ -351,6 +369,17 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                       alt={`${post.media?.alt || 'Post image'} ${index + 1}`}
                       aspectRatio="aspect-square"
                       showOverlay={false}
+                      onPlay={() => setPlayingVideos(prev => new Set(prev).add(index))}
+                      onPause={() => setPlayingVideos(prev => {
+                        const next = new Set(prev);
+                        next.delete(index);
+                        return next;
+                      })}
+                      onEnded={() => setPlayingVideos(prev => {
+                        const next = new Set(prev);
+                        next.delete(index);
+                        return next;
+                      })}
                     />
                     {shouldShowPaywall && (
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center" />
@@ -561,6 +590,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ReportDialog 
+        isOpen={isReportDialogOpen} 
+        onClose={() => setIsReportDialogOpen(false)} 
+        onSubmit={handleReportPost} 
+        itemType="post" 
+      />
     </article>
   );
 };

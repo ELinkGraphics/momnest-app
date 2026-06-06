@@ -14,6 +14,9 @@ interface MediaGuardItemProps {
   className?: string;
   aspectRatio?: string;
   showOverlay?: boolean;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onEnded?: () => void;
 }
 
 export const MediaGuardItem: React.FC<MediaGuardItemProps> = ({
@@ -22,7 +25,10 @@ export const MediaGuardItem: React.FC<MediaGuardItemProps> = ({
   alt = "Media content",
   className,
   aspectRatio = "aspect-[4/5]",
-  showOverlay = true
+  showOverlay = true,
+  onPlay,
+  onPause,
+  onEnded
 }) => {
   const { status, attempt, retryIn, retry } = useMediaLoader(src, type);
   const { thumbnailUrl, loading: pdfLoading } = usePdfThumbnail(type === 'pdf' ? src : null);
@@ -106,6 +112,9 @@ export const MediaGuardItem: React.FC<MediaGuardItemProps> = ({
           loop
           playsInline
           autoPlay
+          onPlay={onPlay}
+          onPause={onPause}
+          onEnded={onEnded}
         />
       )}
 

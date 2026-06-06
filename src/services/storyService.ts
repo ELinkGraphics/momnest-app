@@ -135,12 +135,13 @@ export const storyService = {
   /**
    * Report a story
    */
-  async reportStory(storyId: string, reporterId: string, reportedUserId: string | null) {
+  async reportStory(storyId: string, reporterId: string, reportedUserId: string | null, reason: string, details: string) {
     return supabase.from('abuse_reports').insert({
       reporter_user_id: reporterId,
       reported_user_id: reportedUserId,
       report_type: 'story',
-      description: `Reported story ID: ${storyId}`,
+      reason: reason,
+      description: `Reported story ID: ${storyId}. Details: ${details}`,
     });
   },
   

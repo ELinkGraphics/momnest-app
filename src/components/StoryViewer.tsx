@@ -17,6 +17,7 @@ import { StoryMediaRenderer } from './story/StoryMediaRenderer';
 import { StoryInteractiveOverlay } from './story/StoryInteractiveOverlay';
 import { StoryLinkOverlay, StoryStickers } from './story/StoryLinkOverlay';
 import { StoryBottomBar } from './story/StoryBottomBar';
+import { ReportDialog } from '@/components/ReportDialog';
 
 interface StoryViewerProps {
   stories: Story[];
@@ -53,13 +54,16 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   
   const removePauseReason = useCallback((reason: PauseReason) => {
     pauseReasons.current.delete(reason);
-    if (pauseReasons.current.size === 0) setIsPaused(false);
+    if (pauseReasons.current.size === 0) {
+      setIsPaused(false);
+    }
   }, []);
 
   const [isLiked, setIsLiked] = useState(false);
 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
   const [isResharing, setIsResharing] = useState(false);
   const [isMentionedInStory, setIsMentionedInStory] = useState(false);
   const [storyMentions, setStoryMentions] = useState<Array<{ user_id: string; username: string; name: string }>>([]);
@@ -672,12 +676,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     }
   };
 
-  const handleReportStory = async () => {
+  const handleReportStory = async (reason: string, details: string) => {
     if (!currentStoryDbId || !user?.id) return;
-    setShowStoryMenu(false);
-    removePauseReason('menu');
     try {
-      await storyService.reportStory(currentStoryDbId, user.id, currentStory.user.id || null);
+      await storyService.reportStory(currentStoryDbId, user.id, currentStory.user.id || null, reason, details);
       toast({ title: 'Story reported', description: 'Thank you for your report. We will review it.' });
       triggerHaptic('medium');
     } catch (err) {
@@ -791,7 +793,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           onResume={removePauseReason}
           onDelete={handleDeleteStory}
           onHide={handleHideStory}
-          onReport={handleReportStory}
+          onReport={() => setIsReportDialogOpen(true)}
         />
 
         <StoryStickers stickerData={currentStory?.stickerData} />
@@ -860,6 +862,13 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           storyId={currentStoryDbId}
         />
       )}
+
+      <ReportDialog 
+        isOpen={isReportDialogOpen} 
+        onClose={() => setIsReportDialogOpen(false)} 
+        onSubmit={handleReportStory} 
+        itemType="story" 
+      />
     </div>
   );
 };
