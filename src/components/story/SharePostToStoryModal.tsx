@@ -94,7 +94,9 @@ const SharePostToStoryModal: React.FC<SharePostToStoryModalProps> = ({ isOpen, o
     const cardWidth = 340;
     const padding = 16;
     const avatarSize = 44;
-    const imageHeight = post.media?.url ? 220 : 0;
+    const isVideo = post.media?.url && /\.(mp4|webm|mov|ogg|m3u8)(\?|$)/i.test(post.media.url);
+    const mediaImageUrl = isVideo ? post.thumbnailUrl : post.media?.url;
+    const imageHeight = mediaImageUrl ? 220 : 0;
     const textLineHeight = 24;
     const maxTextLines = 5;
     
@@ -228,14 +230,14 @@ const SharePostToStoryModal: React.FC<SharePostToStoryModalProps> = ({ isOpen, o
     yOffset += avatarSize + 14;
     
     // Post image if exists
-    if (post.media?.url) {
+    if (mediaImageUrl) {
       try {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         await new Promise((resolve, reject) => {
           img.onload = resolve;
           img.onerror = reject;
-          img.src = post.media!.url;
+          img.src = mediaImageUrl;
         });
         
         // Draw image with rounded corners
@@ -289,17 +291,27 @@ const SharePostToStoryModal: React.FC<SharePostToStoryModalProps> = ({ isOpen, o
     return canvas.toDataURL('image/png', 1.0);
   };
 
+  const isVideo = post.media?.url ? /\.(mp4|webm|mov|ogg|m3u8)(\?|$)/i.test(post.media.url) : false;
+
   // Generate background and post card, then show editor
   useEffect(() => {
     if (isOpen && !backgroundUrl) {
-      Promise.all([
-        generateBackgroundUrl(),
-        generatePostCardImage()
-      ]).then(([bgUrl, cardUrl]) => {
-        setBackgroundUrl(bgUrl);
-        setPostCardUrl(cardUrl);
-        setShowEditor(true);
-      });
+      if (isVideo && post.media?.url) {
+        generatePostCardImage().then((cardUrl) => {
+          setBackgroundUrl(post.media!.url);
+          setPostCardUrl(cardUrl);
+          setShowEditor(true);
+        });
+      } else {
+        Promise.all([
+          generateBackgroundUrl(),
+          generatePostCardImage()
+        ]).then(([bgUrl, cardUrl]) => {
+          setBackgroundUrl(bgUrl);
+          setPostCardUrl(cardUrl);
+          setShowEditor(true);
+        });
+      }
     }
   }, [isOpen, backgroundUrl]);
 
@@ -323,8 +335,8 @@ const SharePostToStoryModal: React.FC<SharePostToStoryModalProps> = ({ isOpen, o
     setUploadDone(false);
 
     try {
-      const isVideo = extraData?.mediaType === 'video' && extraData?.originalVideoUrl;
-      await storyService.createStory(user.id, editedBlob, isVideo, mentionedUserIds, {
+      const isVideoStory = extraData?.mediaType === 'video';
+      await storyService.createStory(user.id, editedBlob, isVideoStory, mentionedUserIds, {
         ...extraData,
         reshared_post_id: String(post.id)
       });
@@ -389,6 +401,7 @@ const SharePostToStoryModal: React.FC<SharePostToStoryModalProps> = ({ isOpen, o
   return (
     <StoryEditor
       previewUrl={backgroundUrl}
+      mediaType={isVideo ? 'video' : 'image'}
       initialPostElements={initialPostElements}
       resharedPostId={String(post.id)}
       onDone={handleEditorDone}

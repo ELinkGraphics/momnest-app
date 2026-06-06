@@ -442,9 +442,12 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
     setIsSharing(true);
     
     try {
-      // We need to return a blob for the media_url. 
-      // We can fetch the previewUrl to get the original blob.
-      const blob = await fetch(previewUrl).then(r => r.blob());
+      let blob: Blob;
+      if (previewUrl.startsWith('blob:') || previewUrl.startsWith('data:')) {
+        blob = await fetch(previewUrl).then(r => r.blob());
+      } else {
+        blob = new Blob(['empty'], { type: mediaType === 'video' ? 'video/mp4' : 'image/jpeg' });
+      }
       
       // Extract mentions
       const mentionedUserIds = state.elements
@@ -453,6 +456,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
 
       onDone(blob, mentionedUserIds, {
         mediaType: mediaType,
+        originalVideoUrl: mediaType === 'video' ? previewUrl : undefined,
         story_state: state
       });
     } catch (e) {
