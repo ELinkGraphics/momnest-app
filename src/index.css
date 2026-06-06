@@ -216,14 +216,14 @@ All colors MUST be HSL.
 
   /* Active state for primary interactive elements only */
 
-  /* Ensure focus states use primary color */
+  /* Remove global focus rings as requested */
   button:focus-visible,
   [role="button"]:focus-visible,
   input:focus-visible,
   textarea:focus-visible,
   select:focus-visible {
-    outline: 2px solid hsl(var(--primary)) !important;
-    outline-offset: 2px !important;
+    outline: none !important;
+    box-shadow: none !important;
   }
 
   /* Remove any default pink/purple colors from webkit */

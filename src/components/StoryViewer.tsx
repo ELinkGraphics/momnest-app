@@ -817,9 +817,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           isMentionedInStory={isMentionedInStory}
           onReshare={handleReshareStory}
           onSendMessage={(msg) => {
-            setMessage(msg); // Set and trigger effect or just handle it directly
-            // Actually, handleSendMessage in Viewer takes the local message state.
-            // Let's adapt it:
             if (!msg.trim() || !currentStoryDbId || !user?.id || !currentStory?.user?.id) return;
             storyService.sendMessage(currentStoryDbId, user.id, currentStory.user.id, msg).then(() => {
               removePauseReason('input');
