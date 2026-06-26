@@ -3,6 +3,7 @@ import PostCard from './PostCard';
 import { Post } from '@/data/mock';
 import { supabase } from '@/integrations/supabase/client';
 import { VideoLoader } from '@/components/ui/VideoLoader';
+import { useUser } from '@/contexts/UserContext';
 
 const PostSkeleton = () => (
   <div className="bg-card rounded-2xl overflow-hidden border border-border/50 shadow-[var(--shadow-soft)] mb-3 animate-pulse">
@@ -80,6 +81,7 @@ interface FeedViewProps {
 }
 
 export const FeedView: React.FC<FeedViewProps> = ({ onRefresh }) => {
+  const { user, isLoading: authLoading } = useUser();
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -113,7 +115,15 @@ export const FeedView: React.FC<FeedViewProps> = ({ onRefresh }) => {
     }
   }, []);
 
-  useEffect(() => { fetchPosts(0); }, [fetchPosts]);
+  // Wait for auth to settle before the first fetch so we keep showing skeletons
+  // (rather than an empty state) during initial load, and refetch once the user
+  // becomes available on a fresh sign-in.
+  useEffect(() => {
+    if (authLoading) return;
+    setLoading(true);
+    setPage(0);
+    fetchPosts(0);
+  }, [authLoading, user?.id, fetchPosts]);
 
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMore) return;
@@ -147,7 +157,7 @@ export const FeedView: React.FC<FeedViewProps> = ({ onRefresh }) => {
     <section aria-labelledby="feed-heading" className="px-0 pt-2 pb-24">
       <h2 id="feed-heading" className="sr-only">Feed</h2>
 
-      {loading ? (
+      {loading || authLoading ? (
         <>
           <PostSkeleton />
           <PostSkeleton />

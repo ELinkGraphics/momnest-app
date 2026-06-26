@@ -11,7 +11,7 @@ import { useNavigation } from '@/contexts/NavigationContext';
 import { StoryErrorBoundary } from './story/StoryErrorBoundary';
 
 const StoriesBar: React.FC = () => {
-  const { user } = useUser();
+  const { user, isLoading: authLoading } = useUser();
   const { pushModalState } = useNavigation();
   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
   const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
@@ -46,8 +46,9 @@ const StoriesBar: React.FC = () => {
 
   const getFirstName = (name: string) => name.split(' ')[0];
 
-  // Show skeleton only on initial load (no stories cached yet)
-  const showSkeleton = isLoading && stories.length === 0;
+  // Show skeleton during the whole initial load: while auth is still resolving
+  // (user not ready yet) and while stories are being fetched the first time.
+  const showSkeleton = (authLoading || isLoading) && stories.length === 0;
 
   return (
     <>
