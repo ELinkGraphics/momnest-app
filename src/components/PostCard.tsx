@@ -436,11 +436,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               })}
             />
           ) : (
-            <img
+            <MediaGuardItem
               src={post.media.url}
+              type="image"
               alt={post.media.alt || ""}
-              className="w-full h-auto max-h-[75vh] object-contain bg-black/5"
-              loading="lazy"
+              aspectRatio="aspect-auto max-h-[75vh] [&_img]:object-contain bg-black/5"
+              showOverlay={false}
             />
           )}
           {(post.totalMediaCount ?? 0) > 1 && (

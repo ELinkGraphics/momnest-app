@@ -98,6 +98,171 @@ const ASPECT_PRESETS = [
   { label: '9:16', value: 9 / 16 },
 ];
 
+const clampNum = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
+
+interface FreeCropAreaProps {
+  /** Image whose pixels the crop maps to (flips already baked in). */
+  image: string;
+  onCropPixels: (area: Area | null) => void;
+}
+
+// Resize handles: corners + edge midpoints.
+const FREE_HANDLES: { key: string; mode: string; cls: string }[] = [
+  { key: 'nw', mode: 'nw', cls: '-left-2 -top-2 cursor-nwse-resize' },
+  { key: 'n', mode: 'n', cls: 'left-1/2 -top-2 -translate-x-1/2 cursor-ns-resize' },
+  { key: 'ne', mode: 'ne', cls: '-right-2 -top-2 cursor-nesw-resize' },
+  { key: 'e', mode: 'e', cls: '-right-2 top-1/2 -translate-y-1/2 cursor-ew-resize' },
+  { key: 'se', mode: 'se', cls: '-right-2 -bottom-2 cursor-nwse-resize' },
+  { key: 's', mode: 's', cls: 'left-1/2 -bottom-2 -translate-x-1/2 cursor-ns-resize' },
+  { key: 'sw', mode: 'sw', cls: '-left-2 -bottom-2 cursor-nesw-resize' },
+  { key: 'w', mode: 'w', cls: '-left-2 top-1/2 -translate-y-1/2 cursor-ew-resize' },
+];
+
+const MIN_BOX = 36; // px
+
+/**
+ * Free-form cropper: the image is shown fit-to-view and the user drags any edge
+ * or corner (or the interior to move) to select an arbitrary rectangle. The crop
+ * is exactly the selected region — no aspect ratio is enforced.
+ */
+const FreeCropArea: React.FC<FreeCropAreaProps> = ({ image, onCropPixels }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [layout, setLayout] = useState<{
+    offsetX: number; offsetY: number; dispW: number; dispH: number; scale: number;
+  } | null>(null);
+  const [box, setBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const dragRef = useRef<{ mode: string; startX: number; startY: number; orig: { x: number; y: number; w: number; h: number } } | null>(null);
+
+  // Compute the displayed (object-contain) image rect and reset the box to full.
+  const computeLayout = useCallback(() => {
+    const c = containerRef.current;
+    const im = imgRef.current;
+    if (!c || !im || !im.naturalWidth) return;
+    const cw = c.clientWidth;
+    const ch = c.clientHeight;
+    const scale = Math.min(cw / im.naturalWidth, ch / im.naturalHeight);
+    const dispW = im.naturalWidth * scale;
+    const dispH = im.naturalHeight * scale;
+    const offsetX = (cw - dispW) / 2;
+    const offsetY = (ch - dispH) / 2;
+    setLayout({ offsetX, offsetY, dispW, dispH, scale });
+    setBox({ x: offsetX, y: offsetY, w: dispW, h: dispH });
+  }, []);
+
+  useEffect(() => { computeLayout(); }, [computeLayout, image]);
+
+  useEffect(() => {
+    const c = containerRef.current;
+    if (!c) return;
+    const ro = new ResizeObserver(computeLayout);
+    ro.observe(c);
+    return () => ro.disconnect();
+  }, [computeLayout]);
+
+  // Report the selected region in source-image pixels whenever it changes.
+  useEffect(() => {
+    if (!box || !layout) { onCropPixels(null); return; }
+    onCropPixels({
+      x: Math.max(0, Math.round((box.x - layout.offsetX) / layout.scale)),
+      y: Math.max(0, Math.round((box.y - layout.offsetY) / layout.scale)),
+      width: Math.round(box.w / layout.scale),
+      height: Math.round(box.h / layout.scale),
+    });
+  }, [box, layout, onCropPixels]);
+
+  const beginDrag = (mode: string) => (e: React.PointerEvent) => {
+    if (!box) return;
+    e.preventDefault();
+    e.stopPropagation();
+    try { (e.target as HTMLElement).setPointerCapture(e.pointerId); } catch { /* noop */ }
+    dragRef.current = { mode, startX: e.clientX, startY: e.clientY, orig: { ...box } };
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d || !layout) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    const o = d.orig;
+    const minX = layout.offsetX;
+    const minY = layout.offsetY;
+    const maxX = layout.offsetX + layout.dispW;
+    const maxY = layout.offsetY + layout.dispH;
+
+    if (d.mode === 'move') {
+      setBox({
+        x: clampNum(o.x + dx, minX, maxX - o.w),
+        y: clampNum(o.y + dy, minY, maxY - o.h),
+        w: o.w,
+        h: o.h,
+      });
+      return;
+    }
+
+    let { x, y, w, h } = o;
+    if (d.mode.includes('e')) w = clampNum(o.w + dx, MIN_BOX, maxX - o.x);
+    if (d.mode.includes('s')) h = clampNum(o.h + dy, MIN_BOX, maxY - o.y);
+    if (d.mode.includes('w')) {
+      const right = o.x + o.w;
+      x = clampNum(o.x + dx, minX, right - MIN_BOX);
+      w = right - x;
+    }
+    if (d.mode.includes('n')) {
+      const bottom = o.y + o.h;
+      y = clampNum(o.y + dy, minY, bottom - MIN_BOX);
+      h = bottom - y;
+    }
+    setBox({ x, y, w, h });
+  };
+
+  const endDrag = () => { dragRef.current = null; };
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute inset-0 overflow-hidden touch-none"
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+    >
+      <img
+        ref={imgRef}
+        src={image}
+        alt=""
+        draggable={false}
+        onLoad={computeLayout}
+        className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+      />
+
+      {box && layout && (
+        <div
+          className="absolute border-2 border-white touch-none"
+          style={{ left: box.x, top: box.y, width: box.w, height: box.h, boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)', cursor: 'move' }}
+          onPointerDown={beginDrag('move')}
+        >
+          {/* Rule-of-thirds grid */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-1/3 inset-x-0 h-px bg-white/30" />
+            <div className="absolute top-2/3 inset-x-0 h-px bg-white/30" />
+            <div className="absolute left-1/3 inset-y-0 w-px bg-white/30" />
+            <div className="absolute left-2/3 inset-y-0 w-px bg-white/30" />
+          </div>
+
+          {/* Handles */}
+          {FREE_HANDLES.map((hdl) => (
+            <div
+              key={hdl.key}
+              onPointerDown={beginDrag(hdl.mode)}
+              className={`absolute w-4 h-4 bg-white rounded-sm shadow border border-black/20 touch-none ${hdl.cls}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ImageCropper: React.FC<ImageCropperProps> = ({
   imageSrc,
   aspectRatio: initialAspect = 1,
@@ -116,6 +281,9 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
   const [aspect, setAspect] = useState<number | undefined>(initialAspect);
   const [activeControl, setActiveControl] = useState<'zoom' | 'rotate'>('zoom');
   const [flippedSrc, setFlippedSrc] = useState<string>(imageSrc);
+  const [freeResetKey, setFreeResetKey] = useState(0);
+
+  const isFree = aspect === undefined;
 
   // Re-generate flipped image whenever flip state changes
   useEffect(() => {
@@ -137,7 +305,10 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
     if (!croppedAreaPixels) return;
     setIsSaving(true);
     try {
-      const croppedBlob = await createCroppedImage(flippedSrc, croppedAreaPixels, rotation, false, false);
+      // Free mode crops the displayed (un-rotated) image directly, so don't
+      // re-apply rotation when baking the output.
+      const effectiveRotation = isFree ? 0 : rotation;
+      const croppedBlob = await createCroppedImage(flippedSrc, croppedAreaPixels, effectiveRotation, false, false);
       onCropComplete(croppedBlob);
     } catch (error) {
       console.error('Error cropping image:', error);
@@ -153,6 +324,7 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
     setFlipH(false);
     setFlipV(false);
     setAspect(initialAspect);
+    setFreeResetKey((k) => k + 1); // reset the free-crop box to the full image
   };
 
   const getDimensionHint = () => {
@@ -201,26 +373,34 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
 
       {/* Cropper Area */}
       <div className="flex-1 relative min-h-0">
-        <Cropper
-          image={flippedSrc}
-          crop={crop}
-          zoom={zoom}
-          rotation={rotation}
-          aspect={aspect}
-          cropShape={cropShape}
-          onCropChange={onCropChange}
-          onZoomChange={onZoomChange}
-          onCropComplete={handleCropDone}
-          showGrid={true}
-          minZoom={0.5}
-          maxZoom={5}
-          style={{
-            containerStyle: { background: 'rgba(0,0,0,0.95)' },
-          }}
-          classes={{
-            containerClassName: 'rounded-none',
-          }}
-        />
+        {isFree && cropShape === 'rect' ? (
+          <FreeCropArea
+            key={`free-${freeResetKey}`}
+            image={flippedSrc}
+            onCropPixels={setCroppedAreaPixels}
+          />
+        ) : (
+          <Cropper
+            image={flippedSrc}
+            crop={crop}
+            zoom={zoom}
+            rotation={rotation}
+            aspect={aspect}
+            cropShape={cropShape}
+            onCropChange={onCropChange}
+            onZoomChange={onZoomChange}
+            onCropComplete={handleCropDone}
+            showGrid={true}
+            minZoom={0.5}
+            maxZoom={5}
+            style={{
+              containerStyle: { background: 'rgba(0,0,0,0.95)' },
+            }}
+            classes={{
+              containerClassName: 'rounded-none',
+            }}
+          />
+        )}
       </div>
 
       {/* Bottom Controls */}
@@ -248,6 +428,16 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
           </div>
         )}
 
+        {/* Free-mode hint */}
+        {isFree && cropShape === 'rect' && (
+          <p className="text-center text-white/50 text-[11px] font-medium px-4 pt-1 pb-3">
+            Drag the corners or edges to crop freely
+          </p>
+        )}
+
+        {/* Zoom / Rotate controls (not applicable in Free mode) */}
+        {!(isFree && cropShape === 'rect') && (
+        <>
         {/* Tab Switcher */}
         <div className="flex items-center justify-center gap-1 px-4 pt-1 pb-2">
           <button
@@ -332,6 +522,8 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
             </div>
           )}
         </div>
+        </>
+        )}
 
         {/* Quick Actions */}
         <div className="flex items-center justify-center gap-3 px-4 pt-1 pb-4">
@@ -355,14 +547,16 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
             <FlipVertical className="h-4 w-4" />
             <span className="text-[10px] font-medium">Flip V</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setRotation(r => (r + 90) % 360)}
-            className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-white/50 hover:text-white/70 active:bg-card/10 transition-all"
-          >
-            <RotateCw className="h-4 w-4" />
-            <span className="text-[10px] font-medium">90°</span>
-          </button>
+          {!(isFree && cropShape === 'rect') && (
+            <button
+              type="button"
+              onClick={() => setRotation(r => (r + 90) % 360)}
+              className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-white/50 hover:text-white/70 active:bg-card/10 transition-all"
+            >
+              <RotateCw className="h-4 w-4" />
+              <span className="text-[10px] font-medium">90°</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={handleReset}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Story } from '@/types/storyTypes';
 import { StoryCanvas } from './StoryCanvas';
+import '@/components/post/MediaGuard.css';
 
 interface StoryMediaRendererProps {
   story: Story;
@@ -24,6 +25,7 @@ export const StoryMediaRenderer: React.FC<StoryMediaRendererProps> = ({
 }) => {
   const isVideo = story.mediaType === 'video';
   const [hasError, setHasError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   if (hasError) {
     return (
@@ -145,13 +147,22 @@ export const StoryMediaRenderer: React.FC<StoryMediaRendererProps> = ({
             )}
           </>
         ) : (
-          <img
-            src={story.image}
-            alt={`${story.user?.name || 'User'}'s story`}
-            className="w-full h-full object-contain"
-            draggable={false}
-            onError={() => setHasError(true)}
-          />
+          <>
+            {/* Skeleton shimmer until the image is fully loaded — no partial reveal */}
+            {!imgLoaded && (
+              <div className="absolute inset-0 z-[1] flex items-center justify-center">
+                <div className="media-shimmer absolute inset-0" />
+              </div>
+            )}
+            <img
+              src={story.image}
+              alt={`${story.user?.name || 'User'}'s story`}
+              className={`w-full h-full object-contain transition-opacity duration-300 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+              draggable={false}
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setHasError(true)}
+            />
+          </>
         )}
       </div>
     </>
