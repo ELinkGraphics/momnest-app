@@ -52,6 +52,27 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
     gestureStartCenter: { x: number; y: number } | null;
   } | null>(null);
 
+  // Mirrors of state/flags so pointer handlers read fresh values without re-binding
+  const selectedIdRef = useRef<string | null>(null);
+  const isOverTrashRef = useRef(false);
+  const gestureMovedRef = useRef(false);      // did the active gesture move past the tap threshold?
+  const usedSecondFingerRef = useRef(false);  // did a 2nd finger join this gesture?
+  const downHitOverlayRef = useRef<string | null>(null); // overlay id the first finger landed on (null = empty)
+  useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
+  useEffect(() => { isOverTrashRef.current = isOverTrash; }, [isOverTrash]);
+
+  // Build the pseudo-element used to drive background gestures
+  const backgroundElement = useCallback((): StoryElement => ({
+    id: 'background',
+    type: stateRef.current.background.type as any,
+    content: '',
+    x: stateRef.current.background.x ?? 50,
+    y: stateRef.current.background.y ?? 50,
+    scale: stateRef.current.background.scale ?? 1,
+    rotation: stateRef.current.background.rotation ?? 0,
+    zIndex: -1,
+  }), []);
+
   // File manager for image stickers
   const imageStickerManager = useFileManager();
 
@@ -133,106 +154,86 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
     };
   }, []);
 
-  // Hit test: find which element is under a given screen coordinate
+  // Hit test against the ACTUAL rendered bounds of each overlay element.
+  // Returns the top-most overlay under the point, or null when the point is on
+  // empty canvas / background.
   const hitTestElement = useCallback((clientX: number, clientY: number): StoryElement | null => {
-    if (!canvasRef.current) return null;
-    const rect = canvasRef.current.getBoundingClientRect();
-    
-    // Convert to percentage coordinates within the canvas
-    const pctX = ((clientX - rect.left) / rect.width) * 100;
-    const pctY = ((clientY - rect.top) / rect.height) * 100;
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
 
-    // Check elements in reverse z-order (top-most first)
+    // Top-most z-index first so stacked overlays resolve correctly.
     const sorted = [...stateRef.current.elements].sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0));
-    
-    for (const el of sorted) {
-      // Calculate a reasonable hit radius based on element type and scale
-      let hitW = 8; // percent of canvas width
-      let hitH = 5; // percent of canvas height
-      
-      if (el.type === 'text') {
-        hitW = 15;
-        hitH = 5;
-      } else if (el.type === 'emoji') {
-        hitW = 8;
-        hitH = 5;
-      } else if (el.type === 'info') {
-        hitW = 18;
-        hitH = 4;
-      } else if (el.type === 'image') {
-        hitW = 15;
-        hitH = 10;
-      }
-      
-      // Scale the hit area with the element's scale
-      hitW *= el.scale;
-      hitH *= el.scale;
+    const pad = 10; // px of slack to make small stickers easier to grab
 
-      // Simple AABB check (ignores rotation, but good enough for touch)
+    for (const el of sorted) {
+      const node = canvas.querySelector(`[data-el-id="${el.id}"]`) as HTMLElement | null;
+      if (!node) continue;
+      const r = node.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) continue;
       if (
-        pctX >= el.x - hitW && pctX <= el.x + hitW &&
-        pctY >= el.y - hitH && pctY <= el.y + hitH
+        clientX >= r.left - pad && clientX <= r.right + pad &&
+        clientY >= r.top - pad && clientY <= r.bottom + pad
       ) {
         return el;
       }
     }
-    
-    // If no element hit, return the background!
-    return {
-      id: 'background',
-      type: stateRef.current.background.type as any,
-      x: stateRef.current.background.x ?? 50,
-      y: stateRef.current.background.y ?? 50,
-      scale: stateRef.current.background.scale ?? 1,
-      rotation: stateRef.current.background.rotation ?? 0,
-      zIndex: -1
-    };
+
+    // No overlay hit → background.
+    return null;
   }, []);
 
   // ─── Pointer handlers (all at canvas level for reliable multi-touch) ───
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (isPreviewMode || activeTool) return;
-    
-    // Don't interfere with UI buttons
+
+    // Don't interfere with UI buttons / toolbars
     if ((e.target as HTMLElement).closest('[data-editor-controls]')) return;
-    
+
     e.preventDefault();
-    
+    // Capture so the whole gesture (incl. dragging over the bottom toolbar to the
+    // trash zone) keeps delivering pointer events to the canvas.
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* noop */ }
+
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (pointersRef.current.size === 1) {
-      // First finger: hit-test and start drag
-      const hitEl = hitTestElement(e.clientX, e.clientY);
+      gestureMovedRef.current = false;
+      usedSecondFingerRef.current = false;
+
+      const hitEl = hitTestElement(e.clientX, e.clientY); // overlay | null
+      downHitOverlayRef.current = hitEl ? hitEl.id : null;
+
       if (hitEl) {
+        // Touched an overlay → select it and manipulate it.
         setSelectedId(hitEl.id);
+        selectedIdRef.current = hitEl.id;
         setIsDragging(true);
         updateGestureBaseline(hitEl);
       } else {
-        setSelectedId(null);
-        setIsDragging(false);
-        gestureStateRef.current = null;
+        // Touched empty space → a single finger drives the background (pan).
+        // Selection is kept for now; a plain tap here de-selects on pointer up,
+        // and a 2nd finger (pinch) re-targets the selected overlay below.
+        updateGestureBaseline(backgroundElement());
       }
-    } else if (pointersRef.current.size >= 2 && gestureStateRef.current) {
-      // Second finger added while dragging: transition to pinch/rotate
-      const id = gestureStateRef.current.id;
-      let el;
-      if (id === 'background') {
-        el = { 
-          id: 'background', 
-          x: stateRef.current.background.x ?? 50, 
-          y: stateRef.current.background.y ?? 50, 
-          scale: stateRef.current.background.scale ?? 1, 
-          rotation: stateRef.current.background.rotation ?? 0,
-          type: 'image' as any,
-          zIndex: -1
-        };
+    } else if (pointersRef.current.size >= 2) {
+      // Second finger joins → this is a pinch/rotate.
+      usedSecondFingerRef.current = true;
+
+      // The subject is the current selection: selected overlay, else background.
+      const selId = selectedIdRef.current;
+      const target = selId
+        ? stateRef.current.elements.find(el => el.id === selId) ?? null
+        : null;
+
+      if (target) {
+        setIsDragging(true);
+        updateGestureBaseline(target);
       } else {
-        el = stateRef.current.elements.find(e => e.id === id);
+        updateGestureBaseline(backgroundElement());
       }
-      if (el) updateGestureBaseline(el);
     }
-  }, [isPreviewMode, activeTool, hitTestElement, updateGestureBaseline]);
+  }, [isPreviewMode, activeTool, hitTestElement, updateGestureBaseline, backgroundElement]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (isPreviewMode || !gestureStateRef.current) return;
@@ -243,7 +244,13 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
     
     const pts = Array.from(pointersRef.current.values());
     const g = gestureStateRef.current;
-    
+
+    // Mark the gesture as a real move (vs. a tap) once it travels past a threshold.
+    if (g.gestureStartCenter) {
+      const moved = Math.hypot(pts[0].x - g.gestureStartCenter.x, pts[0].y - g.gestureStartCenter.y);
+      if (moved > 6) gestureMovedRef.current = true;
+    }
+
     if (!canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
 
@@ -305,62 +312,71 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
       }
     });
     
-    // Check if over trash zone (bottom 100px of screen)
+    // Trash only applies to overlay elements (the background can't be deleted).
+    const overlayTarget = g.id !== 'background';
     const maxY = Math.max(...pts.map(p => p.y));
-    setIsOverTrash(maxY > window.innerHeight - 100);
+    const over = overlayTarget && maxY > window.innerHeight - 100;
+    isOverTrashRef.current = over;
+    setIsOverTrash(over);
   }, [isPreviewMode]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!pointersRef.current.has(e.pointerId)) return;
-    
+
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
     pointersRef.current.delete(e.pointerId);
-    
-    if (isOverTrash && gestureStateRef.current) {
-      // Delete the element
-      const id = gestureStateRef.current.id;
-      if (id !== 'background') {
-        setState(prev => ({
-          ...prev,
-          elements: prev.elements.filter(el => el.id !== id)
-        }));
-      }
+
+    const g = gestureStateRef.current;
+
+    // Dropped an overlay onto the trash zone → delete it.
+    if (isOverTrashRef.current && g && g.id !== 'background') {
+      const id = g.id;
+      setState(prev => ({ ...prev, elements: prev.elements.filter(el => el.id !== id) }));
       setSelectedId(null);
+      selectedIdRef.current = null;
       gestureStateRef.current = null;
       pointersRef.current.clear();
       setIsDragging(false);
       setIsOverTrash(false);
-    } else if (pointersRef.current.size > 0 && gestureStateRef.current) {
-      // A finger was lifted but others remain: re-baseline for smooth transition
-      const id = gestureStateRef.current.id;
-      let el;
-      if (id === 'background') {
-         el = { 
-          id: 'background', 
-          x: stateRef.current.background.x ?? 50, 
-          y: stateRef.current.background.y ?? 50, 
-          scale: stateRef.current.background.scale ?? 1, 
-          rotation: stateRef.current.background.rotation ?? 0,
-          type: 'image' as any,
-          zIndex: -1
-        };
-      } else {
-        el = stateRef.current.elements.find(e => e.id === id);
-      }
-      if (el) updateGestureBaseline(el);
-    } else {
-      // All fingers lifted
-      gestureStateRef.current = null;
-      setIsDragging(false);
-      setIsOverTrash(false);
+      isOverTrashRef.current = false;
+      return;
     }
-  }, [isOverTrash, updateGestureBaseline]);
+
+    if (pointersRef.current.size > 0 && g) {
+      // A finger lifted but others remain → re-baseline for a smooth transition.
+      const el = g.id === 'background'
+        ? backgroundElement()
+        : stateRef.current.elements.find(el => el.id === g.id);
+      if (el) updateGestureBaseline(el);
+      return;
+    }
+
+    // All fingers lifted.
+    if (!gestureMovedRef.current && !usedSecondFingerRef.current) {
+      // It was a tap: on an overlay → keep it selected; on empty → de-select.
+      if (downHitOverlayRef.current) {
+        setSelectedId(downHitOverlayRef.current);
+        selectedIdRef.current = downHitOverlayRef.current;
+      } else {
+        setSelectedId(null);
+        selectedIdRef.current = null;
+      }
+    }
+
+    gestureStateRef.current = null;
+    setIsDragging(false);
+    setIsOverTrash(false);
+    isOverTrashRef.current = false;
+  }, [updateGestureBaseline, backgroundElement]);
 
   const handlePointerCancel = useCallback((e: React.PointerEvent) => {
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
     pointersRef.current.delete(e.pointerId);
     if (pointersRef.current.size === 0) {
       gestureStateRef.current = null;
       setIsDragging(false);
       setIsOverTrash(false);
+      isOverTrashRef.current = false;
     }
   }, []);
 
@@ -400,6 +416,8 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
       bgColor: overlay.bgColor
     };
     setState(prev => ({ ...prev, elements: [...prev.elements, newElement] }));
+    setSelectedId(newElement.id);
+    selectedIdRef.current = newElement.id;
     setActiveTool(null);
   };
 
@@ -413,6 +431,8 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
       x: 50, y: 50, scale: 1, rotation: 0, zIndex: Date.now()
     };
     setState(prev => ({ ...prev, elements: [...prev.elements, newElement] }));
+    setSelectedId(newElement.id);
+    selectedIdRef.current = newElement.id;
     setActiveTool(null);
   };
 
@@ -426,6 +446,8 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
       x: 50, y: 50, scale: 1, rotation: 0, zIndex: Date.now()
     };
     setState(prev => ({ ...prev, elements: [...prev.elements, newElement] }));
+    setSelectedId(newElement.id);
+    selectedIdRef.current = newElement.id;
   };
 
   // Watch for new image stickers
@@ -538,6 +560,8 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
             manager={imageStickerManager}
             accept="image/*"
             hidePreviewList
+            expandInline
+            expandDirection="left"
           >
             <div className="p-3 text-white hover:bg-white/20 rounded-full cursor-pointer">
               <ImageIcon className="w-6 h-6" />

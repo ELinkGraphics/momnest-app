@@ -172,8 +172,9 @@ export function StoryCanvas({ state, className = '', children, videoRef, onVideo
 
     if (el.type === 'text') {
       return (
-        <div 
-          key={el.id} 
+        <div
+          key={el.id}
+          data-el-id={el.id}
           style={{
             ...baseStyle,
             fontSize: `${el.fontSize || 40}px`,
@@ -197,7 +198,7 @@ export function StoryCanvas({ state, className = '', children, videoRef, onVideo
 
     if (el.type === 'emoji') {
       return (
-        <div key={el.id} style={{ ...baseStyle, fontSize: '100px' }}>
+        <div key={el.id} data-el-id={el.id} style={{ ...baseStyle, fontSize: '100px' }}>
           {el.content}
         </div>
       );
@@ -205,8 +206,9 @@ export function StoryCanvas({ state, className = '', children, videoRef, onVideo
 
     if (el.type === 'info') {
       return (
-        <div 
-          key={el.id} 
+        <div
+          key={el.id}
+          data-el-id={el.id}
           style={baseStyle}
           className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-full text-white font-medium text-3xl border border-white/20 flex items-center gap-3"
         >
@@ -221,11 +223,12 @@ export function StoryCanvas({ state, className = '', children, videoRef, onVideo
 
     if (el.type === 'image') {
       return (
-        <img 
-          key={el.id} 
-          src={el.content} 
-          alt="" 
-          style={{ ...baseStyle, filter: el.filterCss || 'none' }} 
+        <img
+          key={el.id}
+          data-el-id={el.id}
+          src={el.content}
+          alt=""
+          style={{ ...baseStyle, filter: el.filterCss || 'none' }}
           draggable={false}
         />
       );
@@ -233,10 +236,11 @@ export function StoryCanvas({ state, className = '', children, videoRef, onVideo
 
     if (el.type === 'video') {
       return (
-        <video 
-          key={el.id} 
-          src={el.content} 
-          style={{ ...baseStyle, filter: el.filterCss || 'none' }} 
+        <video
+          key={el.id}
+          data-el-id={el.id}
+          src={el.content}
+          style={{ ...baseStyle, filter: el.filterCss || 'none' }}
           autoPlay loop muted playsInline
         />
       );

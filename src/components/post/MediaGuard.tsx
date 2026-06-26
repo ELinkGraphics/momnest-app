@@ -30,46 +30,10 @@ export const MediaGuardItem: React.FC<MediaGuardItemProps> = ({
   onPause,
   onEnded
 }) => {
-  const { status, attempt, retryIn, retry } = useMediaLoader(src, type);
+  const { status, displaySrc, onLoad, onError, retry } = useMediaLoader(src, type);
   const { thumbnailUrl, loading: pdfLoading } = usePdfThumbnail(type === 'pdf' ? src : null);
 
-  // Render Skeleton (Loading or Retrying or PDF Thumbnail Generation)
-  if (status === 'loading' || status === 'retrying' || (type === 'pdf' && status === 'ok' && !thumbnailUrl)) {
-    return (
-      <div className={cn("media-guard-container rounded-xl flex flex-col items-center justify-center relative", aspectRatio, className)}>
-        <div className="media-shimmer absolute inset-0 rounded-xl" />
-        
-        <div className="relative z-10 flex flex-col items-center gap-3">
-          {type === 'pdf' ? (
-            <FileText className="w-8 h-8 text-white/20" />
-          ) : type === 'video' ? (
-            <PlayCircle className="w-8 h-8 text-white/20" />
-          ) : null}
-          
-          {(status === 'retrying') && (
-            <div className="flex flex-col items-center gap-1.5 p-4 text-center">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                Connection unstable
-              </span>
-              <span className="text-xs font-medium text-white/60">
-                Attempt {attempt}/3 • Retry in {retryIn}s
-              </span>
-            </div>
-          )}
-
-          {type === 'pdf' && status === 'ok' && !thumbnailUrl && (
-            <div className="flex flex-col items-center gap-1.5 p-4 text-center">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 animate-pulse">
-                Generating Preview
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Render Broken State
+  // Render Broken State — only reached after the element itself has failed every retry.
   if (status === 'broken' || !src) {
     return (
       <div className={cn("media-guard-container rounded-xl flex flex-col items-center justify-center bg-black/5 dark:bg-white/5", aspectRatio, className)}>
@@ -91,23 +55,40 @@ export const MediaGuardItem: React.FC<MediaGuardItemProps> = ({
     );
   }
 
-  // Final display source for images/PDFs
-  const displaySrc = type === 'pdf' ? (thumbnailUrl || src) : src;
+  // PDFs render a pre-generated thumbnail image; wait for it before mounting the <img>.
+  const isPdfAwaitingThumbnail = type === 'pdf' && !thumbnailUrl;
+  const finalSrc = type === 'pdf' ? thumbnailUrl ?? undefined : displaySrc;
 
-  // Render OK Media
+  // The element is always mounted (so it can drive onLoad/onError); the skeleton
+  // is overlaid until the browser reports the media as ready.
+  const isPending = status === 'loading' || status === 'retrying' || isPdfAwaitingThumbnail;
+
+  // Render Media
   return (
-    <div className={cn("media-guard-container rounded-xl media-fade-in group", aspectRatio, className)}>
+    <div className={cn("media-guard-container rounded-xl media-fade-in group relative", aspectRatio, className)}>
       {type === 'image' || type === 'pdf' ? (
-        <img
-          src={displaySrc}
-          alt={alt}
-          className="w-full h-full object-cover rounded-xl"
-          loading="lazy"
-        />
+        finalSrc && (
+          <img
+            src={finalSrc}
+            alt={alt}
+            onLoad={onLoad}
+            onError={onError}
+            className={cn(
+              "w-full h-full object-cover rounded-xl transition-opacity duration-300",
+              isPending && "opacity-0"
+            )}
+            loading="lazy"
+          />
+        )
       ) : (
         <video
-          src={src}
-          className="w-full h-full object-cover rounded-xl"
+          src={finalSrc}
+          onLoadedData={onLoad}
+          onError={onError}
+          className={cn(
+            "w-full h-full object-cover rounded-xl transition-opacity duration-300",
+            isPending && "opacity-0"
+          )}
           muted
           loop
           playsInline
@@ -116,6 +97,25 @@ export const MediaGuardItem: React.FC<MediaGuardItemProps> = ({
           onPause={onPause}
           onEnded={onEnded}
         />
+      )}
+
+      {/* Loading skeleton — overlaid, not a replacement, so the element keeps loading underneath. */}
+      {isPending && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl">
+          <div className="media-shimmer absolute inset-0 rounded-xl" />
+          <div className="relative z-10 flex flex-col items-center gap-3">
+            {type === 'pdf' ? (
+              <FileText className="w-8 h-8 text-white/20" />
+            ) : type === 'video' ? (
+              <PlayCircle className="w-8 h-8 text-white/20" />
+            ) : null}
+            {isPdfAwaitingThumbnail && (
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 animate-pulse">
+                Generating Preview
+              </span>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Media Indicator Overlay */}

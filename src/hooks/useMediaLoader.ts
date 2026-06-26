@@ -31,9 +31,21 @@ export type MediaType = 'image' | 'video' | 'pdf';
 interface UseMediaLoaderOptions {
   maxRetries?: number;
   baseDelay?: number;
-  timeout?: number;
 }
 
+/**
+ * Element-driven media loader.
+ *
+ * The browser's own <img>/<video> element is the source of truth: it loads the
+ * media (respecting native lazy-loading and the per-host connection pool) and we
+ * only react to its real onLoad / onError events. There is NO speculative
+ * pre-fetch and NO artificial timeout, so a feed of N images no longer stampedes
+ * the connection pool and falsely marks queued requests as "broken".
+ *
+ * On a genuine error we retry quietly with exponential backoff by re-pointing the
+ * element at a cache-busted URL, and only surface a "broken" state once the
+ * element has actually failed `maxRetries` times.
+ */
 export const useMediaLoader = (
   src: string | null | undefined,
   type: MediaType,
@@ -41,157 +53,107 @@ export const useMediaLoader = (
 ) => {
   const {
     maxRetries = 3,
-    baseDelay = 2000,
-    timeout = 5000
+    baseDelay = 1500
   } = options;
 
-  const [status, setStatus] = useState<MediaStatus>('loading');
+  const [status, setStatus] = useState<MediaStatus>(src ? 'loading' : 'broken');
   const [attempt, setAttempt] = useState(1);
-  const [retryIn, setRetryIn] = useState(0);
-  
-  const timerRef = useRef<NodeJS.Timeout>();
-  const countdownRef = useRef<NodeJS.Timeout>();
+  // Bumped on each retry to force the element to re-fetch a fresh (cache-busted) URL.
+  const [retryToken, setRetryToken] = useState(0);
 
-  const clearTimers = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (countdownRef.current) clearInterval(countdownRef.current);
-  };
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  // Guards against double-counting stats (e.g. React StrictMode double-invoke).
+  const settledRef = useRef(false);
 
-  const validateMedia = useCallback(async (currentUrl: string, currentAttempt: number) => {
-    if (!currentUrl) {
-      setStatus('broken');
-      return;
-    }
-
-    const triggerRetry = () => {
-      if (currentAttempt < maxRetries) {
-        const nextDelay = baseDelay * Math.pow(2, currentAttempt - 1);
-        console.warn(`%c[MediaGuard] Retrying ${type} %c(Attempt ${currentAttempt}/${maxRetries} in ${nextDelay/1000}s): %c${currentUrl}`, 
-          "color: #fbbf24; font-weight: bold", "color: #94a3b8", "color: #64748b; font-style: italic");
-        
-        if (currentAttempt === 1) updateSession({ retrying: sessionStats.retrying + 1 });
-        
-        setStatus('retrying');
-        setRetryIn(Math.ceil(nextDelay / 1000));
-        
-        // Start countdown for UI
-        let remaining = Math.ceil(nextDelay / 1000);
-        countdownRef.current = setInterval(() => {
-          remaining -= 1;
-          setRetryIn(remaining);
-          if (remaining <= 0 && countdownRef.current) {
-            clearInterval(countdownRef.current);
-          }
-        }, 1000);
-
-        timerRef.current = setTimeout(() => {
-          setAttempt(prev => prev + 1);
-        }, nextDelay);
-      } else {
-        console.error(`%c[MediaGuard] BROKEN ${type} %c(Failed after ${maxRetries} attempts): %c${currentUrl}`, 
-          "color: #ef4444; font-weight: bold", "color: #94a3b8", "color: #64748b; text-decoration: underline");
-        updateSession({ 
-          retrying: Math.max(0, sessionStats.retrying - 1),
-          broken: sessionStats.broken + 1 
-        });
-        setStatus('broken');
-      }
-    };
-
-    try {
-      if (type === 'image') {
-        await new Promise((resolve, reject) => {
-          const img = new Image();
-          const timeoutId = setTimeout(() => {
-            img.src = '';
-            reject(new Error('Timeout'));
-          }, timeout);
-
-          img.onload = () => {
-            clearTimeout(timeoutId);
-            resolve(true);
-          };
-          img.onerror = () => {
-            clearTimeout(timeoutId);
-            reject(new Error('Load failed'));
-          };
-          img.src = currentUrl;
-        });
-        console.info(`%c[MediaGuard] OK ${type} %c(Loaded on attempt ${currentAttempt}): %c${currentUrl}`, 
-          "color: #10b981; font-weight: bold", "color: #94a3b8", "color: #64748b; opacity: 0.6");
-        updateSession({ 
-          ok: sessionStats.ok + 1,
-          retrying: currentAttempt > 1 ? Math.max(0, sessionStats.retrying - 1) : sessionStats.retrying
-        });
-        setStatus('ok');
-      } else if (type === 'pdf') {
-        // Skip cross-origin HEAD fetch to avoid ERR_BLOCKED_BY_ORB.
-        // The actual rendering (via pdfjs or <img>) will surface any real errors.
-        console.info(`%c[MediaGuard] OK ${type} %c(Skipped HEAD validation): %c${currentUrl}`, 
-          "color: #10b981; font-weight: bold", "color: #94a3b8", "color: #64748b; opacity: 0.6");
-        updateSession({ 
-          ok: sessionStats.ok + 1,
-          retrying: currentAttempt > 1 ? Math.max(0, sessionStats.retrying - 1) : sessionStats.retrying
-        });
-        setStatus('ok');
-      } else if (type === 'video') {
-        await new Promise((resolve, reject) => {
-          const video = document.createElement('video');
-          const timeoutId = setTimeout(() => {
-            video.src = '';
-            reject(new Error('Timeout'));
-          }, timeout * 2);
-
-          video.onloadeddata = () => {
-            clearTimeout(timeoutId);
-            resolve(true);
-          };
-          video.onerror = () => {
-            clearTimeout(timeoutId);
-            reject(new Error('Video load failed'));
-          };
-          video.src = currentUrl;
-          video.load();
-        });
-        console.info(`%c[MediaGuard] OK ${type} %c(Playback ready on attempt ${currentAttempt}): %c${currentUrl}`, 
-          "color: #10b981; font-weight: bold", "color: #94a3b8", "color: #64748b; opacity: 0.6");
-        updateSession({ 
-          ok: sessionStats.ok + 1,
-          retrying: currentAttempt > 1 ? Math.max(0, sessionStats.retrying - 1) : sessionStats.retrying
-        });
-        setStatus('ok');
-      }
-    } catch (err) {
-      triggerRetry();
-    }
-  }, [type, maxRetries, baseDelay, timeout]);
-
+  // Reset whenever the source changes.
   useEffect(() => {
-    if (!src) return;
-    
-    if (attempt === 1) {
-      console.log(`%c[MediaGuard] Loading started for ${type}: %c${src}`, 
+    if (timerRef.current) clearTimeout(timerRef.current);
+    settledRef.current = false;
+    setAttempt(1);
+    setRetryToken(0);
+    setStatus(src ? 'loading' : 'broken');
+
+    if (src) {
+      console.log(`%c[MediaGuard] Loading started for ${type}: %c${src}`,
         "color: #3b82f6; font-weight: bold", "color: #64748b; font-style: italic");
       updateSession({ total: sessionStats.total + 1 });
     }
-    
-    setStatus(attempt === 1 ? 'loading' : 'retrying');
-    validateMedia(src, attempt);
 
-    return () => clearTimers();
-  }, [src, attempt, validateMedia]);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [src, type]);
+
+  const handleLoad = useCallback(() => {
+    if (settledRef.current) return;
+    settledRef.current = true;
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    console.info(`%c[MediaGuard] OK ${type} %c(Loaded): %c${src}`,
+      "color: #10b981; font-weight: bold", "color: #94a3b8", "color: #64748b; opacity: 0.6");
+    updateSession({
+      ok: sessionStats.ok + 1,
+      retrying: status === 'retrying' ? Math.max(0, sessionStats.retrying - 1) : sessionStats.retrying
+    });
+    setStatus('ok');
+  }, [type, src, status]);
+
+  const handleError = useCallback(() => {
+    if (settledRef.current) return;
+
+    setAttempt(prev => {
+      if (prev < maxRetries) {
+        const nextDelay = baseDelay * Math.pow(2, prev - 1);
+        console.warn(`%c[MediaGuard] Retrying ${type} %c(Attempt ${prev}/${maxRetries} in ${nextDelay / 1000}s): %c${src}`,
+          "color: #fbbf24; font-weight: bold", "color: #94a3b8", "color: #64748b; font-style: italic");
+
+        if (prev === 1) updateSession({ retrying: sessionStats.retrying + 1 });
+        setStatus('retrying');
+
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+          setRetryToken(t => t + 1);
+          setStatus('loading');
+        }, nextDelay);
+
+        return prev + 1;
+      }
+
+      // Out of retries — this media is genuinely unreachable.
+      settledRef.current = true;
+      console.error(`%c[MediaGuard] BROKEN ${type} %c(Failed after ${maxRetries} attempts): %c${src}`,
+        "color: #ef4444; font-weight: bold", "color: #94a3b8", "color: #64748b; text-decoration: underline");
+      updateSession({
+        retrying: Math.max(0, sessionStats.retrying - 1),
+        broken: sessionStats.broken + 1
+      });
+      setStatus('broken');
+      return prev;
+    });
+  }, [type, src, maxRetries, baseDelay]);
 
   const handleRetry = useCallback(() => {
-    clearTimers();
+    if (timerRef.current) clearTimeout(timerRef.current);
+    settledRef.current = false;
     setAttempt(1);
-    setRetryIn(0);
     setStatus('loading');
+    setRetryToken(t => t + 1);
   }, []);
+
+  // The URL handed to the element. On retries we append a cache-buster so the
+  // browser re-fetches instead of replaying a cached failure.
+  const displaySrc = src
+    ? (retryToken > 0
+        ? `${src}${src.includes('?') ? '&' : '?'}_retry=${retryToken}`
+        : src)
+    : undefined;
 
   return {
     status,
     attempt,
-    retryIn,
+    displaySrc,
+    onLoad: handleLoad,
+    onError: handleError,
     retry: handleRetry
   };
 };

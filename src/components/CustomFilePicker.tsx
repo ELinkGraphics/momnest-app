@@ -109,6 +109,14 @@ export interface CustomFilePickerProps {
   maxFiles?: number;
   /** Skip the action sheet and open the camera immediately. Default: false */
   useCameraImmediate?: boolean;
+  /**
+   * Render the source picker inline: tapping the trigger expands a horizontal row
+   * of source icons next to it, instead of opening the bottom action sheet.
+   * Default: false.
+   */
+  expandInline?: boolean;
+  /** Direction the inline row expands toward. Default: 'right'. */
+  expandDirection?: 'left' | 'right';
   /** Disable the picker interaction. Default: false */
   disabled?: boolean;
   /** Optional custom trigger children */
@@ -237,12 +245,15 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
   maxFiles,
   useCameraImmediate = false,
   disabled = false,
+  expandInline = false,
+  expandDirection = 'right',
   children,
 }) => {
   const internalManager = useFileManager();
   const { files, addFiles, removeFile, updateStatus, clearAll } = externalManager ?? internalManager;
   const { pushModalState } = useNavigation();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [sizeError, setSizeError] = useState<string | null>(null);
 
@@ -250,6 +261,20 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
     pushModalState('file-picker-sheet', () => setSheetOpen(false));
     setSheetOpen(true);
   };
+
+  // Collapse whichever picker surface is open (bottom sheet or inline pill).
+  const closeSheet = useCallback(() => {
+    setSheetOpen(false);
+    setExpanded(false);
+  }, []);
+
+  // Inline pill: collapse on any outside interaction.
+  useEffect(() => {
+    if (!expanded) return;
+    const onOutside = () => setExpanded(false);
+    document.addEventListener('pointerdown', onOutside);
+    return () => document.removeEventListener('pointerdown', onOutside);
+  }, [expanded]);
 
   // Hidden file inputs — one per accept type for clean separation
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -334,12 +359,12 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
 
   // FIX #3: Always close sheet first, then trigger input after animation
   const closeAndTrigger = (triggerFn: () => void) => {
-    setSheetOpen(false);
+    closeSheet();
     setTimeout(triggerFn, 300); // wait for sheet slide-down animation
   };
 
   const handleCamera = async () => {
-    setSheetOpen(false);
+    closeSheet();
 
     if (Capacitor.isNativePlatform()) {
       try {
@@ -382,7 +407,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
   };
 
   const handlePhotoLibrary = async () => {
-    setSheetOpen(false);
+    closeSheet();
 
     if (Capacitor.isNativePlatform()) {
       try {
@@ -485,6 +510,43 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
   const pendingCount = files.filter((f) => f.status === 'idle' || f.status === 'error').length;
   const allDone = files.length > 0 && files.every((f) => f.status === 'done');
 
+  // ── Source options (shared by the bottom sheet and the inline pill) ──────────
+  const sources: { key: string; label: string; color: SheetColor; icon: React.ReactNode; onClick: () => void }[] = [
+    (!accept || accept.includes('image')) && {
+      key: 'camera', label: 'Camera', color: 'blue' as SheetColor, onClick: handleCamera,
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      ),
+    },
+    (!accept || accept.includes('image')) && {
+      key: 'photos', label: 'Photo Library', color: 'purple' as SheetColor, onClick: handlePhotoLibrary,
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+    },
+    (!accept || accept.includes('video')) && {
+      key: 'video', label: 'Video', color: 'red' as SheetColor, onClick: handleVideo,
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      ),
+    },
+    (!accept || (!accept.includes('video') && !accept.includes('image'))) && {
+      key: 'file', label: 'Any File', color: 'orange' as SheetColor, onClick: handleAnyFile,
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+    },
+  ].filter(Boolean) as { key: string; label: string; color: SheetColor; icon: React.ReactNode; onClick: () => void }[];
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="w-full relative pointer-events-none flex flex-col">
@@ -531,8 +593,64 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
         </div>
       )}
 
-      {/* Trigger button */}
-      {children ? (
+      {/* Inline expanding row — the trigger stays put and a row of source icons grows out beside it */}
+      {expandInline ? (
+        <div
+          className="pointer-events-auto relative inline-flex self-center"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {/* Trigger (keeps the caller's icon/button) */}
+          <div
+            role="button"
+            tabIndex={disabled ? -1 : 0}
+            aria-expanded={expanded}
+            aria-label="Choose source"
+            onClick={() => !disabled && setExpanded((v) => !v)}
+            className={cn("relative z-10", disabled && "opacity-50 pointer-events-none")}
+          >
+            {children ?? (
+              <div className="p-3 rounded-full bg-card/10 text-foreground hover:bg-card/20 cursor-pointer">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {/* Expanding source row — anchored beside the trigger, grows toward expandDirection */}
+          <div
+            style={{ maxWidth: expanded ? `${sources.length * 3.2 + 0.8}rem` : '0rem' }}
+            className={cn(
+              "absolute top-1/2 -translate-y-1/2 flex items-center gap-1.5 overflow-hidden rounded-full bg-black/50 backdrop-blur-md",
+              "transition-[max-width,opacity,padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+              expandDirection === 'left'
+                ? "right-full mr-2 flex-row-reverse"
+                : "left-full ml-2 flex-row",
+              expanded ? "opacity-100 p-1.5" : "opacity-0 p-0 pointer-events-none"
+            )}
+            aria-hidden={!expanded}
+          >
+            {sources.map((s, i) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={s.onClick}
+                style={{ transitionDelay: expanded ? `${100 + i * 70}ms` : '0ms' }}
+                className={cn(
+                  "shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  colorMap[s.color],
+                  expanded ? "opacity-100 scale-100" : "opacity-0 scale-50"
+                )}
+                aria-label={s.label}
+                title={s.label}
+                tabIndex={expanded ? 0 : -1}
+              >
+                {s.icon}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : children ? (
         <div 
           onClick={(e) => {
             if (disabled) return;
@@ -636,7 +754,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
       )}
 
       {/* ── Backdrop ─────────────────────────────────────────────────────── */}
-      {sheetOpen && (
+      {!expandInline && sheetOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 pointer-events-auto"
           onClick={() => setSheetOpen(false)}
@@ -645,6 +763,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
       )}
 
       {/* ── Bottom Action Sheet ───────────────────────────────────────────── */}
+      {!expandInline && (
       <div
         role="dialog"
         aria-modal="true"
@@ -725,6 +844,7 @@ export const CustomFilePicker: React.FC<CustomFilePickerProps> = ({
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 };
