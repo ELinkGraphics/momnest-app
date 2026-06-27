@@ -13,8 +13,6 @@ import { useUser } from '@/contexts/UserContext';
 import { useCircleSubscription } from '@/hooks/useCircleSubscription';
 import { Input } from '@/components/ui/input';
 import EmojiPicker from '@/components/EmojiPicker';
-import { PremiumUnlockBanner } from '@/components/premium/PremiumUnlockBanner';
-import { PremiumContentSkeleton } from '@/components/premium/PremiumContentSkeleton';
 import PostReactionButton from '@/components/post/PostReactionButton';
 import LikersModal from '@/components/LikersModal';
 import { PDFCarousel } from '@/components/post/PDFCarousel';
@@ -468,78 +466,90 @@ const CirclePostDetail: React.FC = () => {
           <div className="mb-8 relative">
             {/* Visible content — when paywalled, only the first few lines stay
                 readable and they fade out into the locked/blurred section below. */}
-            <div
-              className={cn(
-                "text-foreground leading-relaxed text-base",
-                !isRichText(getDisplayContent()) && "whitespace-pre-line",
-                shouldShowPaywall && "max-h-28 overflow-hidden"
-              )}
-              style={shouldShowPaywall ? {
-                WebkitMaskImage: 'linear-gradient(to bottom, #000 55%, transparent 100%)',
-                maskImage: 'linear-gradient(to bottom, #000 55%, transparent 100%)',
-              } : undefined}
-            >
-              {isRichText(getDisplayContent()) ? (
-                <div
-                  className="prose prose-base dark:prose-invert max-w-none text-foreground"
-                  dangerouslySetInnerHTML={{ __html: getDisplayContent() }}
-                />
-              ) : (
-                getDisplayContent()
-              )}
-            </div>
-
-            {shouldShowPaywall && (
-              <div className="relative mt-4">
-                {/* 
-                  Container for the blurred scrolling content.
-                  We render the FULL content here with heavy blur and low opacity.
-                */}
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-muted/5">
-                  {/* The actual blurred content that scrolls (only the part AFTER the teaser) */}
-                  <div className="pt-8 px-8 pb-[100vh] blur-[32px] opacity-20 select-none pointer-events-none grayscale">
-                    {isRichText(post.content) ? (
-                      <div
-                        className="prose prose-base dark:prose-invert max-w-none text-foreground"
-                        dangerouslySetInnerHTML={{ __html: post.content }}
-                      />
-                    ) : (
-                      <div className="whitespace-pre-line text-foreground">{post.content}</div>
+            {shouldShowPaywall ? (
+              <div className="relative">
+                {/* Modern fade preview — crisp at the top, dissolving into a short blurred snippet */}
+                <div className="relative max-h-60 overflow-hidden">
+                  {/* Blurred copy behind (text shows through, unreadable) */}
+                  <div
+                    aria-hidden
+                    className={cn(
+                      "blur-[5px] opacity-40 grayscale select-none pointer-events-none text-foreground leading-relaxed text-base",
+                      !isRichText(post.content) && "whitespace-pre-line"
                     )}
-                    <PremiumContentSkeleton />
+                  >
+                    {isRichText(post.content) ? (
+                      <div className="prose prose-base dark:prose-invert max-w-none text-foreground" dangerouslySetInnerHTML={{ __html: post.content }} />
+                    ) : (
+                      post.content
+                    )}
                   </div>
-
-                  {/* 
-                    Fixed-Center Sticky Paywall Notice.
-                    Using sticky top-1/2 and -translate-y-1/2 ensures it stays centered in the viewport
-                    as long as the user is within the blurred section.
-                  */}
-                  <div className="absolute inset-x-0 inset-y-0 z-40 pointer-events-none group/paywall">
-                    <div className="sticky top-0 h-screen flex flex-col items-center justify-center px-6 pointer-events-auto transition-all duration-700 ease-out translate-y-0">
-                      {/* Subdued vignette background that appears when modal is sticky */}
-                      <div className="absolute inset-0 bg-background/20 backdrop-blur-[2px] opacity-0 group-hover/paywall:opacity-100 transition-opacity duration-1000" />
-                      
-                      <div className="relative w-full max-w-md bg-background/80 backdrop-blur-3xl rounded-[2.5rem] border border-white/20 shadow-[0_32px_128px_-16px_rgba(0,0,0,0.5)] p-1 overflow-hidden group animate-in zoom-in-95 fade-in duration-700">
-                        {/* Animated Mesh Background for the modal effect */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/20 animate-pulse" />
-                        
-                        <div className="relative p-6">
-                          <PremiumUnlockBanner
-                            price={post.premium_price || 0}
-                            balance={wallet?.balance ?? 0}
-                            onUnlock={handleUnlock}
-                            isUnlocking={isUnlocking}
-                            className="my-0 border-0 shadow-none bg-transparent"
-                          />
-                        </div>
-                      </div>
-                    </div>
+                  {/* Crisp copy on top, masked so only the first lines stay sharp before melting into the blur */}
+                  <div
+                    className={cn(
+                      "absolute inset-0 text-foreground leading-relaxed text-base",
+                      !isRichText(post.content) && "whitespace-pre-line"
+                    )}
+                    style={{
+                      WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, #000 22%, transparent 62%)',
+                      maskImage: 'linear-gradient(to bottom, #000 0%, #000 22%, transparent 62%)',
+                    }}
+                  >
+                    {isRichText(post.content) ? (
+                      <div className="prose prose-base dark:prose-invert max-w-none text-foreground" dangerouslySetInnerHTML={{ __html: post.content }} />
+                    ) : (
+                      post.content
+                    )}
                   </div>
+                  {/* Fade the bottom into the page background */}
+                  <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none" />
+                </div>
 
-                  {/* High-opacity bottom mask to block peeking at the end */}
-                  <div className="absolute inset-x-0 bottom-0 h-[60vh] bg-gradient-to-t from-background via-background to-transparent pointer-events-none z-10" />
+                {/* Simple lock card */}
+                <div className="relative z-10 -mt-10 mx-auto max-w-sm rounded-2xl border border-border/60 bg-background/70 backdrop-blur-xl shadow-lg p-5 flex flex-col items-center text-center gap-3">
+                  <div className="flex items-center justify-center size-11 rounded-full bg-primary/10 text-primary">
+                    <Lock className="size-5" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">Premium post</p>
+                  <Button
+                    onClick={handleUnlock}
+                    disabled={isUnlocking || (wallet?.balance ?? 0) < (post.premium_price || 0)}
+                    className="w-full h-11 bg-gradient-primary hover:opacity-90 text-primary-foreground border-0 shadow-glow"
+                  >
+                    {isUnlocking ? (
+                      <span className="flex items-center gap-2">
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                        Unlocking…
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <Coins className="size-4" />
+                        Unlock for {post.premium_price || 0} 🪙
+                      </span>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Balance {wallet?.balance ?? 0} 🪙
+                    {(wallet?.balance ?? 0) < (post.premium_price || 0) && (
+                      <span className="text-destructive"> · Top up</span>
+                    )}
+                  </p>
                 </div>
-                </div>
+              </div>
+            ) : (
+              <div className={cn(
+                "text-foreground leading-relaxed text-base",
+                !isRichText(getDisplayContent()) && "whitespace-pre-line"
+              )}>
+                {isRichText(getDisplayContent()) ? (
+                  <div
+                    className="prose prose-base dark:prose-invert max-w-none text-foreground"
+                    dangerouslySetInnerHTML={{ __html: getDisplayContent() }}
+                  />
+                ) : (
+                  getDisplayContent()
+                )}
+              </div>
             )}
             
             {/* Show full content if unlocked */}

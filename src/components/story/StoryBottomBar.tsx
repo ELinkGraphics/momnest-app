@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, Send, BarChart3, Repeat2, Loader2, ChevronUp } from 'lucide-react';
 import EmojiPicker from '@/components/EmojiPicker';
 import { StoryMention, PauseReason } from '@/types/storyTypes';
@@ -37,12 +37,36 @@ export const StoryBottomBar: React.FC<StoryBottomBarProps> = ({
   onMentionClick,
 }) => {
   const [message, setMessage] = useState('');
+  const [inputFocused, setInputFocused] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+
+  // The reply box is "engaged" while the user is focused on it, the emoji picker
+  // is open, or there's a draft message. Playback stays paused for that whole
+  // window — so transient blurs (opening the emoji picker, the keyboard hiding)
+  // don't resume the story. Once everything clears (e.g. after sending), we resume.
+  const replyEngaged = inputFocused || emojiOpen || message.trim().length > 0;
+
+  useEffect(() => {
+    if (replyEngaged) {
+      onPause('input');
+      return;
+    }
+    // Debounce so flipping focus → emoji picker doesn't briefly resume in between.
+    const t = setTimeout(() => onResume('input'), 120);
+    return () => clearTimeout(t);
+  }, [replyEngaged, onPause, onResume]);
+
+  // Safety: always release the input pause if the bar unmounts (e.g. viewer closed).
+  useEffect(() => {
+    return () => onResume('input');
+  }, [onResume]);
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
     onSendMessage(message.trim());
     setMessage('');
-    onResume('input');
+    setInputFocused(false);
+    setEmojiOpen(false);
   };
 
   return (
@@ -105,8 +129,9 @@ export const StoryBottomBar: React.FC<StoryBottomBarProps> = ({
 
           {/* Message input */}
           <div className="story-message-input flex-1">
-            <EmojiPicker 
+            <EmojiPicker
               onEmojiSelect={(emoji) => setMessage(prev => prev + emoji)}
+              onOpenChange={setEmojiOpen}
               variant="compact"
               triggerClassName="text-white/60 hover:text-white hover:bg-white/10"
               className="z-[200]"
@@ -117,12 +142,8 @@ export const StoryBottomBar: React.FC<StoryBottomBarProps> = ({
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Send message..."
               className="flex-1 bg-transparent text-white placeholder:text-white/50 outline-none text-sm"
-              onFocus={() => onPause('input')}
-              onBlur={() => {
-                setTimeout(() => {
-                  onResume('input');
-                }, 150);
-              }}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();

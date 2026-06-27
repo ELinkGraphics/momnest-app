@@ -52,19 +52,23 @@ interface EmojiPickerProps {
   variant?: 'default' | 'compact';
   className?: string;
   triggerClassName?: string;
+  /** Notifies the parent when the picker opens/closes (used to pause story playback). */
+  onOpenChange?: (open: boolean) => void;
 }
 
-const EmojiPicker: React.FC<EmojiPickerProps> = ({ 
-  onEmojiSelect, 
+const EmojiPicker: React.FC<EmojiPickerProps> = ({
+  onEmojiSelect,
   variant = 'default',
   className,
-  triggerClassName 
+  triggerClassName,
+  onOpenChange,
 }) => {
   const [activeCategory, setActiveCategory] = useState(0);
   const [open, setOpen] = useState(false);
   const { pushModalState } = useNavigation();
 
   const handleOpenChange = (isOpen: boolean) => {
+    onOpenChange?.(isOpen);
     if (isOpen) {
       pushModalState('emoji-picker', () => setOpen(false));
       setOpen(true);

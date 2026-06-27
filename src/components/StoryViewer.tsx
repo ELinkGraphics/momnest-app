@@ -818,9 +818,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           onReshare={handleReshareStory}
           onSendMessage={(msg) => {
             if (!msg.trim() || !currentStoryDbId || !user?.id || !currentStory?.user?.id) return;
-            storyService.sendMessage(currentStoryDbId, user.id, currentStory.user.id, msg).then(() => {
-              removePauseReason('input');
-            });
+            // Resume is owned by StoryBottomBar (once the reply box is no longer
+            // engaged), so we only need to fire the send here.
+            storyService.sendMessage(currentStoryDbId, user.id, currentStory.user.id, msg);
           }}
           onShowActivity={() => {
             setShowActivityModal(true);
