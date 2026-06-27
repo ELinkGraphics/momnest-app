@@ -170,66 +170,46 @@ const CirclePostDetail: React.FC = () => {
   const { data: post, isLoading } = useQuery({
     queryKey: ['circle-post', postId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      const { data, error } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          profiles:user_id (
-            id,
-            name,
-            username,
-            avatar_url,
-            initials,
-            avatar_color
-          ),
-          post_stats (
-            likes_count,
-            comments_count,
-            shares_count
-          )
-        `)
-        .eq('id', postId)
-        .single();
-
+      // Use the SECURITY DEFINER RPC (same as PostDetail) instead of a direct
+      // table read. A direct `.from('posts')...single()` is filtered by RLS for
+      // locked premium posts and returns 0 rows → PostgREST 406, which broke the
+      // page (and therefore the unlock flow). The RPC returns the row plus the
+      // viewer-specific flags (user_has_unlocked / user_has_liked) for any post.
+      const { data: rows, error } = await supabase.rpc('get_post_details', { _post_id: postId });
       if (error) throw error;
+      if (!rows || rows.length === 0) throw new Error('Post not found');
+      const row: any = rows[0];
 
-      const { data: likeData } = await supabase
-        .from('likes')
-        // @ts-ignore
-        .select('id, reaction_type')
-        .eq('post_id', postId)
-        .eq('user_id', user?.id)
-        .maybeSingle();
-
-      // Get tip count for this post
+      // Tip count (separate aggregate query).
       const { count: tipCount } = await supabase
         .from('circle_tips')
         .select('*', { count: 'exact', head: true })
         .eq('post_id', postId);
 
-      // Check if user has unlocked this premium post
-      let hasUnlocked = false;
-      if (data.is_premium && data.premium_price && user) {
-        const { data: unlockData } = await supabase
-          .from('post_unlocks')
-          .select('id')
-          .eq('post_id', postId)
-          .eq('user_id', user.id)
-          .maybeSingle();
-        hasUnlocked = !!unlockData;
-      }
+      const author = {
+        id: row.user_id,
+        name: row.name,
+        username: row.username,
+        avatar_url: row.avatar_url,
+        initials: row.initials,
+        avatar_color: row.avatar_color,
+      };
+      const stats = {
+        likes_count: row.likes_count ?? 0,
+        comments_count: row.comments_count ?? 0,
+        shares_count: row.shares_count ?? 0,
+      };
 
       return {
-        ...data,
-        author: data.profiles,
-        stats: data.post_stats,
-        user_has_liked: !!likeData,
-        // @ts-ignore
-        user_reaction: likeData?.reaction_type,
+        ...row,
+        author,
+        profiles: author,
+        stats,
+        post_stats: stats,
+        user_has_liked: row.user_has_liked ?? false,
+        user_reaction: row.user_reaction ?? null,
         tip_count: tipCount || 0,
-        user_has_unlocked: hasUnlocked,
+        user_has_unlocked: row.user_has_unlocked ?? false,
       };
     },
     enabled: !!postId,
@@ -344,8 +324,20 @@ const CirclePostDetail: React.FC = () => {
     return /<[a-z][\s\S]*>/i.test(content) || content.includes('<p>') || content.includes('<strong>');
   };
 
+  // First paragraph (used as the free, readable teaser on paywalled posts).
+  const getFirstParagraph = (content: string): string => {
+    if (!content) return '';
+    if (isRichText(content)) {
+      const paras = content.match(/<p>[\s\S]*?<\/p>/gi);
+      return paras && paras.length ? paras[0] : content;
+    }
+    const parts = content.split(/\n\s*\n/);
+    return (parts[0] || content).trim();
+  };
+
   const getDisplayContent = () => {
-    if (shouldShowPaywall) return ''; // Never expose content when paywalled
+    // When paywalled, reveal only the first paragraph as a teaser.
+    if (shouldShowPaywall) return getFirstParagraph(post?.content || '');
     return post?.content || '';
   };
 
@@ -474,34 +466,42 @@ const CirclePostDetail: React.FC = () => {
 
           {/* Post Content */}
           <div className="mb-8 relative">
-            {/* Visible content */}
-            <div className={cn(
-              "text-foreground leading-relaxed text-base",
-              !isRichText(getDisplayContent()) && "whitespace-pre-line"
-            )}>
+            {/* Visible content — when paywalled, only the first few lines stay
+                readable and they fade out into the locked/blurred section below. */}
+            <div
+              className={cn(
+                "text-foreground leading-relaxed text-base",
+                !isRichText(getDisplayContent()) && "whitespace-pre-line",
+                shouldShowPaywall && "max-h-28 overflow-hidden"
+              )}
+              style={shouldShowPaywall ? {
+                WebkitMaskImage: 'linear-gradient(to bottom, #000 55%, transparent 100%)',
+                maskImage: 'linear-gradient(to bottom, #000 55%, transparent 100%)',
+              } : undefined}
+            >
               {isRichText(getDisplayContent()) ? (
-                <div 
+                <div
                   className="prose prose-base dark:prose-invert max-w-none text-foreground"
-                  dangerouslySetInnerHTML={{ __html: getDisplayContent() }} 
+                  dangerouslySetInnerHTML={{ __html: getDisplayContent() }}
                 />
               ) : (
                 getDisplayContent()
               )}
             </div>
-            
+
             {shouldShowPaywall && (
-              <div className="relative mt-8">
+              <div className="relative mt-4">
                 {/* 
                   Container for the blurred scrolling content.
                   We render the FULL content here with heavy blur and low opacity.
                 */}
                 <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-muted/5">
-                  {/* The actual blurred content that scrolls */}
+                  {/* The actual blurred content that scrolls (only the part AFTER the teaser) */}
                   <div className="pt-8 px-8 pb-[100vh] blur-[32px] opacity-20 select-none pointer-events-none grayscale">
                     {isRichText(post.content) ? (
-                      <div 
+                      <div
                         className="prose prose-base dark:prose-invert max-w-none text-foreground"
-                        dangerouslySetInnerHTML={{ __html: post.content }} 
+                        dangerouslySetInnerHTML={{ __html: post.content }}
                       />
                     ) : (
                       <div className="whitespace-pre-line text-foreground">{post.content}</div>

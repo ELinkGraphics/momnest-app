@@ -295,6 +295,18 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
             </div>
           )}
         </div>
+
+        {/* Subscribe CTA — lives in the bio for joined members and hides once subscribed */}
+        {!canManage && circle.is_joined && circle.subscription_enabled && !hasSubscription && (
+          <Button
+            variant="default"
+            onClick={() => setSubscribeModalOpen(true)}
+            className="w-full"
+          >
+            <Crown className="h-4 w-4 mr-1.5" />
+            Subscribe
+          </Button>
+        )}
       </div>
 
       {/* Creator Section */}
@@ -343,17 +355,7 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
               <>
                 {circle.is_joined ? (
                   <>
-                    {circle.subscription_enabled && !hasSubscription && (
-                      <Button 
-                        size="sm"
-                        variant="default"
-                        onClick={() => setSubscribeModalOpen(true)}
-                      >
-                        <Crown className="h-4 w-4 mr-1" />
-                        Subscribe
-                      </Button>
-                    )}
-                    <Button 
+                    <Button
                       size="sm"
                       variant="outline"
                       onClick={handleJoinLeave}

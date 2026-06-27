@@ -109,10 +109,11 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     return () => { carouselApi.off('select', onSelect); };
   }, [carouselApi]);
 
-  // Reset playing state when slide changes
-  useEffect(() => {
-    setPlayingVideos(new Set());
-  }, [currentSlide]);
+  // NOTE: We intentionally do NOT clear `playingVideos` on slide change.
+  // Carousel slides are all mounted at once, so muted videos autoplay (firing
+  // onPlay) before they're swiped into view. Clearing the set here would hide the
+  // fact that they're already playing — leaving a stale Play overlay on top of a
+  // playing video. The onPlay/onPause/onEnded handlers keep this set accurate.
 
   const relative = formatRelativeTime(post.time);
   const isPremiumCirclePost = post.isPremium && post.circleId;
@@ -180,6 +181,14 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
   const handleOpenPost = () => {
     if (post.circleId) navigate(`/circle/${post.circleId}`);
+    else navigate(`/post/${post.id}`);
+  };
+
+  // Premium unlock CTA → open the post's detail page (where the unlock banner lives),
+  // not the circle landing page.
+  const handleOpenForUnlock = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (post.circleId) navigate(`/circle/${post.circleId}/post/${post.id}`);
     else navigate(`/post/${post.id}`);
   };
 
@@ -501,19 +510,36 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       {/* ── CAPTION ── */}
       <div className="px-4 pt-1 pb-4" dir="auto">
         {shouldShowPaywall ? (
-          <div className="relative overflow-hidden rounded-xl border border-white/5 bg-muted/5 backdrop-blur-sm p-4 mt-2">
-            <div className="max-h-24 overflow-hidden blur-[8px] opacity-20 pointer-events-none select-none grayscale">
-              {isRichText(post.content) ? (
-                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }} />
+          <div className="mt-2">
+            {/* Readable teaser — keep the first couple of lines visible before locking */}
+            {post.content && (
+              isRichText(post.content) ? (
+                <div
+                  className="prose prose-sm dark:prose-invert max-w-none text-foreground text-[14px] leading-relaxed line-clamp-2 mb-1"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }}
+                />
               ) : (
-                <p>{post.content}</p>
-              )}
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center bg-background/20 backdrop-blur-[2px]">
-              <button className="bg-primary/90 hover:bg-primary text-primary-foreground text-[12px] font-bold px-4 py-2 rounded-full shadow-glow transition-all flex items-center gap-1.5" onClick={handleOpenPost}>
-                <Lock className="size-3" />
-                {(post as any).premium_price ? `Unlock for ${(post as any).premium_price} 🪙` : 'Unlock Premium'}
-              </button>
+                <p className="text-[14px] text-foreground leading-relaxed break-words whitespace-pre-wrap line-clamp-2 mb-1">
+                  {post.content}
+                </p>
+              )
+            )}
+
+            {/* Locked remainder */}
+            <div className="relative overflow-hidden rounded-xl border border-white/5 bg-muted/5 backdrop-blur-sm p-4 mt-1">
+              <div className="max-h-24 overflow-hidden blur-[8px] opacity-20 pointer-events-none select-none grayscale">
+                {isRichText(post.content) ? (
+                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }} />
+                ) : (
+                  <p>{post.content}</p>
+                )}
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center bg-background/20 backdrop-blur-[2px]">
+                <button className="bg-primary/90 hover:bg-primary text-primary-foreground text-[12px] font-bold px-4 py-2 rounded-full shadow-glow transition-all flex items-center gap-1.5" onClick={handleOpenForUnlock}>
+                  <Lock className="size-3" />
+                  {(post as any).premium_price ? `Unlock for ${(post as any).premium_price} 🪙` : 'Unlock Premium'}
+                </button>
+              </div>
             </div>
           </div>
         ) : (
