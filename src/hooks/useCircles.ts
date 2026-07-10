@@ -35,6 +35,7 @@ export interface Circle {
   services_count?: number;
   last_activity_at?: string | null;
   is_joined?: boolean;
+  is_pending?: boolean;
   is_owned?: boolean;
   is_admin?: boolean;
   member_role?: string;
@@ -49,6 +50,7 @@ export interface Circle {
 interface MembershipInfo {
   is_joined: boolean;
   member_role: string | null;
+  is_pending?: boolean;
 }
 
 /** Shared row → Circle mapper so every hook formats circles identically. */
@@ -90,6 +92,7 @@ const mapCircleRow = (
   services_count: circle.circle_stats?.services_count || 0,
   last_activity_at: circle.circle_stats?.last_activity_at ?? null,
   is_joined: membership.is_joined,
+  is_pending: membership.is_pending ?? false,
   is_owned: userId === circle.creator_id,
   is_admin: membership.member_role === 'admin' || membership.member_role === 'creator',
   member_role: membership.member_role || undefined,
@@ -123,24 +126,26 @@ export const useCircles = (userId?: string) => {
 
       if (error) throw error;
 
-      // Check membership status and role if user is logged in
+      // Check membership status (incl. pending join requests) if logged in
       let membershipData: any[] = [];
       if (userId) {
         const { data: memberships } = await supabase
           .from('circle_members')
           .select('circle_id, status, role')
           .eq('user_id', userId)
-          .eq('status', 'active');
+          .in('status', ['active', 'pending']);
 
         membershipData = memberships || [];
       }
 
-      return circles.map((circle: any) =>
-        mapCircleRow(circle, userId, {
-          is_joined: membershipData.some((m) => m.circle_id === circle.id),
-          member_role: membershipData.find((m) => m.circle_id === circle.id)?.role || null,
-        })
-      );
+      return circles.map((circle: any) => {
+        const membership = membershipData.find((m) => m.circle_id === circle.id);
+        return mapCircleRow(circle, userId, {
+          is_joined: membership?.status === 'active',
+          is_pending: membership?.status === 'pending',
+          member_role: membership?.status === 'active' ? membership.role : null,
+        });
+      });
     },
     enabled: true,
   });
@@ -158,8 +163,9 @@ export const useCircle = (circleId: string, userId?: string) => {
 
       if (error) throw error;
 
-      // Check membership status and role if user is logged in
+      // Check membership status (incl. pending join requests) if logged in
       let isJoined = false;
+      let isPending = false;
       let memberRole: string | null = null;
       if (userId) {
         const { data: membership } = await supabase
@@ -167,14 +173,19 @@ export const useCircle = (circleId: string, userId?: string) => {
           .select('status, role')
           .eq('circle_id', circleId)
           .eq('user_id', userId)
-          .eq('status', 'active')
+          .in('status', ['active', 'pending'])
           .maybeSingle();
 
-        isJoined = !!membership;
-        memberRole = membership?.role || null;
+        isJoined = membership?.status === 'active';
+        isPending = membership?.status === 'pending';
+        memberRole = isJoined ? membership?.role || null : null;
       }
 
-      return mapCircleRow(circle, userId, { is_joined: isJoined, member_role: memberRole });
+      return mapCircleRow(circle, userId, {
+        is_joined: isJoined,
+        is_pending: isPending,
+        member_role: memberRole,
+      });
     },
     enabled: !!circleId,
     staleTime: 0,

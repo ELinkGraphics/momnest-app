@@ -114,19 +114,19 @@ const CircleVideos: React.FC<CircleVideosProps> = ({ circle, isOwner }) => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input 
               placeholder="Search videos..." 
-              className="pl-9 h-11 bg-zinc-50 border-none rounded-xl"
+              className="pl-9 h-11 bg-muted border-none rounded-xl"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           
           <Tabs value={viewMode} onValueChange={(val: any) => setViewMode(val)}>
-            <TabsList className="bg-zinc-100 p-1 h-11 rounded-xl">
-              <TabsTrigger value="videos" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            <TabsList className="bg-muted p-1 h-11 rounded-xl">
+              <TabsTrigger value="videos" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Film className="size-4 mr-2" />
                 Videos
               </TabsTrigger>
-              <TabsTrigger value="playlists" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TabsTrigger value="playlists" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <LayoutGrid className="size-4 mr-2" />
                 Playlists
               </TabsTrigger>
@@ -151,8 +151,8 @@ const CircleVideos: React.FC<CircleVideosProps> = ({ circle, isOwner }) => {
                   className={cn(
                     "flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all border",
                     !activePlaylistId 
-                      ? "bg-primary text-white border-primary shadow-md scale-105" 
-                      : "bg-white text-zinc-500 border-zinc-100 hover:border-primary/30"
+                      ? "bg-primary text-primary-foreground border-primary shadow-md scale-105"
+                      : "bg-card text-muted-foreground border-border hover:border-primary/30"
                   )}
                   onClick={() => setActivePlaylistId(null)}
                 >
@@ -164,8 +164,8 @@ const CircleVideos: React.FC<CircleVideosProps> = ({ circle, isOwner }) => {
                     className={cn(
                       "flex-shrink-0 px-6 py-2.5 rounded-full text-sm font-bold transition-all border whitespace-nowrap",
                       activePlaylistId === playlist.id
-                        ? "bg-primary text-white border-primary shadow-md scale-105" 
-                        : "bg-white text-zinc-500 border-zinc-100 hover:border-primary/30"
+                        ? "bg-primary text-primary-foreground border-primary shadow-md scale-105"
+                        : "bg-card text-muted-foreground border-border hover:border-primary/30"
                     )}
                     onClick={() => setActivePlaylistId(playlist.id)}
                   >
@@ -215,10 +215,10 @@ const CircleVideos: React.FC<CircleVideosProps> = ({ circle, isOwner }) => {
                   setActivePlaylistId(null);
                   setViewMode('videos');
                 }}
-                className="group relative aspect-[3/4] rounded-2xl bg-zinc-100 border-2 border-dashed border-zinc-200 flex flex-col items-center justify-center gap-2 hover:bg-zinc-50 transition-colors"
+                className="group relative aspect-[3/4] rounded-2xl bg-muted border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 hover:bg-muted/60 transition-colors"
               >
-                <Film className="size-8 text-zinc-400 group-hover:text-primary transition-colors" />
-                <span className="text-sm font-bold text-zinc-600">All Videos</span>
+                <Film className="size-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                <span className="text-sm font-bold text-foreground">All Videos</span>
               </button>
               
               {playlists.map(playlist => (
@@ -228,7 +228,7 @@ const CircleVideos: React.FC<CircleVideosProps> = ({ circle, isOwner }) => {
                     setActivePlaylistId(playlist.id);
                     setViewMode('videos');
                   }}
-                  className="group relative aspect-[3/4] rounded-2xl bg-zinc-100 overflow-hidden border border-zinc-200"
+                  className="group relative aspect-[3/4] rounded-2xl bg-muted overflow-hidden border border-border"
                 >
                   {playlist.thumbnail_url ? (
                     <img 
@@ -250,12 +250,12 @@ const CircleVideos: React.FC<CircleVideosProps> = ({ circle, isOwner }) => {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-100">
-              <div className="p-4 rounded-full bg-white shadow-sm">
+            <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 bg-muted/40 rounded-3xl border-2 border-dashed border-border">
+              <div className="p-4 rounded-full bg-card shadow-sm">
                 <ListVideo className="size-10 text-muted-foreground/30" />
               </div>
               <div>
-                <p className="text-lg font-bold text-zinc-600">No playlists yet</p>
+                <p className="text-lg font-bold text-foreground">No playlists yet</p>
                 <p className="text-sm text-muted-foreground max-w-[200px]">
                   Playlists you create will appear here.
                 </p>

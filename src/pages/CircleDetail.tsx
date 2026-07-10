@@ -55,6 +55,7 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [bannerLoaded, setBannerLoaded] = useState(false);
   const [profileModalUserId, setProfileModalUserId] = useState<string | null>(null);
   
   const { data: circle, isLoading } = useCircle(id!, user?.id);
@@ -121,7 +122,7 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
     try {
       if (circle.is_joined) {
         await leaveCircle(circle.id, user.id);
-        navigate('/circles');
+        handleBack();
       } else {
         await joinCircle(circle.id, user.id, circle.is_private);
       }
@@ -178,7 +179,7 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
       <div className="min-h-[100dvh] w-full max-w-[480px] mx-auto bg-background text-foreground flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">Circle not found</h2>
-          <Button onClick={() => navigate('/circles')}>Back to Circles</Button>
+          <Button onClick={handleBack}>Back to Circles</Button>
         </div>
       </div>
     );
@@ -202,7 +203,12 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
         {/* Banner Background */}
         <div className="h-48 overflow-hidden relative">
           {circle.cover_image_url ? (
-            <img src={circle.cover_image_url} alt={circle.name} className="w-full h-full object-cover" />
+            <img
+              src={circle.cover_image_url}
+              alt={circle.name}
+              onLoad={() => setBannerLoaded(true)}
+              className={`w-full h-full object-cover transition-opacity duration-500 ${bannerLoaded ? 'opacity-100' : 'opacity-0'}`}
+            />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
           )}
@@ -241,9 +247,15 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
                 )
               ) : !circle.is_joined ? (
                 // Non-member
-                <DropdownMenuItem onClick={handleJoinCircle}>
-                  Join the circle for more
-                </DropdownMenuItem>
+                circle.is_pending ? (
+                  <DropdownMenuItem disabled className="text-muted-foreground">
+                    Join request pending
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={handleJoinCircle}>
+                    Join the circle for more
+                  </DropdownMenuItem>
+                )
               ) : hasSubscription ? (
                 <DropdownMenuItem 
                   onClick={async () => {
@@ -416,8 +428,12 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
                       {isJoining ? 'Loading...' : 'Leave'}
                     </Button>
                   </>
+                ) : circle.is_pending ? (
+                  <Button size="sm" variant="outline" disabled>
+                    Requested
+                  </Button>
                 ) : (
-                  <Button 
+                  <Button
                     size="sm"
                     variant="default"
                     onClick={handleJoinCircle}
@@ -498,39 +514,39 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
 
           <div className="min-h-[400px]">
             {messagesEnabled && (
-              <TabsContent value="messages">
+              <TabsContent value="messages" className="animate-fade-in">
                 <CircleMessages circle={circle} isOwner={canManage} />
               </TabsContent>
             )}
             {circleTabs.includes('posts') && (
-              <TabsContent value="posts">
+              <TabsContent value="posts" className="animate-fade-in">
                 <CirclePosts circle={circle} isOwner={canManage} />
               </TabsContent>
             )}
             {circleTabs.includes('videos') && (
-              <TabsContent value="videos">
+              <TabsContent value="videos" className="animate-fade-in">
                 <CircleVideos circle={circle} isOwner={canManage} />
               </TabsContent>
             )}
             {circleTabs.includes('services') && (
-              <TabsContent value="services">
+              <TabsContent value="services" className="animate-fade-in">
                 <CircleServices circle={circle} isOwner={canManage} />
               </TabsContent>
             )}
             {circleTabs.includes('events') && (
-              <TabsContent value="events">
+              <TabsContent value="events" className="animate-fade-in">
                 <CircleEvents circle={circle} isOwner={canManage} />
               </TabsContent>
             )}
             {circleTabs.includes('resources') && (
-              <TabsContent value="resources">
+              <TabsContent value="resources" className="animate-fade-in">
                 <CircleResources circle={circle} isOwner={canManage} />
               </TabsContent>
             )}
-            <TabsContent value="members">
+            <TabsContent value="members" className="animate-fade-in">
               <CircleMembers circle={circle} isOwner={canManage} onViewProfile={(userId) => setProfileModalUserId(userId)} />
             </TabsContent>
-            <TabsContent value="about">
+            <TabsContent value="about" className="animate-fade-in">
               <CircleAbout circle={circle} onViewCreatorProfile={(userId) => setProfileModalUserId(userId)} />
             </TabsContent>
           </div>

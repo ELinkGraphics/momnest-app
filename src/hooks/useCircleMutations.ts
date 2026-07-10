@@ -136,7 +136,14 @@ export const useCircleMutations = () => {
       toast.success(isPrivate ? 'Join request sent!' : 'Joined circle successfully!');
     } catch (error: any) {
       console.error('Error joining circle:', error);
-      toast.error(error.message || 'Failed to join circle');
+      // Duplicate row: the user already joined or has a pending request
+      if (error?.code === '23505') {
+        toast.info(isPrivate ? 'Your join request is already pending' : 'You are already a member');
+        queryClient.invalidateQueries({ queryKey: ['circles'] });
+        queryClient.invalidateQueries({ queryKey: ['circle', circleId] });
+      } else {
+        toast.error(error.message || 'Failed to join circle');
+      }
       throw error;
     } finally {
       setIsJoining(false);

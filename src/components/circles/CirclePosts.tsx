@@ -6,7 +6,7 @@ import StarterKit from '@tiptap/starter-kit';
 import TiptapUnderline from '@tiptap/extension-underline';
 import TiptapLink from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
-import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins, Send, X, Bold, Italic, Underline as UnderlineIcon, List, Heading1, Heading2, Link as LinkIcon, Pencil, AlignLeft, AlignCenter, AlignRight, AlignJustify, Check, Pin, PinOff } from 'lucide-react';
+import { Heart, MessageCircle, Crown, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins, Send, X, Bold, Italic, Underline as UnderlineIcon, List, Heading1, Heading2, Link as LinkIcon, Pencil, AlignLeft, AlignCenter, AlignRight, AlignJustify, Check, Pin, PinOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
 import { useEffect } from 'react';
@@ -202,7 +202,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
         amount,
       });
       queryClient.invalidateQueries({ queryKey: ['circle-posts', circleId] });
-      toast({ title: "Tip sent successfully!", description: `You tipped $${amount}` });
+      toast({ title: "Tip sent successfully!", description: `You tipped ${amount} coins` });
     } catch (error: any) {
       console.error('Error sending tip:', error);
       toast({ title: "Failed to send tip", description: error.message, variant: "destructive" });
@@ -447,11 +447,8 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                   </div>
                 )}
 
-                {/* Top-right bookmark chip */}
+                {/* Top-right owner actions */}
                 <div className="absolute top-4 right-4 z-30 flex gap-2">
-                  <div className="rounded-full bg-card/20 backdrop-blur-sm p-2 hover:bg-card/30 transition-smooth cursor-pointer hover-scale">
-                    <Bookmark className="h-4 w-4 text-white" />
-                  </div>
                   {isOwner && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

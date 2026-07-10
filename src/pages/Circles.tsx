@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,6 +26,7 @@ interface CircleFilters {
   type: string;
   pricing: 'all' | 'free' | 'paid';
   meeting: 'all' | 'online' | 'local';
+  sort: 'newest' | 'active' | 'members';
 }
 
 const DEFAULT_FILTERS: CircleFilters = {
@@ -33,6 +34,13 @@ const DEFAULT_FILTERS: CircleFilters = {
   type: 'all',
   pricing: 'all',
   meeting: 'all',
+  sort: 'newest',
+};
+
+const SORT_LABELS: Record<CircleFilters['sort'], string> = {
+  newest: 'Newest',
+  active: 'Most active',
+  members: 'Most members',
 };
 
 interface FilterChipProps {
@@ -44,7 +52,7 @@ interface FilterChipProps {
 const FilterChip: React.FC<FilterChipProps> = ({ active, onClick, children }) => (
   <button
     onClick={onClick}
-    className={`px-3 py-1.5 rounded-full border text-xs transition-colors ${
+    className={`px-3 py-1.5 rounded-full border text-xs transition-all active:scale-95 ${
       active
         ? 'bg-primary text-primary-foreground border-primary'
         : 'border-border text-muted-foreground hover:border-primary/50'
@@ -54,10 +62,27 @@ const FilterChip: React.FC<FilterChipProps> = ({ active, onClick, children }) =>
   </button>
 );
 
+/** Staggered entrance for list items; delay is capped so long lists stay snappy. */
+const StaggerItem: React.FC<{ index: number; children: React.ReactNode }> = ({ index, children }) => (
+  <div
+    className="animate-fade-in"
+    style={{ animationDelay: `${Math.min(index, 5) * 60}ms`, animationFillMode: 'both' }}
+  >
+    {children}
+  </div>
+);
+
 const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate }) => {
   const navigate = useNavigate();
   const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  // Debounce the search so filtering doesn't run on every keystroke
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    return () => clearTimeout(handle);
+  }, [searchQuery]);
 
   const [circleTab, setCircleTab] = useState('browse');
   const [manageCircle, setManageCircle] = useState<Circle | null>(null);
@@ -75,15 +100,23 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
 
   const handleJoinCircle = (circleId: string, isPrivate: boolean) => {
     if (!user?.id) return;
+    // Paid before-join circles must go through the subscribe flow on the
+    // circle page — a direct join here would bypass payment
+    const circle = allCircles.find((c) => c.id === circleId);
+    if (circle?.subscription_enabled && circle.subscription_method === 'before_join') {
+      navigate(`/circle/${circleId}`);
+      return;
+    }
     joinCircle(circleId, user.id, isPrivate);
   };
 
-  const applyFilters = (circles: Circle[]) =>
-    circles
+  const applyFilters = (circles: Circle[]) => {
+    const query = debouncedQuery.toLowerCase();
+    const result = circles
       .filter((circle) =>
-        circle.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        circle.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        circle.category.toLowerCase().includes(searchQuery.toLowerCase())
+        circle.name.toLowerCase().includes(query) ||
+        circle.description.toLowerCase().includes(query) ||
+        circle.category.toLowerCase().includes(query)
       )
       .filter((circle) => filters.category === 'all' || circle.category === filters.category)
       .filter((circle) => filters.type === 'all' || circle.circle_type === filters.type)
@@ -96,11 +129,36 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
         (filters.meeting === 'online' ? circle.is_online !== false : circle.is_online === false)
       );
 
+    if (filters.sort === 'members') {
+      result.sort((a, b) => (b.members_count || 0) - (a.members_count || 0));
+    } else if (filters.sort === 'active') {
+      result.sort((a, b) => {
+        const aTime = a.last_activity_at ? new Date(a.last_activity_at).getTime() : 0;
+        const bTime = b.last_activity_at ? new Date(b.last_activity_at).getTime() : 0;
+        return bTime - aTime;
+      });
+    }
+    // 'newest' keeps the server order (created_at desc)
+
+    return result;
+  };
+
   const filteredAllCircles = applyFilters(allCircles.filter((circle) => circle.creator_id !== user?.id));
   const filteredMyCircles = applyFilters(myCircles);
   const filteredOwnedCircles = applyFilters(ownedCircles);
 
-  const hasQueryOrFilters = !!searchQuery || activeFilterCount > 0;
+  const hasQueryOrFilters = !!debouncedQuery || activeFilterCount > 0;
+
+  const clearFilter = (key: keyof CircleFilters) =>
+    setFilters((f) => ({ ...f, [key]: DEFAULT_FILTERS[key] }));
+
+  const activeChips: { key: keyof CircleFilters; label: string }[] = [
+    ...(filters.pricing !== 'all' ? [{ key: 'pricing' as const, label: filters.pricing === 'free' ? 'Free' : 'Paid' }] : []),
+    ...(filters.type !== 'all' ? [{ key: 'type' as const, label: CIRCLE_TYPES.find((t) => t.id === filters.type)?.label || filters.type }] : []),
+    ...(filters.category !== 'all' ? [{ key: 'category' as const, label: filters.category }] : []),
+    ...(filters.meeting !== 'all' ? [{ key: 'meeting' as const, label: filters.meeting === 'online' ? 'Online' : 'Local' }] : []),
+    ...(filters.sort !== 'newest' ? [{ key: 'sort' as const, label: SORT_LABELS[filters.sort] }] : []),
+  ];
 
   return (
     <div className="min-h-[100dvh] w-full max-w-[480px] mx-auto bg-background text-foreground selection:bg-secondary/40 relative border-l border-r border-border font-sans overflow-x-hidden" data-testid="circles-page">
@@ -136,6 +194,28 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
               </div>
             </Button>
           </div>
+
+          {/* Applied filter chips */}
+          {activeChips.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap mt-2 animate-fade-in">
+              {activeChips.map((chip) => (
+                <button
+                  key={chip.key}
+                  onClick={() => clearFilter(chip.key)}
+                  className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/15 active:scale-95 transition-all"
+                >
+                  {chip.label}
+                  <X className="h-3 w-3" />
+                </button>
+              ))}
+              <button
+                onClick={() => setFilters(DEFAULT_FILTERS)}
+                className="text-xs text-muted-foreground hover:text-foreground px-1.5 py-1 transition-colors"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -152,7 +232,11 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
 
           <TabsContent value="browse" className="mt-4">
             <div className="px-4">
-              <p className="text-xs text-muted-foreground mb-3">Discover and join circles created by others</p>
+              <p className="text-xs text-muted-foreground mb-3">
+                {hasQueryOrFilters && !isLoadingAll
+                  ? `${filteredAllCircles.length} ${filteredAllCircles.length === 1 ? 'circle' : 'circles'} found`
+                  : 'Discover and join circles created by others'}
+              </p>
               <div className="grid gap-4">
                 {isLoadingAll ? (
                   Array.from({ length: 3 }).map((_, i) => (
@@ -161,18 +245,26 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
                     </div>
                   ))
                 ) : filteredAllCircles.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    {hasQueryOrFilters ? 'No circles found matching your search' : 'No circles available yet'}
+                  <div className="text-center py-12 space-y-3">
+                    <p className="text-muted-foreground">
+                      {hasQueryOrFilters ? 'No circles match your search' : 'No circles available yet'}
+                    </p>
+                    {activeFilterCount > 0 && (
+                      <Button variant="outline" size="sm" onClick={() => setFilters(DEFAULT_FILTERS)}>
+                        Clear filters
+                      </Button>
+                    )}
                   </div>
                 ) : (
-                  filteredAllCircles.map((circle) => (
-                    <CircleCard
-                      key={circle.id}
-                      circle={circle}
-                      onClick={() => navigate(`/circle/${circle.id}`)}
-                      onJoin={handleJoinCircle}
-                      isJoining={isJoining}
-                    />
+                  filteredAllCircles.map((circle, index) => (
+                    <StaggerItem key={circle.id} index={index}>
+                      <CircleCard
+                        circle={circle}
+                        onClick={() => navigate(`/circle/${circle.id}`)}
+                        onJoin={handleJoinCircle}
+                        isJoining={isJoining}
+                      />
+                    </StaggerItem>
                   ))
                 )}
               </div>
@@ -194,12 +286,13 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
                     {hasQueryOrFilters ? 'No circles found matching your search' : "You haven't joined any circles yet"}
                   </div>
                 ) : (
-                  filteredMyCircles.map((circle) => (
-                    <CircleCard
-                      key={circle.id}
-                      circle={circle}
-                      onClick={() => navigate(`/circle/${circle.id}`)}
-                    />
+                  filteredMyCircles.map((circle, index) => (
+                    <StaggerItem key={circle.id} index={index}>
+                      <CircleCard
+                        circle={circle}
+                        onClick={() => navigate(`/circle/${circle.id}`)}
+                      />
+                    </StaggerItem>
                   ))
                 )}
               </div>
@@ -221,14 +314,15 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
                     {hasQueryOrFilters ? 'No circles found matching your search' : "You haven't created any circles yet"}
                   </div>
                 ) : (
-                  filteredOwnedCircles.map((circle) => (
-                    <CircleCard
-                      key={circle.id}
-                      circle={circle}
-                      onClick={() => navigate(`/circle/${circle.id}`)}
-                      showManageButton
-                      onManage={() => setManageCircle(circle)}
-                    />
+                  filteredOwnedCircles.map((circle, index) => (
+                    <StaggerItem key={circle.id} index={index}>
+                      <CircleCard
+                        circle={circle}
+                        onClick={() => navigate(`/circle/${circle.id}`)}
+                        showManageButton
+                        onManage={() => setManageCircle(circle)}
+                      />
+                    </StaggerItem>
                   ))
                 )}
               </div>
@@ -245,6 +339,21 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
           </SheetHeader>
 
           <div className="space-y-5 py-4">
+            <div>
+              <p className="text-sm font-medium text-foreground mb-2">Sort by</p>
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(SORT_LABELS) as CircleFilters['sort'][]).map((option) => (
+                  <FilterChip
+                    key={option}
+                    active={filters.sort === option}
+                    onClick={() => setFilters((f) => ({ ...f, sort: option }))}
+                  >
+                    {SORT_LABELS[option]}
+                  </FilterChip>
+                ))}
+              </div>
+            </div>
+
             <div>
               <p className="text-sm font-medium text-foreground mb-2">Pricing</p>
               <div className="flex flex-wrap gap-2">

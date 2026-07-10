@@ -4962,6 +4962,10 @@ export type Database = {
         Args: { _amount: number; _payout_method?: string; _user_id: string }
         Returns: boolean
       }
+      respond_circle_join_request: {
+        Args: { _circle_id: string; _user_id: string; _approve: boolean }
+        Returns: undefined
+      }
       set_circle_post_pinned: {
         Args: { _post_id: string; _pinned: boolean }
         Returns: undefined

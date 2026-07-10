@@ -23,7 +23,7 @@ const JoinCircle: React.FC = () => {
 
       const { data, error } = await supabase
         .from('circles')
-        .select('id, name, description, avatar_url, category, is_private, creator_id, circle_stats(members_count)')
+        .select('id, name, description, avatar_url, category, is_private, creator_id, subscription_enabled, subscription_method, circle_stats(members_count)')
         .eq('invite_code', inviteCode)
         .single();
 
@@ -53,6 +53,14 @@ const JoinCircle: React.FC = () => {
 
   const handleJoin = async () => {
     if (!user || !circle) return;
+
+    // Paid before-join circles must subscribe first — send them to the
+    // circle page where the subscribe flow lives
+    if (circle.subscription_enabled && circle.subscription_method === 'before_join') {
+      navigate(`/circle/${circle.id}`);
+      return;
+    }
+
     setJoining(true);
 
     try {
@@ -118,7 +126,9 @@ const JoinCircle: React.FC = () => {
       <h1 className="text-xl font-bold mb-1">{circle.name}</h1>
       <p className="text-sm text-muted-foreground mb-1">{circle.category}</p>
       <p className="text-sm text-muted-foreground mb-1">
-        {circle.circle_stats?.[0]?.members_count || 0} members
+        {(Array.isArray(circle.circle_stats)
+          ? circle.circle_stats[0]?.members_count
+          : circle.circle_stats?.members_count) || 0} members
       </p>
       <p className="text-sm text-foreground/80 mb-6 max-w-xs">{circle.description}</p>
 

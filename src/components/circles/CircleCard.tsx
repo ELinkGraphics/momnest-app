@@ -182,9 +182,13 @@ const CircleCard: React.FC<CircleCardProps> = ({ circle, onClick, showManageButt
               <Button variant="outline" size="sm" onClick={onManage}>
                 Manage
               </Button>
+            ) : circle.is_pending ? (
+              <Button variant="outline" size="sm" disabled className="bg-muted text-muted-foreground border-border cursor-not-allowed opacity-70 animate-scale-in">
+                Requested
+              </Button>
             ) : circle.is_joined ? (
               <>
-                <Button variant="outline" size="sm" disabled className="bg-muted text-muted-foreground border-border cursor-not-allowed opacity-70">
+                <Button variant="outline" size="sm" disabled className="bg-muted text-muted-foreground border-border cursor-not-allowed opacity-70 animate-scale-in">
                   Joined
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors" onClick={handleShare}>

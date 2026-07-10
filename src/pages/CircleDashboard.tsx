@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, MessageSquare, Video, FolderOpen, CalendarDays, Crown, Coins, Heart, MessageCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -14,6 +14,42 @@ import { supabase } from '@/integrations/supabase/client';
 const WEEKS_SHOWN = 8;
 
 const stripHtml = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+/** Ease-out count-up for stat tiles. */
+const useCountUp = (target: number, duration = 600) => {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (!target) {
+      setValue(target);
+      return;
+    }
+    let frame: number;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      setValue(Math.round(target * (1 - Math.pow(1 - progress, 3))));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, duration]);
+  return value;
+};
+
+const StatTile: React.FC<{ icon: React.ElementType; label: string; value: number }> = ({ icon: Icon, label, value }) => {
+  const displayed = useCountUp(value);
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+          <Icon className="h-4 w-4" />
+          <span className="text-xs">{label}</span>
+        </div>
+        <p className="text-2xl font-bold text-foreground">{displayed.toLocaleString()}</p>
+      </CardContent>
+    </Card>
+  );
+};
 
 const CircleDashboard: React.FC = () => {
   const { id } = useParams();
@@ -153,16 +189,8 @@ const CircleDashboard: React.FC = () => {
       <div className="p-4 space-y-4">
         {/* Stat tiles */}
         <div className="grid grid-cols-2 gap-3">
-          {statTiles.map(({ icon: Icon, label, value }) => (
-            <Card key={label}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <Icon className="h-4 w-4" />
-                  <span className="text-xs">{label}</span>
-                </div>
-                <p className="text-2xl font-bold text-foreground">{value.toLocaleString()}</p>
-              </CardContent>
-            </Card>
+          {statTiles.map(({ icon, label, value }) => (
+            <StatTile key={label} icon={icon} label={label} value={value} />
           ))}
         </div>
 
