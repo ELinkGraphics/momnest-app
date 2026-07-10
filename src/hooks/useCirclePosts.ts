@@ -30,6 +30,7 @@ export interface CirclePost {
   user_has_tipped: boolean;
   post_type: 'photo' | 'video' | 'pdf' | 'text';
   original_pdf_url: string | null;
+  pinned_at: string | null;
 }
 
 export const useCirclePosts = (circleId: string | undefined) => {
@@ -48,7 +49,15 @@ export const useCirclePosts = (circleId: string | undefined) => {
 
       if (error) throw error;
 
-      return (data || []).map((post: any) => ({
+      // The feed RPC doesn't expose pinned_at, so merge pin state separately
+      const { data: pinnedRows } = await supabase
+        .from('posts')
+        .select('id, pinned_at')
+        .eq('circle_id', circleId)
+        .not('pinned_at', 'is', null);
+      const pinnedMap = new Map((pinnedRows || []).map((row) => [row.id, row.pinned_at]));
+
+      const posts = (data || []).map((post: any) => ({
         id: post.post_id,
         content: post.content,
         cover_image_url: post.cover_image_url,
@@ -77,10 +86,20 @@ export const useCirclePosts = (circleId: string | undefined) => {
         user_has_tipped: post.user_has_tipped || false,
         post_type: post.post_type || 'photo',
         original_pdf_url: post.original_pdf_url || null,
+        pinned_at: pinnedMap.get(post.post_id) ?? null,
         media: {
           urls: post.media_urls || []
         }
       })) as CirclePost[];
+
+      // Pinned posts float to the top (newest pin first); the rest keep feed order
+      return posts.sort((a, b) => {
+        if (!!a.pinned_at !== !!b.pinned_at) return a.pinned_at ? -1 : 1;
+        if (a.pinned_at && b.pinned_at) {
+          return new Date(b.pinned_at).getTime() - new Date(a.pinned_at).getTime();
+        }
+        return 0;
+      });
     },
     enabled: !!circleId,
   });

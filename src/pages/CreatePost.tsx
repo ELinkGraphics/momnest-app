@@ -242,6 +242,7 @@ const CreatePost: React.FC = () => {
           coverImage,
           postType: pdfFile ? 'pdf' : (fileManager.files.length > 0 ? 'photo' : 'text'),
           originalPdf: pdfFile || undefined,
+          visibility: privacy === 'friends' ? 'friends' : 'public',
         },
         user.id
       );

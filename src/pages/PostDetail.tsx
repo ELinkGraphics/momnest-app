@@ -311,6 +311,9 @@ const PostDetail: React.FC = () => {
   const isOwnPost = user?.id === post?.user_id;
   const isPaidPremium = post?.is_premium && post?.premium_price && post.premium_price > 0;
   const shouldShowPaywall = isPaidPremium && !hasUnlocked && !isOwnPost && !isSubscriber && !isCircleOwner;
+  // Friends-only gate: the RPC already withholds the post from non-audience
+  // viewers, but we also disable the message/interaction affordances as a backstop.
+  const canInteract = post?.viewer_can_interact !== false;
 
   const handleUnlock = async () => {
     if (!user) {
@@ -865,28 +868,35 @@ const PostDetail: React.FC = () => {
         </section>
       </main>
 
-      {/* Floating Comment Input */}
-      <PersistentCommentComposer
-        onSubmit={(text) => handleCommentSubmit(text)}
-        recipientId={post?.user_id}
-        recipientName={post?.profiles?.name}
-        onGiftSend={async (gift: GiftEmoji) => {
-          if (!post?.user_id || !user) return;
-          try {
-            await transferCoins.mutateAsync({
-              receiverId: post.user_id,
-              amount: gift.value,
-              typeSent: 'tip_sent',
-              typeReceived: 'tip_received',
-              description: `Gift ${gift.emoji} ${gift.label} on post`,
-            });
-            const giftComment = `${gift.emoji} sent a ${gift.label} gift (${gift.value} 🪙)`;
-            await handleCommentSubmit(giftComment);
-          } catch (error) {
-            console.error('Error sending gift:', error);
-          }
-        }}
-      />
+      {/* Floating Comment Input — hidden for viewers outside a friends-only audience */}
+      {canInteract ? (
+        <PersistentCommentComposer
+          onSubmit={(text) => handleCommentSubmit(text)}
+          recipientId={post?.user_id}
+          recipientName={post?.profiles?.name}
+          onGiftSend={async (gift: GiftEmoji) => {
+            if (!post?.user_id || !user) return;
+            try {
+              await transferCoins.mutateAsync({
+                receiverId: post.user_id,
+                amount: gift.value,
+                typeSent: 'tip_sent',
+                typeReceived: 'tip_received',
+                description: `Gift ${gift.emoji} ${gift.label} on post`,
+              });
+              const giftComment = `${gift.emoji} sent a ${gift.label} gift (${gift.value} 🪙)`;
+              await handleCommentSubmit(giftComment);
+            } catch (error) {
+              console.error('Error sending gift:', error);
+            }
+          }}
+        />
+      ) : (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t border-border px-4 py-3 flex items-center justify-center gap-2 text-muted-foreground">
+          <Lock className="size-4" />
+          <span className="text-sm font-medium">Only friends and followers can reply to this post</span>
+        </div>
+      )}
       {/* Comment Action Menu */}
       <CommentActionMenu
         isOpen={!!commentAction}

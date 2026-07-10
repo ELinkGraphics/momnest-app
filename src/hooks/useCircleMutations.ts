@@ -15,6 +15,14 @@ interface CreateCircleData {
   cover?: File;
   about_text?: string | null;
   guidelines?: string[];
+  circle_type?: string;
+  enabled_features?: string[];
+  target_audience?: string | null;
+  member_benefits?: string | null;
+  primary_language?: string | null;
+  is_online?: boolean;
+  subscription_enabled?: boolean;
+  subscription_price?: number;
 }
 
 export const useCircleMutations = () => {
@@ -66,6 +74,14 @@ export const useCircleMutations = () => {
           avatar_url: avatarUrl,
           cover_image_url: coverUrl,
           creator_id: userId,
+          circle_type: data.circle_type || 'community',
+          enabled_features: data.enabled_features,
+          target_audience: data.target_audience,
+          member_benefits: data.member_benefits,
+          primary_language: data.primary_language,
+          is_online: data.is_online ?? true,
+          subscription_enabled: data.subscription_enabled ?? false,
+          subscription_price: data.subscription_price ?? 10,
         })
         .select()
         .single();
@@ -209,6 +225,12 @@ export const useCircleMutations = () => {
       if (updates.is_private !== undefined) updateData.is_private = updates.is_private;
       if (updates.about_text !== undefined) updateData.about_text = updates.about_text;
       if (updates.guidelines !== undefined) updateData.guidelines = updates.guidelines;
+      if (updates.circle_type !== undefined) updateData.circle_type = updates.circle_type;
+      if (updates.enabled_features !== undefined) updateData.enabled_features = updates.enabled_features;
+      if (updates.target_audience !== undefined) updateData.target_audience = updates.target_audience;
+      if (updates.member_benefits !== undefined) updateData.member_benefits = updates.member_benefits;
+      if (updates.primary_language !== undefined) updateData.primary_language = updates.primary_language;
+      if (updates.is_online !== undefined) updateData.is_online = updates.is_online;
       if (avatarUrl) updateData.avatar_url = avatarUrl;
       if (coverUrl) updateData.cover_image_url = coverUrl;
 

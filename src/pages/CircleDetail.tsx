@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PublicProfileModal from '@/components/PublicProfileModal';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Users, MessageCircle, Bell, MoreVertical, BadgeCheck, Pencil, Settings, Crown, Mail } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, MessageCircle, Bell, MoreVertical, BadgeCheck, Pencil, Settings, Crown, Mail, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -17,10 +17,12 @@ import CircleMembers from '@/components/circles/CircleMembers';
 import CircleAbout from '@/components/circles/CircleAbout';
 import CircleMessages from '@/components/circles/CircleMessages';
 import CircleVideos from '@/components/circles/CircleVideos';
+import CircleActivityStrip from '@/components/circles/CircleActivityStrip';
 import EditCircleModal from '@/components/circles/EditCircleModal';
 import CircleSettingsModal from '@/components/circles/CircleSettingsModal';
 import { useCircle } from '@/hooks/useCircles';
 import { useCircleMutations } from '@/hooks/useCircleMutations';
+import { getCircleTabs, getCircleType, getFeatureConfig } from '@/lib/circleTypes';
 import { useCircleSubscription } from '@/hooks/useCircleSubscription';
 import { SubscribeCircleModal } from '@/components/circles/SubscribeCircleModal';
 import { useUser } from '@/contexts/UserContext';
@@ -48,7 +50,7 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
   const navigate = useNavigate();
   const { user } = useUser();
   const queryClient = useQueryClient();
-  const [circleActiveTab, setCircleActiveTab] = useState('posts');
+  const [circleActiveTab, setCircleActiveTab] = useState('');
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
@@ -133,6 +135,22 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
     navigate('/', { replace: true });
   };
 
+  // Land on the first tab of the circle's type layout, and recover when the
+  // active tab points at a feature this circle has disabled
+  useEffect(() => {
+    if (!circle) return;
+    const tabs = getCircleTabs(circle);
+    const valid = [
+      ...tabs,
+      'about',
+      'members',
+      ...(circle.enabled_features.includes('messages') ? ['messages'] : []),
+    ];
+    if (!circleActiveTab || !valid.includes(circleActiveTab)) {
+      setCircleActiveTab(tabs[0] ?? 'about');
+    }
+  }, [circle, circleActiveTab]);
+
   if (isLoading) {
     return (
       <div className="min-h-[100dvh] w-full max-w-[480px] mx-auto bg-background text-foreground pb-20">
@@ -167,6 +185,15 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
   }
 
   const canManage = circle.is_owned || circle.is_admin || false;
+  const typeConfig = getCircleType(circle.circle_type);
+  const TypeIcon = typeConfig.icon;
+  const circleTabs = getCircleTabs(circle);
+  const mainTabs = circleTabs.slice(0, 4);
+  const overflowTabs = circleTabs.slice(4);
+  const messagesEnabled = circle.enabled_features.includes('messages');
+  const tabsGridClass =
+    ['grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4', 'grid-cols-5'][mainTabs.length] ??
+    'grid-cols-5';
 
   return (
     <div className="min-h-[100dvh] w-full max-w-[480px] mx-auto bg-background text-foreground relative border-l border-r border-border pb-24">
@@ -278,8 +305,24 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
             </TooltipProvider>
           )}
         </div>
-        <p className="text-muted-foreground mb-4 leading-relaxed">{circle.description}</p>
-        
+        <p className="text-muted-foreground mb-3 leading-relaxed">{circle.description}</p>
+
+        {/* Type + pricing badges */}
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <Badge variant="outline" className="text-badge gap-1">
+            <TypeIcon className="h-3 w-3" />
+            {typeConfig.label}
+          </Badge>
+          {circle.subscription_enabled ? (
+            <Badge variant="secondary" className="text-badge gap-1">
+              <Crown className="h-3 w-3" />
+              Paid
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-badge">Free</Badge>
+          )}
+        </div>
+
         <div className="flex items-center justify-center gap-6 text-sm mb-4">
           <button 
             className="flex items-center gap-1 hover:text-primary transition-colors"
@@ -335,20 +378,29 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
           <div className="flex gap-2">
             {canManage ? (
               <>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => navigate(`/circle/${circle.id}/dashboard`)}
+                  aria-label="Circle dashboard"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
                   size="icon"
                   onClick={() => setSettingsModalOpen(true)}
+                  aria-label="Circle settings"
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => setEditModalOpen(true)}
+                  aria-label="Edit circle"
                 >
-                  <Pencil className="h-4 w-4 mr-1" />
-                  Manage
+                  <Pencil className="h-4 w-4" />
                 </Button>
               </>
             ) : (
@@ -399,18 +451,26 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
         </div>
       </div>
 
-      {/* Tabs Section */}
+      {/* Activity signals */}
+      <CircleActivityStrip
+        circle={circle}
+        onOpenEvents={() => setCircleActiveTab('events')}
+        onOpenMembers={() => setCircleActiveTab('members')}
+      />
+
+      {/* Tabs Section — only the circle's enabled features, ordered by its type */}
       <div className="border-t border-border">
         <Tabs value={circleActiveTab} onValueChange={setCircleActiveTab} className="w-full">
           <div className="px-4 pt-4 flex items-center justify-between">
-            <TabsList className="grid grid-cols-5 h-9 flex-1 mr-2">
-              <TabsTrigger value="posts" className="text-xs px-1">Posts</TabsTrigger>
-              <TabsTrigger value="videos" className="text-xs px-1">Videos</TabsTrigger>
-              <TabsTrigger value="services" className="text-xs px-1">Services</TabsTrigger>
-              <TabsTrigger value="events" className="text-xs px-1">Events</TabsTrigger>
+            <TabsList className={`grid ${tabsGridClass} h-9 flex-1 mr-2`}>
+              {mainTabs.map((feature) => (
+                <TabsTrigger key={feature} value={feature} className="text-xs px-1">
+                  {getFeatureConfig(feature)?.label}
+                </TabsTrigger>
+              ))}
               <TabsTrigger value="about" className="text-xs px-1">About</TabsTrigger>
             </TabsList>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="h-9 w-9">
@@ -418,15 +478,17 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {circle.is_joined && (
+                {messagesEnabled && circle.is_joined && (
                   <DropdownMenuItem onClick={() => setCircleActiveTab('messages')}>
                     <Mail className="h-4 w-4 mr-2" />
                     Messages
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={() => setCircleActiveTab('resources')}>
-                  Resources
-                </DropdownMenuItem>
+                {overflowTabs.map((feature) => (
+                  <DropdownMenuItem key={feature} onClick={() => setCircleActiveTab(feature)}>
+                    {getFeatureConfig(feature)?.label}
+                  </DropdownMenuItem>
+                ))}
                 <DropdownMenuItem onClick={() => setCircleActiveTab('members')}>
                   Members
                 </DropdownMenuItem>
@@ -435,24 +497,36 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
           </div>
 
           <div className="min-h-[400px]">
-            <TabsContent value="messages">
-              <CircleMessages circle={circle} isOwner={canManage} />
-            </TabsContent>
-            <TabsContent value="posts">
-              <CirclePosts circle={circle} isOwner={canManage} />
-            </TabsContent>
-            <TabsContent value="videos">
-              <CircleVideos circle={circle} isOwner={canManage} />
-            </TabsContent>
-            <TabsContent value="services">
-              <CircleServices circle={circle} isOwner={canManage} />
-            </TabsContent>
-            <TabsContent value="events">
-              <CircleEvents circle={circle} isOwner={canManage} />
-            </TabsContent>
-            <TabsContent value="resources">
-              <CircleResources circle={circle} isOwner={canManage} />
-            </TabsContent>
+            {messagesEnabled && (
+              <TabsContent value="messages">
+                <CircleMessages circle={circle} isOwner={canManage} />
+              </TabsContent>
+            )}
+            {circleTabs.includes('posts') && (
+              <TabsContent value="posts">
+                <CirclePosts circle={circle} isOwner={canManage} />
+              </TabsContent>
+            )}
+            {circleTabs.includes('videos') && (
+              <TabsContent value="videos">
+                <CircleVideos circle={circle} isOwner={canManage} />
+              </TabsContent>
+            )}
+            {circleTabs.includes('services') && (
+              <TabsContent value="services">
+                <CircleServices circle={circle} isOwner={canManage} />
+              </TabsContent>
+            )}
+            {circleTabs.includes('events') && (
+              <TabsContent value="events">
+                <CircleEvents circle={circle} isOwner={canManage} />
+              </TabsContent>
+            )}
+            {circleTabs.includes('resources') && (
+              <TabsContent value="resources">
+                <CircleResources circle={circle} isOwner={canManage} />
+              </TabsContent>
+            )}
             <TabsContent value="members">
               <CircleMembers circle={circle} isOwner={canManage} onViewProfile={(userId) => setProfileModalUserId(userId)} />
             </TabsContent>

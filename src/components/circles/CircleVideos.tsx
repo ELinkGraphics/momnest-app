@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCircleVideos, CircleVideo } from '@/hooks/useCircleVideos';
+import CircleEmptyState from './CircleEmptyState';
 import { useVideoPlaylists } from '@/hooks/useVideoPlaylists';
 import { CircleVideoCard } from './CircleVideoCard';
 import CircleVideoPlayer from './CircleVideoPlayer';
@@ -191,17 +192,16 @@ const CircleVideos: React.FC<CircleVideosProps> = ({ circle, isOwner }) => {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 bg-zinc-50 rounded-3xl border-2 border-dashed border-zinc-100">
-                <div className="p-4 rounded-full bg-white shadow-sm">
-                  <Film className="size-10 text-muted-foreground/30" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-zinc-600">No videos found</p>
-                  <p className="text-sm text-muted-foreground max-w-[200px]">
-                    {activePlaylistId ? 'This playlist has no videos yet.' : 'The owner hasn\'t uploaded any videos yet.'}
-                  </p>
-                </div>
-              </div>
+              <CircleEmptyState
+                icon={Film}
+                title={activePlaylistId ? 'This playlist has no videos yet' : 'No videos yet'}
+                description={activePlaylistId ? 'Videos added to this playlist will show up here.' : "The creator hasn't uploaded any videos yet."}
+                ownerTitle={activePlaylistId ? 'This playlist has no videos yet' : 'Upload your first video'}
+                ownerDescription="Add lessons or highlights for your members to watch."
+                isOwner={isOwner}
+                actionLabel="Add Video"
+                onAction={() => setIsComposerOpen(true)}
+              />
             )}
           </section>
         </>

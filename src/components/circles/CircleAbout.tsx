@@ -1,5 +1,6 @@
 import React from 'react';
-import { MapPin, Calendar, Users, Globe, Lock, Crown, Tag, ExternalLink } from 'lucide-react';
+import { MapPin, Calendar, Users, Globe, Lock, Crown, Tag, ExternalLink, Target, Gift } from 'lucide-react';
+import { getCircleType } from '@/lib/circleTypes';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { type Circle } from '@/hooks/useCircles';
@@ -32,8 +33,14 @@ const CircleAbout: React.FC<CircleAboutProps> = ({ circle, onViewCreatorProfile 
     monthlyActivity: stats?.monthly_activity || 0,
   };
 
-  const mockTags = ['startup', 'technology', 'entrepreneurship', 'networking', 'funding', 'product-development'];
-  
+  const typeConfig = getCircleType(circle.circle_type);
+  const tags = [
+    typeConfig.label,
+    circle.category,
+    ...(circle.primary_language ? [circle.primary_language] : []),
+    circle.is_online === false ? 'Local' : 'Online',
+  ];
+
   // Use actual guidelines from database or empty array
   const displayGuidelines = circle.guidelines && circle.guidelines.length > 0 
     ? circle.guidelines 
@@ -59,7 +66,7 @@ const CircleAbout: React.FC<CircleAboutProps> = ({ circle, onViewCreatorProfile 
           
           {/* Tags */}
           <div className="flex flex-wrap gap-2">
-            {mockTags.map((tag) => (
+            {tags.map((tag) => (
               <Badge key={tag} variant="secondary" className="gap-1">
                 <Tag className="h-3 w-3" />
                 {tag}
@@ -68,6 +75,35 @@ const CircleAbout: React.FC<CircleAboutProps> = ({ circle, onViewCreatorProfile 
           </div>
         </CardContent>
       </Card>
+
+      {/* Who it's for / What members receive */}
+      {(circle.target_audience || circle.member_benefits) && (
+        <Card className="mx-0">
+          <CardHeader>
+            <CardTitle>Membership</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {circle.target_audience && (
+              <div className="flex items-start gap-3">
+                <Target className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Who this circle is for</p>
+                  <p className="text-sm text-muted-foreground">{circle.target_audience}</p>
+                </div>
+              </div>
+            )}
+            {circle.member_benefits && (
+              <div className="flex items-start gap-3">
+                <Gift className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">What members receive</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-line">{circle.member_benefits}</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats */}
       <Card className="mx-0">

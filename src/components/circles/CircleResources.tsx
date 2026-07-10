@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRealtimeSubscription } from '@/hooks/useRealtimeSubscription';
 import { toast } from 'sonner';
 import UploadResourceModal from './UploadResourceModal';
+import CircleEmptyState from './CircleEmptyState';
 
 interface CircleResourcesProps {
   circle: any;
@@ -117,11 +118,16 @@ const CircleResources: React.FC<CircleResourcesProps> = ({ circle, isOwner }) =>
         <div className="max-h-[500px] overflow-y-auto">
           <TabsContent value={filter} className="space-y-4 mt-4 pr-2">
             {filteredResources.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No resources yet</p>
-                {isOwner && <p className="text-xs mt-1">Upload your first resource to get started</p>}
-              </div>
+              <CircleEmptyState
+                icon={FileText}
+                title="No resources yet"
+                description="The creator hasn't shared any files yet. Check back soon!"
+                ownerTitle="Upload your first resource"
+                ownerDescription="Share guides, templates and files your members can download."
+                isOwner={isOwner}
+                actionLabel="Upload File"
+                onAction={() => setShowUpload(true)}
+              />
             ) : (
               filteredResources.map((resource) => {
                 const IconComponent = getIcon(resource.resource_type);

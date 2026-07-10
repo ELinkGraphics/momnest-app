@@ -6,7 +6,7 @@ import StarterKit from '@tiptap/starter-kit';
 import TiptapUnderline from '@tiptap/extension-underline';
 import TiptapLink from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
-import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins, Send, X, Bold, Italic, Underline as UnderlineIcon, List, Heading1, Heading2, Link as LinkIcon, Pencil, AlignLeft, AlignCenter, AlignRight, AlignJustify, Check } from 'lucide-react';
+import { Heart, MessageCircle, Crown, Bookmark, Lock, MoreVertical, Trash2, Image as ImageIcon, Coins, Send, X, Bold, Italic, Underline as UnderlineIcon, List, Heading1, Heading2, Link as LinkIcon, Pencil, AlignLeft, AlignCenter, AlignRight, AlignJustify, Check, Pin, PinOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CustomFilePicker, useFileManager } from '@/components/CustomFilePicker';
 import { useEffect } from 'react';
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import PostReactionButton from '@/components/post/PostReactionButton';
 import LikersModal from '@/components/LikersModal';
+import CircleEmptyState from './CircleEmptyState';
 
 interface CirclePostsProps {
   circle: any;
@@ -80,7 +81,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm prose-invert focus:outline-none min-h-[100px] w-full text-lg placeholder:text-muted-foreground/50',
+        class: 'focus:outline-none min-h-[80px] w-full text-base text-foreground',
       },
     },
   });
@@ -208,6 +209,21 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
     }
   };
 
+  const handleTogglePin = async (post: any) => {
+    try {
+      const { error } = await supabase.rpc('set_circle_post_pinned', {
+        _post_id: post.id,
+        _pinned: !post.pinned_at,
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['circle-posts', circleId] });
+      toast({ title: post.pinned_at ? 'Post unpinned' : 'Post pinned to top' });
+    } catch (error: any) {
+      console.error('Error toggling pin:', error);
+      toast({ title: 'Failed to update pin', description: error.message, variant: 'destructive' });
+    }
+  };
+
   const handleDeletePost = async (postId: string) => {
     if (!window.confirm('Are you sure you want to delete this post?')) return;
     try {
@@ -232,58 +248,59 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
     <div className="space-y-0 scroll-smooth">
       {/* Inline Post Composer - Only for Owners */}
       {isOwner && (
-        <div className="px-4 py-8 bg-muted/40 border-b border-border/50 animate-fade-in transition-all">
-          <div className="max-w-2xl mx-auto space-y-4">
-            <div className="relative bg-card/60 backdrop-blur-xl rounded-3xl p-4 border border-border/50 shadow-xl shadow-primary/5 group transition-all duration-300 hover:border-primary/30">
-              <div className="flex gap-4">
-                {/* User Avatar / Owner Role icon */}
-                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 flex-shrink-0">
-                  <Crown className="w-6 h-6" />
+        <div className="px-4 py-5 border-b border-border/50 animate-fade-in">
+          <div className="bg-card rounded-2xl border border-border shadow-soft">
+            <div className="p-4">
+              <div className="flex gap-3">
+                {/* Creator badge avatar */}
+                <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground flex-shrink-0">
+                  <Crown className="w-5 h-5" />
                 </div>
-                
+
                 {/* Text Area / Rich Text Editor */}
-                <div className="flex-1 space-y-3 pt-1 min-h-[100px]">
+                <div className="flex-1 space-y-3 pt-1 min-h-[80px] min-w-0">
                   {editor && (
-                    <BubbleMenu editor={editor} className="flex items-center gap-0.5 p-1 bg-card/90 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl">
-                      <button onClick={() => editor.chain().focus().toggleBold().run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('bold') ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><Bold className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => editor.chain().focus().toggleItalic().run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('italic') ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><Italic className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('underline') ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><UnderlineIcon className="w-3.5 h-3.5" /></button>
-                      <div className="w-px h-3.5 bg-border/50 mx-0.5" />
-                      <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('heading', { level: 1 }) ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><Heading1 className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('bulletList') ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><List className="w-3.5 h-3.5" /></button>
-                      <div className="w-px h-3.5 bg-border/50 mx-0.5" />
-                      <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive({ textAlign: 'left' }) ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><AlignLeft className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive({ textAlign: 'center' }) ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><AlignCenter className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive({ textAlign: 'right' }) ? 'bg-primary text-white' : 'hover:bg-muted/30 text-muted-foreground'}`}><AlignRight className="w-3.5 h-3.5" /></button>
-                      <div className="w-px h-3.5 bg-border/50 mx-0.5" />
+                    <BubbleMenu editor={editor} className="flex items-center gap-0.5 p-1 bg-popover border border-border rounded-xl shadow-elegant">
+                      <button onClick={() => editor.chain().focus().toggleBold().run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('bold') ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}><Bold className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => editor.chain().focus().toggleItalic().run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('italic') ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}><Italic className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('underline') ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}><UnderlineIcon className="w-3.5 h-3.5" /></button>
+                      <div className="w-px h-3.5 bg-border mx-0.5" />
+                      <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('heading', { level: 1 }) ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}><Heading1 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive('bulletList') ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}><List className="w-3.5 h-3.5" /></button>
+                      <div className="w-px h-3.5 bg-border mx-0.5" />
+                      <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive({ textAlign: 'left' }) ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}><AlignLeft className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive({ textAlign: 'center' }) ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}><AlignCenter className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`p-1.5 rounded-lg transition-all ${editor.isActive({ textAlign: 'right' }) ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}><AlignRight className="w-3.5 h-3.5" /></button>
+                      <div className="w-px h-3.5 bg-border mx-0.5" />
                       <button
                         onClick={() => {
                           const url = window.prompt('URL');
                           if (url) editor.chain().focus().setLink({ href: url }).run();
                         }}
-                        className={`p-1.5 rounded-lg transition-all ${editor.isActive('link') ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted/30 text-muted-foreground'}`}
+                        className={`p-1.5 rounded-lg transition-all ${editor.isActive('link') ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}
                       >
                         <LinkIcon className="w-3.5 h-3.5" />
                       </button>
                     </BubbleMenu>
                   )}
-                  
+
                   <div className="relative">
                     {!content.trim() || content === '<p></p>' ? (
-                      <div className="absolute top-0 left-0 text-muted-foreground/50 text-lg pointer-events-none">
-                        What's on your mind, Creator?
+                      <div className="absolute top-0 left-0 text-muted-foreground text-base pointer-events-none">
+                        Share something with your members...
                       </div>
                     ) : null}
                     <EditorContent editor={editor} />
                   </div>
-                  
+
                   {/* Image Preview */}
                   {coverPreview && (
-                    <div className="relative w-full h-48 rounded-2xl overflow-hidden shadow-md group/img">
+                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-border group/img">
                       <img src={coverPreview} alt="Preview" className="w-full h-full object-cover" />
-                      <button 
+                      <button
                         onClick={removeImage}
-                        className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full backdrop-blur-md opacity-0 group-hover/img:opacity-100 transition-opacity"
+                        className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full backdrop-blur-md hover:bg-black/70 transition-colors"
+                        aria-label="Remove image"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -294,19 +311,19 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                 </div>
               </div>
               
-              {/* Actions Bar - Moved out to span full width and use space under avatar */}
-              <div className="flex items-center justify-between pt-3 mt-3 border-t border-border/30 gap-2 flex-wrap min-h-[44px]">
+              {/* Actions Bar */}
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {/* Add Image */}
                   <CustomFilePicker manager={composerManager} hideUploadButton hidePreviewList accept="image/*" maxFileSizeMB={5}>
-                    <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-muted/20 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all cursor-pointer flex-shrink-0">
+                    <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer flex-shrink-0">
                       <ImageIcon className="w-3.5 h-3.5" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Image</span>
+                      <span className="text-xs font-medium">Image</span>
                     </button>
                   </CustomFilePicker>
 
                   {/* Premium Toggle */}
-                  <button 
+                  <button
                     onClick={() => {
                       if (!isPremium) {
                         setIsPremiumModalOpen(true);
@@ -314,41 +331,42 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                         setIsPremium(false);
                       }
                     }}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl transition-all flex-shrink-0 ${
-                      isPremium 
-                        ? 'bg-amber-500/20 text-amber-500 ring-1 ring-amber-500/50' 
-                        : 'bg-muted/20 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-500'
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full transition-colors flex-shrink-0 ${
+                      isPremium
+                        ? 'bg-secondary/15 text-secondary ring-1 ring-secondary/40'
+                        : 'bg-muted text-muted-foreground hover:bg-secondary/10 hover:text-secondary'
                     }`}
                   >
                     <Crown className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">{isPremium ? `${premiumPrice}` : 'Premium'}</span>
+                    <span className="text-xs font-medium">{isPremium ? `${premiumPrice} coins` : 'Premium'}</span>
                   </button>
 
                   {/* Tips Toggle */}
-                  <button 
+                  <button
                     onClick={() => setHasTipsEnabled(!hasTipsEnabled)}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl transition-all flex-shrink-0 ${
-                      hasTipsEnabled 
-                        ? 'bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/50' 
-                        : 'bg-muted/20 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500'
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full transition-colors flex-shrink-0 ${
+                      hasTipsEnabled
+                        ? 'bg-success/15 text-success ring-1 ring-success/40'
+                        : 'bg-muted text-muted-foreground hover:bg-success/10 hover:text-success'
                     }`}
                   >
                     <Coins className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Tips</span>
+                    <span className="text-xs font-medium">Tips</span>
                   </button>
                 </div>
 
                 {/* Post Button */}
-                <Button 
+                <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting || (!content.trim() && !coverImage)}
-                  className="h-9 px-5 rounded-xl bg-gradient-to-r from-primary to-primary/80 font-bold shadow-md shadow-primary/10 hover:scale-[1.02] active:scale-[0.98] transition-all flex-shrink-0"
+                  size="sm"
+                  className="rounded-full px-5 flex-shrink-0"
                 >
                   {isSubmitting ? (
-                    <div className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <div className="h-3.5 w-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                   ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">Post</span>
+                    <div className="flex items-center gap-1.5">
+                      <span>Post</span>
                       <Send className="w-3.5 h-3.5" />
                     </div>
                   )}
@@ -373,12 +391,14 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
             <div className="text-muted-foreground">Loading posts...</div>
           </div>
         ) : posts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <p className="text-muted-foreground mb-2">No posts yet</p>
-            {isOwner && (
-              <p className="text-sm text-muted-foreground">Be the first to share something!</p>
-            )}
-          </div>
+          <CircleEmptyState
+            icon={MessageCircle}
+            title="No posts yet"
+            description="Posts from the creator will show up here. Check back soon!"
+            ownerTitle="Share your first post"
+            ownerDescription="Welcome your members, pin an announcement or start a discussion using the composer above."
+            isOwner={isOwner}
+          />
         ) : (
           <div className="px-4 py-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -417,6 +437,16 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                     </div>
                   )}
 
+                {/* Pinned chip */}
+                {post.pinned_at && (
+                  <div className="absolute top-4 left-4 z-30">
+                    <span className="rounded-full bg-gradient-secondary text-primary-foreground px-3 py-1 text-xs font-semibold flex items-center gap-1 shadow-glow">
+                      <Pin className="w-3 h-3" />
+                      Pinned
+                    </span>
+                  </div>
+                )}
+
                 {/* Top-right bookmark chip */}
                 <div className="absolute top-4 right-4 z-30 flex gap-2">
                   <div className="rounded-full bg-card/20 backdrop-blur-sm p-2 hover:bg-card/30 transition-smooth cursor-pointer hover-scale">
@@ -430,6 +460,19 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleTogglePin(post)}>
+                          {post.pinned_at ? (
+                            <>
+                              <PinOff className="size-4 mr-2" />
+                              Unpin Post
+                            </>
+                          ) : (
+                            <>
+                              <Pin className="size-4 mr-2" />
+                              Pin to Top
+                            </>
+                          )}
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
                           setSelectedPostForEdit(post);
                           setIsEditModalOpen(true);

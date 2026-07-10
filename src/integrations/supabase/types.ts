@@ -910,34 +910,40 @@ export type Database = {
           circle_id: string
           created_at: string | null
           events_count: number | null
+          last_activity_at: string | null
           members_count: number | null
           monthly_activity: number | null
           posts_count: number | null
           resources_count: number | null
           services_count: number | null
           updated_at: string | null
+          videos_count: number | null
         }
         Insert: {
           circle_id: string
           created_at?: string | null
           events_count?: number | null
+          last_activity_at?: string | null
           members_count?: number | null
           monthly_activity?: number | null
           posts_count?: number | null
           resources_count?: number | null
           services_count?: number | null
           updated_at?: string | null
+          videos_count?: number | null
         }
         Update: {
           circle_id?: string
           created_at?: string | null
           events_count?: number | null
+          last_activity_at?: string | null
           members_count?: number | null
           monthly_activity?: number | null
           posts_count?: number | null
           resources_count?: number | null
           services_count?: number | null
           updated_at?: string | null
+          videos_count?: number | null
         }
         Relationships: [
           {
@@ -1057,66 +1063,84 @@ export type Database = {
           about_text: string | null
           avatar_url: string | null
           category: string
+          circle_type: string
           cover_image_url: string | null
           created_at: string | null
           creator_id: string
           description: string
+          enabled_features: string[]
           guidelines: string[] | null
           id: string
           invite_code: string
           is_active: boolean | null
           is_expert: boolean | null
+          is_online: boolean
           is_premium: boolean | null
           is_private: boolean | null
           location: string | null
+          member_benefits: string | null
           name: string
+          primary_language: string | null
           subscription_enabled: boolean
           subscription_method: string
           subscription_price: number
+          target_audience: string | null
           updated_at: string | null
         }
         Insert: {
           about_text?: string | null
           avatar_url?: string | null
           category: string
+          circle_type?: string
           cover_image_url?: string | null
           created_at?: string | null
           creator_id: string
           description: string
+          enabled_features?: string[]
           guidelines?: string[] | null
           id?: string
           invite_code?: string
           is_active?: boolean | null
           is_expert?: boolean | null
+          is_online?: boolean
           is_premium?: boolean | null
           is_private?: boolean | null
           location?: string | null
+          member_benefits?: string | null
           name: string
+          primary_language?: string | null
           subscription_enabled?: boolean
           subscription_method?: string
           subscription_price?: number
+          target_audience?: string | null
           updated_at?: string | null
         }
         Update: {
           about_text?: string | null
           avatar_url?: string | null
           category?: string
+          circle_type?: string
           cover_image_url?: string | null
           created_at?: string | null
           creator_id?: string
           description?: string
+          enabled_features?: string[]
           guidelines?: string[] | null
           id?: string
           invite_code?: string
           is_active?: boolean | null
           is_expert?: boolean | null
+          is_online?: boolean
           is_premium?: boolean | null
           is_private?: boolean | null
           location?: string | null
+          member_benefits?: string | null
           name?: string
+          primary_language?: string | null
           subscription_enabled?: boolean
           subscription_method?: string
           subscription_price?: number
+          target_audience?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -4937,6 +4961,10 @@ export type Database = {
       request_withdrawal: {
         Args: { _amount: number; _payout_method?: string; _user_id: string }
         Returns: boolean
+      }
+      set_circle_post_pinned: {
+        Args: { _post_id: string; _pinned: boolean }
+        Returns: undefined
       }
       spend_coins: {
         Args: {

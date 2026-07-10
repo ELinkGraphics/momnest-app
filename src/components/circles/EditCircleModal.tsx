@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Camera, X, Plus } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { type Circle } from '@/hooks/useCircles';
 import { useCircleMutations } from '@/hooks/useCircleMutations';
+import { CIRCLE_TYPES, CIRCLE_FEATURES, normalizeFeatures, type CircleFeature } from '@/lib/circleTypes';
 import { useUser } from '@/contexts/UserContext';
 import { toast } from 'sonner';
 import ImageCropper from '@/components/ImageCropper';
@@ -34,6 +36,10 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
   const [guidelines, setGuidelines] = useState<string[]>(
     circle.guidelines && circle.guidelines.length > 0 ? circle.guidelines : ['']
   );
+  const [circleType, setCircleType] = useState(circle.circle_type || 'community');
+  const [features, setFeatures] = useState<CircleFeature[]>(normalizeFeatures(circle.enabled_features));
+  const [targetAudience, setTargetAudience] = useState(circle.target_audience || '');
+  const [memberBenefits, setMemberBenefits] = useState(circle.member_benefits || '');
   
   const avatarManager = useFileManager();
   const coverManager = useFileManager();
@@ -51,7 +57,11 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
     setDescription(circle.description);
     setAboutSection(circle.about_text || '');
     setGuidelines(circle.guidelines && circle.guidelines.length > 0 ? circle.guidelines : ['']);
-    
+    setCircleType(circle.circle_type || 'community');
+    setFeatures(normalizeFeatures(circle.enabled_features));
+    setTargetAudience(circle.target_audience || '');
+    setMemberBenefits(circle.member_benefits || '');
+
     // Initialize managers with existing URLs only if they are empty
     if (circle.avatar_url && avatarManager.files.length === 0) {
       avatarManager.setFiles([{
@@ -85,24 +95,27 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
   const [cropperImage, setCropperImage] = useState<string | null>(null);
   const [cropperType, setCropperType] = useState<'avatar' | 'cover'>('avatar');
 
-  // Handle file selection from CustomFilePicker for cropping
+  // Handle file selection from CustomFilePicker for cropping.
+  // 'existing-*' entries are the images already saved on the circle and
+  // 'cropped-*' entries are crops the user just confirmed — neither may
+  // reopen the cropper, otherwise Done/Cancel loops straight back into it.
   useEffect(() => {
-    if (avatarManager.files[0]?.file && avatarManager.files[0].id !== 'existing-avatar' && !cropperImage) {
-      const file = avatarManager.files[0].file;
+    const item = avatarManager.files[0];
+    if (item?.file && item.id !== 'existing-avatar' && item.id !== 'cropped-avatar' && !cropperImage) {
       const reader = new FileReader();
       reader.onloadend = () => { setCropperImage(reader.result as string); setCropperType('avatar'); };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(item.file);
     }
-  }, [avatarManager.files, cropperImage]); // Added cropperImage to dependencies
+  }, [avatarManager.files, cropperImage]);
 
   useEffect(() => {
-    if (coverManager.files[0]?.file && coverManager.files[0].id !== 'existing-cover' && !cropperImage) {
-      const file = coverManager.files[0].file;
+    const item = coverManager.files[0];
+    if (item?.file && item.id !== 'existing-cover' && item.id !== 'cropped-cover' && !cropperImage) {
       const reader = new FileReader();
       reader.onloadend = () => { setCropperImage(reader.result as string); setCropperType('cover'); };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(item.file);
     }
-  }, [coverManager.files, cropperImage]); // Added cropperImage to dependencies
+  }, [coverManager.files, cropperImage]);
   
   // Removed native handlers in favor of CustomFilePicker managers
 
@@ -131,6 +144,24 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
         mimeType: file.type
       }]);
     }
+    setCropperImage(null);
+  };
+
+  // Cancelling a crop must also discard the picked file, otherwise the
+  // selection effect above reopens the cropper with the same image.
+  const handleCropCancel = () => {
+    const manager = cropperType === 'avatar' ? avatarManager : coverManager;
+    const existingUrl = cropperType === 'avatar' ? circle.avatar_url : circle.cover_image_url;
+    manager.setFiles(existingUrl ? [{
+      id: `existing-${cropperType}`,
+      file: new File([], 'existing'),
+      url: existingUrl,
+      status: 'idle',
+      kind: 'image',
+      name: 'existing',
+      size: 0,
+      mimeType: 'image/jpeg'
+    }] : []);
     setCropperImage(null);
   };
 
@@ -174,6 +205,10 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
         description: description.trim(),
         about_text: aboutSection.trim() || null,
         guidelines: guidelines.filter(g => g.trim() !== ''),
+        circle_type: circleType,
+        enabled_features: normalizeFeatures(features),
+        target_audience: targetAudience.trim() || null,
+        member_benefits: memberBenefits.trim() || null,
       };
 
       if (avatarFile && avatarFile.size > 0) updates.avatar = avatarFile;
@@ -277,10 +312,91 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
               </div>
             </div>
 
-            {/* Second Section - About & Guidelines */}
+            {/* Second Section - Type & Features */}
+            <div className="space-y-4 border-t pt-4">
+              <h3 className="font-semibold text-lg">Type & Features</h3>
+
+              <div>
+                <Label htmlFor="circle-type">Circle Type</Label>
+                <select
+                  id="circle-type"
+                  value={circleType}
+                  onChange={(e) => setCircleType(e.target.value)}
+                  className="mt-1 w-full p-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  {CIRCLE_TYPES.map((type) => (
+                    <option key={type.id} value={type.id}>{type.label}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  The type sets the order of your circle's tabs.
+                </p>
+              </div>
+
+              <div>
+                <Label>Enabled Features</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Only enabled features appear in your circle's navigation.
+                </p>
+                <div className="space-y-2">
+                  {CIRCLE_FEATURES.map((feature) => {
+                    const Icon = feature.icon;
+                    const isEnabled = feature.locked || features.includes(feature.id);
+                    return (
+                      <div key={feature.id} className="flex items-center gap-3 p-2 rounded-lg border border-border">
+                        <Icon className={`w-4 h-4 flex-shrink-0 ${isEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground">
+                            {feature.label}
+                            {feature.locked && <span className="ml-2 text-xs text-muted-foreground">Always on</span>}
+                          </p>
+                        </div>
+                        <Switch
+                          checked={isEnabled}
+                          disabled={feature.locked}
+                          onCheckedChange={() =>
+                            setFeatures((prev) =>
+                              prev.includes(feature.id)
+                                ? prev.filter((f) => f !== feature.id)
+                                : [...prev, feature.id]
+                            )
+                          }
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Third Section - About & Guidelines */}
             <div className="space-y-4 border-t pt-4">
               <h3 className="font-semibold text-lg">About & Guidelines</h3>
-              
+
+              {/* Audience */}
+              <div>
+                <Label htmlFor="audience">Who is this circle for?</Label>
+                <Input
+                  id="audience"
+                  value={targetAudience}
+                  onChange={(e) => setTargetAudience(e.target.value)}
+                  placeholder="e.g., Beginners who want to learn AI"
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Benefits */}
+              <div>
+                <Label htmlFor="benefits">What will members receive?</Label>
+                <Textarea
+                  id="benefits"
+                  value={memberBenefits}
+                  onChange={(e) => setMemberBenefits(e.target.value)}
+                  placeholder="e.g., Weekly live classes, downloadable guides, direct support..."
+                  className="mt-1 min-h-[80px]"
+                />
+              </div>
+
               {/* About Section */}
               <div>
                 <Label htmlFor="about">About This Circle</Label>
@@ -360,7 +476,7 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
           aspectRatio={cropperType === 'avatar' ? 1 : 16 / 9}
           cropShape={cropperType === 'avatar' ? 'round' : 'rect'}
           onCropComplete={handleCropComplete}
-          onCancel={() => setCropperImage(null)}
+          onCancel={handleCropCancel}
         />
       )}
     </>

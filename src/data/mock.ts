@@ -36,6 +36,10 @@ export interface Post {
   thumbnailUrl?: string;
   post_type?: 'photo' | 'video' | 'pdf' | 'text';
   original_pdf_url?: string | null;
+  /** 'public' (default) or 'friends' — friends-only posts are limited to the author's connections. */
+  visibility?: string;
+  /** False when the current viewer is outside a friends-only post's audience (no comment/interact). */
+  viewerCanInteract?: boolean;
 }
 
 export interface Comment {

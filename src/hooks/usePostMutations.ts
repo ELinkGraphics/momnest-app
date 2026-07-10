@@ -13,6 +13,7 @@ export interface CreatePostData {
   coverImage?: File;
   postType?: 'photo' | 'video' | 'pdf' | 'text';
   originalPdf?: File;
+  visibility?: 'public' | 'friends';
 }
 
 export const usePostMutations = () => {
@@ -95,6 +96,7 @@ export const usePostMutations = () => {
         tags: data.tags || [],
         is_sponsored: false,
         post_type: data.postType || (data.media?.length ? 'photo' : 'text'),
+        visibility: data.visibility || 'public',
       };
       if (data.locationText) insertData.location_text = data.locationText;
       if (data.voiceUrl) insertData.voice_url = data.voiceUrl;

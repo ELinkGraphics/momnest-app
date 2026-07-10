@@ -42,6 +42,7 @@ const Cart = React.lazy(() => import("./pages/Cart"));
 const SOSSubCategories = React.lazy(() => import("./pages/SOSSubCategories").then(m => ({ default: m.SOSSubCategories })));
 const CircleDetailWrapper = React.lazy(() => import("./components/CircleDetailWrapper"));
 const CirclePostDetail = React.lazy(() => import("./pages/CirclePostDetail"));
+const CircleDashboard = React.lazy(() => import("./pages/CircleDashboard"));
 const PostDetail = React.lazy(() => import("./pages/PostDetail"));
 const CreatePost = React.lazy(() => import("./pages/CreatePost"));
 const CreateVideo = React.lazy(() => import("./pages/CreateVideo"));
@@ -181,6 +182,7 @@ const AppRoutes = () => {
       <Route path="/sos/:category" element={<ProtectedRoute><SOSSubCategories /></ProtectedRoute>} />
       <Route path="/post/:postId" element={<ProtectedRoute><PostDetail /></ProtectedRoute>} />
       <Route path="/circle/:id" element={<ProtectedRoute><CircleDetailWrapper /></ProtectedRoute>} />
+      <Route path="/circle/:id/dashboard" element={<ProtectedRoute><CircleDashboard /></ProtectedRoute>} />
       <Route path="/circle/:circleId/post/:postId" element={<ProtectedRoute><CirclePostDetail /></ProtectedRoute>} />
       <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/video/:videoId" element={<ProtectedRoute><VideoDetail /></ProtectedRoute>} />

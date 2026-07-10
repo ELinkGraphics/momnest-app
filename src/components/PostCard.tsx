@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import DOMPurify from 'dompurify';
-import { Heart, MessageCircle, Share2, MoreHorizontal, BadgeCheck, Plus, Check, Trash2, Bookmark, Flag, Crown, Lock, MapPin, Mic, BookImage, Play, ThumbsUp, Laugh, LifeBuoy, Ghost, Angry, FileText } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, BadgeCheck, Plus, Check, Trash2, Bookmark, Flag, Crown, Lock, MapPin, Mic, BookImage, Play, ThumbsUp, Laugh, LifeBuoy, Ghost, Angry, FileText, Users } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useNavigate } from 'react-router-dom';
@@ -119,6 +119,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const isPremiumCirclePost = post.isPremium && post.circleId;
   const isUnlocked = post.userHasUnlocked || user?.id === post.user.id;
   const shouldShowPaywall = isPremiumCirclePost && !isUnlocked;
+  // Friends-only posts limit who may comment / react. The feed RPC already keeps
+  // these out of non-audience feeds, but we gate the UI too as a backstop.
+  const isFriendsOnly = post.visibility === 'friends';
+  const canInteract = post.viewerCanInteract !== false;
 
   const handleLike = async (reactionType: string = 'like') => {
     if (!user) {
@@ -309,6 +313,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 Sponsored
               </span>
             )}
+            {isFriendsOnly && (
+              <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/60 flex items-center gap-0.5" title="Only friends and followers can see this post">
+                <Users className="size-2.5" />
+                Friends
+              </span>
+            )}
           </div>
           <p className="text-[12px] text-muted-foreground font-medium flex items-center gap-1.5">
             {post.circleId && (
@@ -480,32 +490,39 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       )}
 
       {/* ── INTERACTION ROW ── */}
-      <div className="px-3 pt-3 pb-1 flex items-center">
-        <div className="flex items-center gap-4">
-          {/* Like */}
-          <PostReactionButton
-            isLiked={liked}
-            likesCount={likesCount}
-            userReaction={post.userReaction}
-            onLike={handleLike}
-            onShowLikers={() => setShowLikersModal(true)}
-          />
-          {/* Comment */}
-          <button onClick={handleOpenPost} className="flex items-center gap-1.5 group" aria-label="Comments">
-            <MessageCircle className="size-[22px] text-muted-foreground group-hover:text-foreground transition-colors" />
-            <span className="text-[13px] font-semibold text-muted-foreground">{formatCount(post.stats.comments)}</span>
-          </button>
-          {/* Share */}
-          <button onClick={handleShare} className="flex items-center gap-1.5 group" aria-label="Share">
-            <Share2 className="size-[22px] text-muted-foreground group-hover:text-foreground transition-colors" />
-            <span className="text-[13px] font-semibold text-muted-foreground">{formatCount(sharesCount)}</span>
+      {canInteract ? (
+        <div className="px-3 pt-3 pb-1 flex items-center">
+          <div className="flex items-center gap-4">
+            {/* Like */}
+            <PostReactionButton
+              isLiked={liked}
+              likesCount={likesCount}
+              userReaction={post.userReaction}
+              onLike={handleLike}
+              onShowLikers={() => setShowLikersModal(true)}
+            />
+            {/* Comment */}
+            <button onClick={handleOpenPost} className="flex items-center gap-1.5 group" aria-label="Comments">
+              <MessageCircle className="size-[22px] text-muted-foreground group-hover:text-foreground transition-colors" />
+              <span className="text-[13px] font-semibold text-muted-foreground">{formatCount(post.stats.comments)}</span>
+            </button>
+            {/* Share */}
+            <button onClick={handleShare} className="flex items-center gap-1.5 group" aria-label="Share">
+              <Share2 className="size-[22px] text-muted-foreground group-hover:text-foreground transition-colors" />
+              <span className="text-[13px] font-semibold text-muted-foreground">{formatCount(sharesCount)}</span>
+            </button>
+          </div>
+          {/* Bookmark — pushed right */}
+          <button onClick={handleSave} className="ml-auto" aria-label={saved ? 'Unsave' : 'Save'}>
+            <Bookmark className={`size-[22px] transition-all duration-300 ${saved ? 'fill-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`} />
           </button>
         </div>
-        {/* Bookmark — pushed right */}
-        <button onClick={handleSave} className="ml-auto" aria-label={saved ? 'Unsave' : 'Save'}>
-          <Bookmark className={`size-[22px] transition-all duration-300 ${saved ? 'fill-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`} />
-        </button>
-      </div>
+      ) : (
+        <div className="px-4 pt-3 pb-1 flex items-center gap-1.5 text-muted-foreground">
+          <Lock className="size-3.5" />
+          <span className="text-[12px] font-medium">Only friends and followers can interact with this post</span>
+        </div>
+      )}
 
       {/* ── CAPTION ── */}
       <div className="px-4 pt-1 pb-4" dir="auto">
@@ -589,7 +606,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         )}
 
         {/* View all comments link */}
-        {post.stats.comments > 0 && (
+        {canInteract && post.stats.comments > 0 && (
           <button onClick={handleOpenPost} className="text-[12px] text-muted-foreground mt-1.5 block">
             View all {post.stats.comments} comments
           </button>

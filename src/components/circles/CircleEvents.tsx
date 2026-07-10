@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEventMutations } from '@/hooks/useEventMutations';
 import CreateEventModal from './CreateEventModal';
 import EventAttendeesModal from './EventAttendeesModal';
+import CircleEmptyState from './CircleEmptyState';
 import { Loader2, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { CustomFilePicker } from '@/components/CustomFilePicker';
@@ -139,11 +140,16 @@ const CircleEvents: React.FC<CircleEventsProps> = ({ circle, isOwner }) => {
 
             <TabsContent value="upcoming" className="space-y-4 mt-4">
               {filteredEvents.length === 0 ? (
-                <Card className="mx-0">
-                  <CardContent className="p-6 text-center text-muted-foreground">
-                    No upcoming events
-                  </CardContent>
-                </Card>
+                <CircleEmptyState
+                  icon={Calendar}
+                  title="No upcoming events"
+                  description="Live classes and meetups will appear here."
+                  ownerTitle="Host your first event"
+                  ownerDescription="Schedule a live class, Q&A or meetup for your members."
+                  isOwner={isOwner}
+                  actionLabel="Create Event"
+                  onAction={() => setIsCreateModalOpen(true)}
+                />
               ) : (
                 filteredEvents.map((event) => {
                   const registered = isUserRegistered(event);

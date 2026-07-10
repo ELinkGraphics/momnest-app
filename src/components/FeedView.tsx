@@ -74,6 +74,8 @@ const formatPost = (item: any): Post => ({
   locationText: item.location_text || undefined,
   thumbnailUrl: item.cover_image_url || undefined,
   totalMediaCount: item.media_urls ? item.media_urls.length : (item.cover_image_url || item.media_url ? 1 : 0),
+  visibility: item.visibility || 'public',
+  viewerCanInteract: item.viewer_can_interact !== false,
 });
 
 interface FeedViewProps {

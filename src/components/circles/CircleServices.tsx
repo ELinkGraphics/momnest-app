@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import CreateServiceModal from './CreateServiceModal';
 import BookServiceModal from './BookServiceModal';
 import ServiceBookingsModal from './ServiceBookingsModal';
+import CircleEmptyState from './CircleEmptyState';
 
 interface CircleServicesProps {
   circle: any;
@@ -105,9 +106,16 @@ const CircleServices: React.FC<CircleServicesProps> = ({ circle, isOwner }) => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : services.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No services available yet
-          </div>
+          <CircleEmptyState
+            icon={Calendar}
+            title="No services available yet"
+            description="Bookable sessions and services will appear here."
+            ownerTitle="Create your first service"
+            ownerDescription="Offer coaching calls, consultations or other bookable sessions."
+            isOwner={isOwner}
+            actionLabel="Add Your Service"
+            onAction={() => setCreateModalOpen(true)}
+          />
         ) : (
           services.map((service) => (
             <Card key={service.id} className="hover:shadow-md transition-shadow mx-0">
