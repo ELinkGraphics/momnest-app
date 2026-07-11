@@ -240,6 +240,17 @@ async function getFCMAccessToken(): Promise<string | null> {
   }
 }
 
+/** Where a tap on the notification should land inside the app. */
+function buildNotificationUrl(type: string, data: Record<string, any>): string {
+  if (data?.circle_id) return `/circle/${data.circle_id}`;
+  if (data?.conversationId || data?.conversation_id) return "/messages";
+  if (type === "helper_request" || type === "sos_alert") return "/safe";
+  return "/notifications";
+}
+
+// Emergency-type notifications stay on screen until the user interacts
+const URGENT_TYPES = ["helper_request", "sos_alert"];
+
 /**
  * Deliver a notification to every device of the target users:
  * Web Push for browser/PWA subscriptions, FCM for native tokens (only when
@@ -250,7 +261,8 @@ async function deliverToUsers(
   targetUserIds: string[],
   title: string,
   body: string,
-  data: Record<string, any>
+  data: Record<string, any>,
+  notificationType = "system"
 ): Promise<string[]> {
   let webPushResults: string[] = [];
 
@@ -264,7 +276,10 @@ async function deliverToUsers(
       const pushPayload = JSON.stringify({
         title,
         body,
-        data,
+        data: { ...data, url: data?.url || buildNotificationUrl(notificationType, data) },
+        // Same-type notifications replace each other in the tray instead of piling up
+        tag: notificationType,
+        requireInteraction: URGENT_TYPES.includes(notificationType),
         icon: "/icon-192.png",
         badge: "/badge-72.png",
       });
@@ -369,7 +384,8 @@ Deno.serve(async (req) => {
         [claimed.user_id],
         claimed.title,
         claimed.body,
-        (claimed.data as Record<string, any>) ?? {}
+        (claimed.data as Record<string, any>) ?? {},
+        claimed.notification_type ?? "system"
       );
 
       return new Response(JSON.stringify({ success: true, webPushResults }), {

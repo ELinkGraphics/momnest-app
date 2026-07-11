@@ -17,10 +17,11 @@ registerRoute(
   new NetworkOnly()
 );
 
-// Handle Push Events
+// Handle Push Events — this runs even when every app window is closed, so
+// the notification lands in the system tray / notification shade.
 self.addEventListener('push', (event) => {
   console.log('[Service Worker] Push Received.');
-  let payload = { title: 'New Notification', body: 'You have a new update!', icon: '/icon-192.png', data: {} };
+  let payload: any = { title: 'New Notification', body: 'You have a new update!', icon: '/icon-192.png', data: {} };
 
   try {
     if (event.data) {
@@ -31,42 +32,84 @@ self.addEventListener('push', (event) => {
     payload.body = event.data?.text() || payload.body;
   }
 
-  const options = {
+  const options: NotificationOptions & { vibrate?: number[]; renotify?: boolean; actions?: { action: string; title: string }[] } = {
     body: payload.body,
     icon: payload.icon || '/icon-192.png',
     badge: '/badge-72.png',
     vibrate: [100, 50, 100],
     data: payload.data || {},
+    // Same-type notifications replace each other instead of flooding the
+    // shade; renotify still alerts (sound/vibration) on each replacement
+    tag: payload.tag || 'serkle-notification',
+    renotify: true,
+    // Emergency notifications stay visible until the user interacts
+    requireInteraction: !!payload.requireInteraction,
     actions: [
       { action: 'open', title: 'Open App' }
     ]
   };
 
   event.waitUntil(
-    self.registration.showNotification(payload.title, options)
+    (async () => {
+      await self.registration.showNotification(payload.title, options);
+      // Badge the installed app icon so missed notifications are visible
+      // even after the shade is swiped away
+      try {
+        await (self.navigator as any).setAppBadge?.();
+      } catch { /* Badging API not supported — fine */ }
+    })()
   );
 });
 
-// Handle Notification Clicks
+// Handle Notification Clicks — focus the app if it's running and navigate to
+// the notification's target; otherwise open a fresh window on it.
 self.addEventListener('notificationclick', (event) => {
   console.log('[Service Worker] Notification click Received.');
   event.notification.close();
 
-  const urlToOpen = event.notification.data?.url || '/';
+  const urlToOpen = event.notification.data?.url || '/notifications';
 
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // Check if there is already a window open and focus it
-      for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i];
-        if (client.url === urlToOpen && 'focus' in client) {
+    (async () => {
+      try {
+        await (self.navigator as any).clearAppBadge?.();
+      } catch { /* ignore */ }
+
+      const windowClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+
+      // Reuse an existing window: navigate it to the target and focus
+      for (const client of windowClients) {
+        if ('focus' in client) {
+          try {
+            if ('navigate' in client && new URL(client.url).origin === self.location.origin) {
+              await (client as WindowClient).navigate(urlToOpen);
+            }
+          } catch { /* navigation blocked — still focus */ }
           return client.focus();
         }
       }
-      // If no window is open, open a new one
+
+      // No window open — launch one directly on the target
       if (self.clients.openWindow) {
         return self.clients.openWindow(urlToOpen);
       }
+    })()
+  );
+});
+
+// Browsers rotate push subscriptions from time to time; without this handler
+// pushes silently stop until the user reopens the app. Resubscribe right here
+// in the background — the app re-saves the fresh subscription to the backend
+// on its next launch (and stale endpoints are pruned server-side on 410).
+self.addEventListener('pushsubscriptionchange', (event: any) => {
+  console.log('[Service Worker] Push subscription changed, resubscribing...');
+  const applicationServerKey = event.oldSubscription?.options?.applicationServerKey;
+  if (!applicationServerKey) return;
+
+  event.waitUntil(
+    self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey,
     })
   );
 });

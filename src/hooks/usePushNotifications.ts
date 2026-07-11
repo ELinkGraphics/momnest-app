@@ -40,10 +40,31 @@ export const usePushNotifications = () => {
       const registration = await navigator.serviceWorker.ready;
       const sub = await registration.pushManager.getSubscription();
       setSubscription(sub);
+      // Re-save on every launch: heals server-side drift after the browser
+      // rotates the subscription (pushsubscriptionchange) while the app was
+      // closed, so background delivery keeps working over time.
+      if (sub) {
+        saveSubscription(sub);
+      }
     } catch (error) {
       console.error('Error checking push subscription:', error);
     }
   };
+
+  // Clear the installed-app icon badge once the user is back in the app
+  useEffect(() => {
+    const clearBadge = () => {
+      try {
+        (navigator as any).clearAppBadge?.();
+      } catch { /* Badging API not supported */ }
+    };
+    clearBadge();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') clearBadge();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   const unregisterServiceWorker = async () => {
     try {
