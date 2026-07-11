@@ -40,6 +40,7 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
   const [features, setFeatures] = useState<CircleFeature[]>(normalizeFeatures(circle.enabled_features));
   const [targetAudience, setTargetAudience] = useState(circle.target_audience || '');
   const [memberBenefits, setMemberBenefits] = useState(circle.member_benefits || '');
+  const [postingPolicy, setPostingPolicy] = useState(circle.posting_policy || 'creator');
   
   const avatarManager = useFileManager();
   const coverManager = useFileManager();
@@ -61,6 +62,7 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
     setFeatures(normalizeFeatures(circle.enabled_features));
     setTargetAudience(circle.target_audience || '');
     setMemberBenefits(circle.member_benefits || '');
+    setPostingPolicy(circle.posting_policy || 'creator');
 
     // Initialize managers with existing URLs only if they are empty
     if (circle.avatar_url && avatarManager.files.length === 0) {
@@ -209,6 +211,7 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
         enabled_features: normalizeFeatures(features),
         target_audience: targetAudience.trim() || null,
         member_benefits: memberBenefits.trim() || null,
+        posting_policy: postingPolicy,
       };
 
       if (avatarFile && avatarFile.size > 0) updates.avatar = avatarFile;
@@ -338,6 +341,18 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
                 <p className="text-xs text-muted-foreground mb-2">
                   Only enabled features appear in your circle's navigation.
                 </p>
+                <div className="mb-4">
+                  <Label htmlFor="posting-policy">Who can post?</Label>
+                  <select
+                    id="posting-policy"
+                    value={postingPolicy}
+                    onChange={(e) => setPostingPolicy(e.target.value)}
+                    className="mt-1 w-full p-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  >
+                    <option value="creator">Creator & admins only</option>
+                    <option value="members">All members</option>
+                  </select>
+                </div>
                 <div className="space-y-2">
                   {CIRCLE_FEATURES.map((feature) => {
                     const Icon = feature.icon;

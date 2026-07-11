@@ -1080,6 +1080,7 @@ export type Database = {
           location: string | null
           member_benefits: string | null
           name: string
+          posting_policy: string
           primary_language: string | null
           subscription_enabled: boolean
           subscription_method: string
@@ -1108,6 +1109,7 @@ export type Database = {
           location?: string | null
           member_benefits?: string | null
           name: string
+          posting_policy?: string
           primary_language?: string | null
           subscription_enabled?: boolean
           subscription_method?: string
@@ -1136,6 +1138,7 @@ export type Database = {
           location?: string | null
           member_benefits?: string | null
           name?: string
+          posting_policy?: string
           primary_language?: string | null
           subscription_enabled?: boolean
           subscription_method?: string
@@ -3005,6 +3008,7 @@ export type Database = {
           body: string
           created_at: string | null
           data: Json | null
+          delivered_at: string | null
           id: string
           notification_type: string
           read_at: string | null
@@ -3016,6 +3020,7 @@ export type Database = {
           body: string
           created_at?: string | null
           data?: Json | null
+          delivered_at?: string | null
           id?: string
           notification_type: string
           read_at?: string | null
@@ -3027,6 +3032,7 @@ export type Database = {
           body?: string
           created_at?: string | null
           data?: Json | null
+          delivered_at?: string | null
           id?: string
           notification_type?: string
           read_at?: string | null

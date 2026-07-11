@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import PublicProfileModal from '@/components/PublicProfileModal';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, MapPin, Users, MessageCircle, Bell, MoreVertical, BadgeCheck, Pencil, Settings, Crown, Mail, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import FooterNav from '@/components/FooterNav';
@@ -18,6 +19,7 @@ import CircleAbout from '@/components/circles/CircleAbout';
 import CircleMessages from '@/components/circles/CircleMessages';
 import CircleVideos from '@/components/circles/CircleVideos';
 import CircleActivityStrip from '@/components/circles/CircleActivityStrip';
+import CircleGettingStarted from '@/components/circles/CircleGettingStarted';
 import EditCircleModal from '@/components/circles/EditCircleModal';
 import CircleSettingsModal from '@/components/circles/CircleSettingsModal';
 import { useCircle } from '@/hooks/useCircles';
@@ -50,13 +52,24 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
   const navigate = useNavigate();
   const { user } = useUser();
   const queryClient = useQueryClient();
-  const [circleActiveTab, setCircleActiveTab] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [circleActiveTab, setCircleActiveTab] = useState(searchParams.get('tab') ?? '');
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [bannerLoaded, setBannerLoaded] = useState(false);
+  const [showMiniHeader, setShowMiniHeader] = useState(false);
   const [profileModalUserId, setProfileModalUserId] = useState<string | null>(null);
+  const bannerRef = useRef<HTMLDivElement>(null);
+
+  // Explicit tab choices are reflected in the URL so circle sections can be
+  // shared and survive back/forward navigation
+  const selectTab = (tab: string) => {
+    setCircleActiveTab(tab);
+    setSearchParams({ tab }, { replace: true });
+  };
   
   const { data: circle, isLoading } = useCircle(id!, user?.id);
   const { joinCircle, leaveCircle, isJoining } = useCircleMutations();
@@ -112,20 +125,11 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
     }
   };
 
-  const handleJoinLeave = async () => {
-    if (!user) {
-      toast.error('Please log in to join circles');
-      return;
-    }
-    if (!circle) return;
-
+  const handleLeave = async () => {
+    if (!user || !circle) return;
     try {
-      if (circle.is_joined) {
-        await leaveCircle(circle.id, user.id);
-        handleBack();
-      } else {
-        await joinCircle(circle.id, user.id, circle.is_private);
-      }
+      await leaveCircle(circle.id, user.id);
+      handleBack();
     } catch (error) {
       // Error already handled in mutation
     }
@@ -151,6 +155,18 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
       setCircleActiveTab(tabs[0] ?? 'about');
     }
   }, [circle, circleActiveTab]);
+
+  // Compact header slides in once the banner scrolls out of view
+  useEffect(() => {
+    const el = bannerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowMiniHeader(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [circle?.id]);
 
   if (isLoading) {
     return (
@@ -198,10 +214,45 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
 
   return (
     <div className="min-h-[100dvh] w-full max-w-[480px] mx-auto bg-background text-foreground relative border-l border-r border-border pb-24">
+      {/* Sticky mini-header — appears when the banner scrolls away */}
+      {showMiniHeader && (
+        <div className="fixed top-0 inset-x-0 z-40 animate-fade-in">
+          <div className="max-w-[480px] mx-auto bg-background/95 backdrop-blur-md border-b border-x border-border flex items-center gap-2 px-3 py-2">
+            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleBack} aria-label="Back">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="h-7 w-7 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-[10px] font-semibold flex-shrink-0 overflow-hidden">
+              {circle.avatar_url ? (
+                <img src={circle.avatar_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                circle.name.slice(0, 2).toUpperCase()
+              )}
+            </div>
+            <p className="font-semibold text-sm truncate flex-1">{circle.name}</p>
+            {canManage ? (
+              <Button size="sm" variant="outline" onClick={() => navigate(`/circle/${circle.id}/dashboard`)} aria-label="Circle dashboard">
+                <BarChart3 className="h-4 w-4" />
+              </Button>
+            ) : !circle.is_joined ? (
+              circle.is_pending ? (
+                <Button size="sm" variant="outline" disabled>Requested</Button>
+              ) : (
+                <Button size="sm" onClick={handleJoinCircle} disabled={isJoining}>Join</Button>
+              )
+            ) : circle.subscription_enabled && !hasSubscription ? (
+              <Button size="sm" onClick={() => setSubscribeModalOpen(true)}>
+                <Crown className="h-3.5 w-3.5 mr-1" />
+                Subscribe
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      )}
+
       {/* Header with Banner and Profile */}
       <div className="relative">
         {/* Banner Background */}
-        <div className="h-48 overflow-hidden relative">
+        <div ref={bannerRef} className="h-48 overflow-hidden relative">
           {circle.cover_image_url ? (
             <img
               src={circle.cover_image_url}
@@ -336,9 +387,9 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
         </div>
 
         <div className="flex items-center justify-center gap-6 text-sm mb-4">
-          <button 
+          <button
             className="flex items-center gap-1 hover:text-primary transition-colors"
-            onClick={() => setCircleActiveTab('members')}
+            onClick={() => selectTab('members')}
           >
             <Users className="h-4 w-4 text-muted-foreground" />
             <span className="font-semibold text-foreground">{circle.members_count?.toLocaleString() || 0} members</span>
@@ -422,7 +473,7 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={handleJoinLeave}
+                      onClick={() => setLeaveConfirmOpen(true)}
                       disabled={isJoining}
                     >
                       {isJoining ? 'Loading...' : 'Leave'}
@@ -467,16 +518,25 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
         </div>
       </div>
 
+      {/* Owner setup guide */}
+      {canManage && (
+        <CircleGettingStarted
+          circle={circle}
+          onEditCircle={() => setEditModalOpen(true)}
+          onOpenTab={selectTab}
+        />
+      )}
+
       {/* Activity signals */}
       <CircleActivityStrip
         circle={circle}
-        onOpenEvents={() => setCircleActiveTab('events')}
-        onOpenMembers={() => setCircleActiveTab('members')}
+        onOpenEvents={() => selectTab('events')}
+        onOpenMembers={() => selectTab('members')}
       />
 
       {/* Tabs Section — only the circle's enabled features, ordered by its type */}
       <div className="border-t border-border">
-        <Tabs value={circleActiveTab} onValueChange={setCircleActiveTab} className="w-full">
+        <Tabs value={circleActiveTab} onValueChange={selectTab} className="w-full">
           <div className="px-4 pt-4 flex items-center justify-between">
             <TabsList className={`grid ${tabsGridClass} h-9 flex-1 mr-2`}>
               {mainTabs.map((feature) => (
@@ -495,17 +555,17 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {messagesEnabled && circle.is_joined && (
-                  <DropdownMenuItem onClick={() => setCircleActiveTab('messages')}>
+                  <DropdownMenuItem onClick={() => selectTab('messages')}>
                     <Mail className="h-4 w-4 mr-2" />
                     Messages
                   </DropdownMenuItem>
                 )}
                 {overflowTabs.map((feature) => (
-                  <DropdownMenuItem key={feature} onClick={() => setCircleActiveTab(feature)}>
+                  <DropdownMenuItem key={feature} onClick={() => selectTab(feature)}>
                     {getFeatureConfig(feature)?.label}
                   </DropdownMenuItem>
                 ))}
-                <DropdownMenuItem onClick={() => setCircleActiveTab('members')}>
+                <DropdownMenuItem onClick={() => selectTab('members')}>
                   Members
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -592,6 +652,30 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
           }}
         />
       )}
+
+      {/* Leave Confirmation */}
+      <AlertDialog open={leaveConfirmOpen} onOpenChange={setLeaveConfirmOpen}>
+        <AlertDialogContent className="max-w-[400px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave {circle.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You'll lose access to member-only content.
+              {circle.is_private
+                ? ' This is a private circle — rejoining requires a new request or invite.'
+                : ' You can rejoin at any time.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLeave}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Leave Circle
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Public Profile Modal */}
       {profileModalUserId && (

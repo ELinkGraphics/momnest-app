@@ -22,6 +22,7 @@ export interface Circle {
   member_benefits?: string | null;
   primary_language?: string | null;
   is_online?: boolean;
+  posting_policy?: string;
   about_text?: string | null;
   guidelines?: string[] | null;
   subscription_enabled?: boolean;
@@ -79,6 +80,7 @@ const mapCircleRow = (
   member_benefits: circle.member_benefits ?? null,
   primary_language: circle.primary_language ?? null,
   is_online: circle.is_online ?? true,
+  posting_policy: circle.posting_policy ?? 'creator',
   about_text: circle.about_text,
   guidelines: circle.guidelines,
   subscription_enabled: circle.subscription_enabled ?? false,
@@ -148,6 +150,53 @@ export const useCircles = (userId?: string) => {
       });
     },
     enabled: true,
+  });
+};
+
+/**
+ * Server-side circle search (ilike on name + description, backed by trigram
+ * indexes). Kicks in from 2 characters; below that the client-side filter over
+ * the browse list is enough.
+ */
+export const useSearchCircles = (query: string, userId?: string) => {
+  // Strip characters that would break the PostgREST or() filter syntax
+  const sanitized = query.trim().replace(/[%,()]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  return useQuery({
+    queryKey: ['circles-search', sanitized, userId],
+    queryFn: async () => {
+      const pattern = `%${sanitized}%`;
+      const { data: circles, error } = await supabase
+        .from('circles')
+        .select(CIRCLE_SELECT)
+        .eq('is_active', true)
+        .or(`name.ilike.${pattern},description.ilike.${pattern}`)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      let membershipData: any[] = [];
+      if (userId) {
+        const { data: memberships } = await supabase
+          .from('circle_members')
+          .select('circle_id, status, role')
+          .eq('user_id', userId)
+          .in('status', ['active', 'pending']);
+        membershipData = memberships || [];
+      }
+
+      return (circles || []).map((circle: any) => {
+        const membership = membershipData.find((m) => m.circle_id === circle.id);
+        return mapCircleRow(circle, userId, {
+          is_joined: membership?.status === 'active',
+          is_pending: membership?.status === 'pending',
+          member_role: membership?.status === 'active' ? membership.role : null,
+        });
+      });
+    },
+    enabled: sanitized.length >= 2,
+    staleTime: 30_000,
   });
 };
 

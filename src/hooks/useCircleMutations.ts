@@ -21,6 +21,7 @@ interface CreateCircleData {
   member_benefits?: string | null;
   primary_language?: string | null;
   is_online?: boolean;
+  posting_policy?: string;
   subscription_enabled?: boolean;
   subscription_price?: number;
 }
@@ -80,6 +81,7 @@ export const useCircleMutations = () => {
           member_benefits: data.member_benefits,
           primary_language: data.primary_language,
           is_online: data.is_online ?? true,
+          posting_policy: data.posting_policy || 'creator',
           subscription_enabled: data.subscription_enabled ?? false,
           subscription_price: data.subscription_price ?? 10,
         })
@@ -238,6 +240,7 @@ export const useCircleMutations = () => {
       if (updates.member_benefits !== undefined) updateData.member_benefits = updates.member_benefits;
       if (updates.primary_language !== undefined) updateData.primary_language = updates.primary_language;
       if (updates.is_online !== undefined) updateData.is_online = updates.is_online;
+      if (updates.posting_policy !== undefined) updateData.posting_policy = updates.posting_policy;
       if (avatarUrl) updateData.avatar_url = avatarUrl;
       if (coverUrl) updateData.cover_image_url = coverUrl;
 

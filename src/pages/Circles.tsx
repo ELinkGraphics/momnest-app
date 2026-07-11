@@ -8,7 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import CircleCard from '@/components/circles/CircleCard';
 import CircleManageModal from '@/components/circles/CircleManageModal';
 import FooterNav from '@/components/FooterNav';
-import { useCircles, useMyCircles, useOwnedCircles, Circle } from '@/hooks/useCircles';
+import { useCircles, useMyCircles, useOwnedCircles, useSearchCircles, Circle } from '@/hooks/useCircles';
 import { useCircleMutations } from '@/hooks/useCircleMutations';
 import { useUser } from '@/contexts/UserContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -94,6 +94,11 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
   const { data: ownedCircles = [], isLoading: isLoadingOwned } = useOwnedCircles(user?.id || '');
   const { joinCircle, isJoining } = useCircleMutations();
 
+  // From 2 characters, Browse searches the whole database instead of only the
+  // circles already downloaded
+  const searchActive = debouncedQuery.trim().length >= 2;
+  const { data: searchResults = [], isFetching: isSearching } = useSearchCircles(debouncedQuery, user?.id);
+
   const activeFilterCount = Object.entries(filters).filter(
     ([key, value]) => value !== DEFAULT_FILTERS[key as keyof CircleFilters]
   ).length;
@@ -143,9 +148,11 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
     return result;
   };
 
-  const filteredAllCircles = applyFilters(allCircles.filter((circle) => circle.creator_id !== user?.id));
+  const browseSource = searchActive ? searchResults : allCircles;
+  const filteredAllCircles = applyFilters(browseSource.filter((circle) => circle.creator_id !== user?.id));
   const filteredMyCircles = applyFilters(myCircles);
   const filteredOwnedCircles = applyFilters(ownedCircles);
+  const isBrowseLoading = isLoadingAll || (searchActive && isSearching);
 
   const hasQueryOrFilters = !!debouncedQuery || activeFilterCount > 0;
 
@@ -238,7 +245,7 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
                   : 'Discover and join circles created by others'}
               </p>
               <div className="grid gap-4">
-                {isLoadingAll ? (
+                {isBrowseLoading ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="space-y-3">
                       <Skeleton className="h-48 w-full rounded-lg" />

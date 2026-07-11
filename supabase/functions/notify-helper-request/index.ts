@@ -60,17 +60,6 @@ serve(async (req) => {
       console.error('Error fetching requester profile:', profileError);
     }
 
-    // Fetch helper's FCM token
-    const { data: helperProfile, error: helperError } = await supabase
-      .from('profiles')
-      .select('fcm_token')
-      .eq('id', helperId)
-      .single();
-
-    if (helperError) {
-      console.error('Error fetching helper profile:', helperError);
-    }
-
     const requesterName = requesterProfile?.name || 'Someone';
 
     // Create in-app notification
@@ -95,32 +84,9 @@ serve(async (req) => {
       console.error('Error creating in-app notification:', notifError);
     }
 
-    // Send push notification if FCM token exists
-    if (helperProfile?.fcm_token) {
-      try {
-        const { error: pushError } = await supabase.functions.invoke('send-push-notification', {
-          body: {
-            token: helperProfile.fcm_token,
-            title: '🚨 Help Request!',
-            body: `${requesterName} needs your help urgently`,
-            data: {
-              request_id: requestId,
-              alert_id: alert.id,
-              type: 'helper_request',
-              urgency: alert.urgency,
-            },
-          },
-        });
-
-        if (pushError) {
-          console.error('Error sending push notification:', pushError);
-        }
-      } catch (error) {
-        console.error('Failed to send push notification:', error);
-      }
-    }
-
-    console.log('Helper request notification sent successfully');
+    // Device push is handled by the on_push_notification_created trigger —
+    // the insert above is all that's needed.
+    console.log('Helper request notification queued successfully');
 
     return new Response(
       JSON.stringify({ 

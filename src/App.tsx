@@ -25,7 +25,6 @@ import { cacheManager, isFilePickerActive } from "@/utils/cacheManager";
 import { createIDBPersister, PERSIST_MAX_AGE, requestPersistentStorage } from "@/utils/queryPersister";
 import UpdateNotifier from "@/components/UpdateNotifier";
 import GlobalRealtimeListener from "@/components/GlobalRealtimeListener";
-import { useFirebaseMessaging } from "@/hooks/useFirebaseMessaging";
 
 // ─── Route-Level Code Splitting ─────────────────────────────────────
 // All pages are lazy-loaded to reduce initial bundle size by 60-80%
@@ -140,12 +139,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const PresenceWrapper = ({ children }: { children: React.ReactNode }) => {
   const { user } = useUser();
   return <PresenceProvider userId={user?.id}>{children}</PresenceProvider>;
-};
-
-const FirebaseMessagingWrapper = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useUser();
-  useFirebaseMessaging(user?.id);
-  return <>{children}</>;
 };
 
 // ─── App Routes ─────────────────────────────────────────────────────
@@ -278,7 +271,6 @@ const App = () => {
           }}
         >
           <UserProvider>
-            <FirebaseMessagingWrapper>
               <StoryProvider>
                 <PresenceWrapper>
                 <UploadProvider>
@@ -302,7 +294,6 @@ const App = () => {
                 </UploadProvider>
                 </PresenceWrapper>
               </StoryProvider>
-            </FirebaseMessagingWrapper>
           </UserProvider>
         </PersistQueryClientProvider>
       </ThemeProvider>

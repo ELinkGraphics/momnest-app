@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Camera, Globe, Lock, Crown, MapPin, Wifi, Check } from 'lucide-react';
+import { ArrowLeft, Camera, Globe, Lock, Crown, MapPin, Wifi, Check, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,6 +63,7 @@ const CreateCircle: React.FC = () => {
 
   // Step 4 — features
   const [features, setFeatures] = useState<CircleFeature[]>([]);
+  const [postingPolicy, setPostingPolicy] = useState<'creator' | 'members'>('creator');
 
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -167,6 +168,7 @@ const CreateCircle: React.FC = () => {
           member_benefits: memberBenefits.trim() || null,
           primary_language: language,
           is_online: isOnline,
+          posting_policy: postingPolicy,
           subscription_enabled: pricing === 'paid',
           subscription_price: pricing === 'paid' ? parseFloat(price) : undefined,
         },
@@ -528,6 +530,40 @@ const CreateCircle: React.FC = () => {
                   </Card>
                 );
               })}
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <Label>Who can post?</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setPostingPolicy('creator')}
+                  className={`flex items-center space-x-2 p-3 rounded-lg border transition-colors ${
+                    postingPolicy === 'creator'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <Crown className="w-5 h-5" />
+                  <div className="text-left">
+                    <p className="font-medium">Creator only</p>
+                    <p className="text-xs text-muted-foreground">You & admins post</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setPostingPolicy('members')}
+                  className={`flex items-center space-x-2 p-3 rounded-lg border transition-colors ${
+                    postingPolicy === 'members'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <Users className="w-5 h-5" />
+                  <div className="text-left">
+                    <p className="font-medium">All members</p>
+                    <p className="text-xs text-muted-foreground">Everyone can post</p>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -17,6 +17,7 @@ import { SubscribeCircleModal } from './SubscribeCircleModal';
 import { EditPostModal } from './EditPostModal';
 import { useCirclePosts } from '@/hooks/useCirclePosts';
 import { useCircleSubscription } from '@/hooks/useCircleSubscription';
+import { useUser } from '@/contexts/UserContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -40,6 +41,10 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
   const { id: circleId } = useParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useUser();
+
+  // Owners/admins always post; members only when the circle allows it
+  const canPost = isOwner || (circle?.posting_policy === 'members' && circle?.is_joined);
 
   // Inline Composer State
   const [content, setContent] = useState('');
@@ -246,15 +251,21 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
 
   return (
     <div className="space-y-0 scroll-smooth">
-      {/* Inline Post Composer - Only for Owners */}
-      {isOwner && (
+      {/* Inline Post Composer — owners always, members when the circle allows it */}
+      {canPost && (
         <div className="px-4 py-5 border-b border-border/50 animate-fade-in">
           <div className="bg-card rounded-2xl border border-border shadow-soft">
             <div className="p-4">
               <div className="flex gap-3">
-                {/* Creator badge avatar */}
-                <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground flex-shrink-0">
-                  <Crown className="w-5 h-5" />
+                {/* Creator crown for owners, the member's own avatar otherwise */}
+                <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground flex-shrink-0 overflow-hidden">
+                  {isOwner ? (
+                    <Crown className="w-5 h-5" />
+                  ) : currentUser?.avatar ? (
+                    <img src={currentUser.avatar} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-semibold">{currentUser?.initials || '?'}</span>
+                  )}
                 </div>
 
                 {/* Text Area / Rich Text Editor */}
@@ -287,7 +298,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                   <div className="relative">
                     {!content.trim() || content === '<p></p>' ? (
                       <div className="absolute top-0 left-0 text-muted-foreground text-base pointer-events-none">
-                        Share something with your members...
+                        {isOwner ? 'Share something with your members...' : 'Share something with the circle...'}
                       </div>
                     ) : null}
                     <EditorContent editor={editor} />
@@ -322,7 +333,8 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                     </button>
                   </CustomFilePicker>
 
-                  {/* Premium Toggle */}
+                  {/* Premium Toggle — creator monetization, owners only */}
+                  {isOwner && (
                   <button
                     onClick={() => {
                       if (!isPremium) {
@@ -340,6 +352,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                     <Crown className="w-3.5 h-3.5" />
                     <span className="text-xs font-medium">{isPremium ? `${premiumPrice} coins` : 'Premium'}</span>
                   </button>
+                  )}
 
                   {/* Tips Toggle */}
                   <button
@@ -405,23 +418,25 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
               {posts.map((post, index) => {
                 const canView = !post.is_premium || hasSubscription || isOwner || post.user_has_unlocked;
                 return (
-                <div 
-                  key={post.id} 
-                  className="relative w-full max-w-[420px] h-[550px] overflow-hidden bg-neutral-900 text-white mx-auto animate-fade-in hover-scale shadow-elegant rounded-lg"
-                  style={{ 
+                <div
+                  key={post.id}
+                  className={cn(
+                    "relative w-full max-w-[420px] overflow-hidden bg-neutral-900 text-white mx-auto animate-fade-in hover-scale shadow-elegant rounded-lg",
+                    // Image posts keep the tall immersive layout; text posts collapse to their content
+                    post.cover_image_url && "h-[550px]"
+                  )}
+                  style={{
                     animationDelay: `${index * 100}ms`,
                     animationFillMode: 'both'
                   }}
                 >
                   {/* Full-bleed background image */}
-                  {post.cover_image_url ? (
+                  {post.cover_image_url && (
                     <img
                       src={post.cover_image_url}
                       alt="Post cover"
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                     />
-                  ) : (
-                    <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
                   )}
 
                   {/* Premium lock overlay for locked posts */}
@@ -486,12 +501,19 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                   )}
                 </div>
 
-                {/* Bottom solid grey blurred overlay that feathers above */}
-                <div className="absolute inset-x-0 bottom-0 h-[180px] bg-gray-900/80 backdrop-blur-md" />
-                <div className="absolute inset-x-0 bottom-[180px] h-[60px] bg-gradient-to-t from-gray-900/80 to-transparent" />
+                {/* Bottom solid grey blurred overlay that feathers above (image posts only) */}
+                {post.cover_image_url && (
+                  <>
+                    <div className="absolute inset-x-0 bottom-0 h-[180px] bg-gray-900/80 backdrop-blur-md" />
+                    <div className="absolute inset-x-0 bottom-[180px] h-[60px] bg-gradient-to-t from-gray-900/80 to-transparent" />
+                  </>
+                )}
 
                   {/* Content */}
-                  <div className="absolute inset-x-0 bottom-0 z-20 p-6">
+                  <div className={post.cover_image_url
+                    ? "absolute inset-x-0 bottom-0 z-20 p-6"
+                    : cn("relative z-20 p-6", (post.pinned_at || isOwner) && "pt-14")
+                  }>
                     {/* Title + optional Premium pill */}
                     <div className="mb-3 flex items-start gap-3">
                       <h3 className="text-xl font-bold text-white leading-tight flex-1">
@@ -509,7 +531,10 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                     </div>
 
                     {/* Description */}
-                    <div className="text-white/90 text-sm leading-relaxed mb-4 line-clamp-2 overflow-hidden prose prose-sm prose-invert max-w-none">
+                    <div className={cn(
+                      "text-white/90 text-sm leading-relaxed mb-4 overflow-hidden prose prose-sm prose-invert max-w-none",
+                      post.cover_image_url ? "line-clamp-2" : "line-clamp-4"
+                    )}>
                       {canView ? (
                         post.content.includes('<') ? (
                           <div dangerouslySetInnerHTML={{ __html: post.content }} />

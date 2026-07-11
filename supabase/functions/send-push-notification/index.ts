@@ -240,6 +240,95 @@ async function getFCMAccessToken(): Promise<string | null> {
   }
 }
 
+/**
+ * Deliver a notification to every device of the target users:
+ * Web Push for browser/PWA subscriptions, FCM for native tokens (only when
+ * Firebase secrets are configured — the hook for future Capacitor builds).
+ */
+async function deliverToUsers(
+  supabase: ReturnType<typeof createClient>,
+  targetUserIds: string[],
+  title: string,
+  body: string,
+  data: Record<string, any>
+): Promise<string[]> {
+  let webPushResults: string[] = [];
+
+  if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+    const { data: webSubs } = await supabase
+      .from("push_subscriptions")
+      .select("*")
+      .in("user_id", targetUserIds);
+
+    if (webSubs?.length) {
+      const pushPayload = JSON.stringify({
+        title,
+        body,
+        data,
+        icon: "/icon-192.png",
+        badge: "/badge-72.png",
+      });
+
+      const results = await Promise.allSettled(
+        webSubs.map(async (sub) => {
+          try {
+            const res = await sendWebPush(
+              { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+              pushPayload
+            );
+            if (res.status === 410 || res.status === 404) {
+              await supabase.from("push_subscriptions").delete().eq("id", sub.id);
+              return `Removed stale subscription ${sub.id}`;
+            }
+            if (!res.ok) {
+              const errText = await res.text();
+              return `Push failed (${res.status}): ${errText}`;
+            }
+            return `Push sent to ${sub.id}`;
+          } catch (err) {
+            return `Error: ${err.message}`;
+          }
+        })
+      );
+      webPushResults = results.map((r) => (r.status === "fulfilled" ? r.value : r.reason));
+    }
+  }
+
+  // FCM branch — inert until FIREBASE_* secrets exist (future native apps)
+  const firebaseProjectId = Deno.env.get("FIREBASE_PROJECT_ID");
+  const accessToken = await getFCMAccessToken();
+  if (accessToken && firebaseProjectId) {
+    const { data: profilesWithTokens } = await supabase
+      .from("profiles")
+      .select("id, fcm_token")
+      .in("id", targetUserIds)
+      .not("fcm_token", "is", null);
+
+    if (profilesWithTokens?.length) {
+      const fcmUrl = `https://fcm.googleapis.com/v1/projects/${firebaseProjectId}/messages:send`;
+      await Promise.allSettled(
+        (profilesWithTokens as ProfileWithToken[])
+          .filter((p) => p.fcm_token && !p.fcm_token.startsWith("web_"))
+          .map((profile) =>
+            fetch(fcmUrl, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message: {
+                  token: profile.fcm_token,
+                  notification: { title, body },
+                  data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
+                },
+              }),
+            })
+          )
+      );
+    }
+  }
+
+  return webPushResults;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -251,6 +340,42 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
     const payload = await req.json();
+
+    // ── Deliver-only mode: fired by the DB trigger on push_notifications ──
+    // The request carries only a row id; title/body come from the row itself,
+    // so callers can't forge content. The atomic delivered_at claim makes
+    // duplicate or replayed calls harmless.
+    const notificationId =
+      payload.notification_id ??
+      (payload.table === "push_notifications" ? payload.record?.id : null);
+
+    if (notificationId) {
+      const { data: claimed } = await supabase
+        .from("push_notifications")
+        .update({ delivered_at: new Date().toISOString() })
+        .eq("id", notificationId)
+        .is("delivered_at", null)
+        .select()
+        .maybeSingle();
+
+      if (!claimed) {
+        return new Response(JSON.stringify({ skipped: "already delivered or unknown id" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const webPushResults = await deliverToUsers(
+        supabase,
+        [claimed.user_id],
+        claimed.title,
+        claimed.body,
+        (claimed.data as Record<string, any>) ?? {}
+      );
+
+      return new Response(JSON.stringify({ success: true, webPushResults }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     let targetUserIds: string[] = [];
     let title = "New Notification";
@@ -295,8 +420,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 1. Store in DB
-    await supabase.from("push_notifications").insert(
+    // Producing modes only insert rows — the on_push_notification_created
+    // trigger invokes this function back in deliver-only mode, so a row insert
+    // from ANY producer (client, RPC, another function) reaches devices.
+    const { error: insertError } = await supabase.from("push_notifications").insert(
       targetUserIds.map((userId) => ({
         user_id: userId,
         notification_type: notificationType,
@@ -305,74 +432,9 @@ Deno.serve(async (req) => {
         data,
       }))
     );
+    if (insertError) throw insertError;
 
-    // 2. Dispatch Web Push (Native)
-    let webPushResults: string[] = [];
-    if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-      const { data: webSubs } = await supabase
-        .from("push_subscriptions")
-        .select("*")
-        .in("user_id", targetUserIds);
-
-      if (webSubs?.length) {
-        const pushPayload = JSON.stringify({
-          title,
-          body,
-          data,
-          icon: "/icon-192.png",
-          badge: "/badge-72.png",
-        });
-
-        const results = await Promise.allSettled(
-          webSubs.map(async (sub) => {
-            try {
-              const res = await sendWebPush(
-                { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-                pushPayload
-              );
-              if (res.status === 410 || res.status === 404) {
-                await supabase.from("push_subscriptions").delete().eq("id", sub.id);
-                return `Removed stale subscription ${sub.id}`;
-              }
-              if (!res.ok) {
-                const errText = await res.text();
-                return `Push failed (${res.status}): ${errText}`;
-              }
-              return `Push sent to ${sub.id}`;
-            } catch (err) {
-              return `Error: ${err.message}`;
-            }
-          })
-        );
-        webPushResults = results.map((r) => (r.status === "fulfilled" ? r.value : r.reason));
-      }
-    }
-
-    // 3. Dispatch FCM (for Capacitor)
-    const firebaseProjectId = Deno.env.get("FIREBASE_PROJECT_ID");
-    const accessToken = await getFCMAccessToken();
-    const { data: profilesWithTokens } = await supabase.from("profiles").select("id, fcm_token").in("id", targetUserIds).not("fcm_token", "is", null);
-
-    if (accessToken && firebaseProjectId && profilesWithTokens?.length) {
-      const fcmUrl = `https://fcm.googleapis.com/v1/projects/${firebaseProjectId}/messages:send`;
-      await Promise.allSettled(
-        (profilesWithTokens as ProfileWithToken[])
-          .filter(p => p.fcm_token && !p.fcm_token.startsWith("web_"))
-          .map(profile => fetch(fcmUrl, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              message: {
-                token: profile.fcm_token,
-                notification: { title, body },
-                data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)]))
-              }
-            })
-          }))
-      );
-    }
-
-    return new Response(JSON.stringify({ success: true, webPushResults }), {
+    return new Response(JSON.stringify({ success: true, queued: targetUserIds.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   } catch (error) {

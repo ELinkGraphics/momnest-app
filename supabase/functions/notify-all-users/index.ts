@@ -17,41 +17,41 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { alertId, alertType, urgency, description, location } = await req.json();
+    const { alertId, alertType, urgency, description } = await req.json();
 
-    // Get all user profiles to send notifications
     const { data: profiles, error: profilesError } = await supabaseClient
       .from('profiles')
-      .select('id, name, fcm_token')
-      .not('fcm_token', 'is', null);
+      .select('id');
 
     if (profilesError) throw profilesError;
 
-    console.log(`Sending notifications to ${profiles?.length || 0} users`);
-
-    // In a real implementation, you would send push notifications here
-    // For now, we'll create in-app notifications
-    const notifications = profiles?.map(profile => ({
+    // Inserting the rows is all it takes: the on_push_notification_created
+    // trigger delivers device push for each one.
+    const notifications = (profiles || []).map((profile) => ({
       user_id: profile.id,
+      notification_type: 'sos_alert',
       title: `New ${urgency} ${alertType} Alert`,
-      message: description.substring(0, 100),
-      type: 'sos_alert',
-      related_id: alertId,
-      created_at: new Date().toISOString()
-    })) || [];
+      body: (description || '').substring(0, 100),
+      data: { alert_id: alertId },
+    }));
 
-    // Note: This would require a notifications table
-    // For demonstration, we're just logging
-    console.log('Notifications created:', notifications.length);
+    if (notifications.length > 0) {
+      const { error: insertError } = await supabaseClient
+        .from('push_notifications')
+        .insert(notifications);
+      if (insertError) throw insertError;
+    }
+
+    console.log(`Queued ${notifications.length} notifications`);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        notificationsSent: notifications.length 
+      JSON.stringify({
+        success: true,
+        notificationsSent: notifications.length
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
+        status: 200
       }
     );
   } catch (error) {
