@@ -202,11 +202,6 @@ export const usePushNotifications = () => {
   };
 
   const sendTestNotification = async () => {
-    if (!subscription) {
-      toast.error('You must be subscribed to test notifications');
-      return false;
-    }
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -214,7 +209,20 @@ export const usePushNotifications = () => {
         return false;
       }
 
-      const { error } = await supabase.functions.invoke('send-push-notification', {
+      // Self-heal: permission can be granted while this browser has no push
+      // subscription yet (fresh profile, cleared site data, new device).
+      // Permission is already granted when this button is visible, so
+      // subscribing here shows no prompt.
+      if (!subscription) {
+        toast.info('Setting up this device for push...');
+        const ok = await subscribeToPush();
+        if (!ok) {
+          toast.error('Could not subscribe this browser — try "Force Enable" below');
+          return false;
+        }
+      }
+
+      const { data, error } = await supabase.functions.invoke('send-push-notification', {
         body: {
           userId: user.id,
           title: '🔔 Test Notification',
@@ -224,8 +232,23 @@ export const usePushNotifications = () => {
       });
 
       if (error) throw error;
-      
-      toast.success('Test notification triggered!');
+
+      // Report what the server actually did instead of a blind success:
+      // the queued shape comes from the DB-trigger pipeline; webPushResults
+      // from direct delivery.
+      const results: string[] = data?.webPushResults ?? [];
+      const delivered = results.filter((r: string) => r.startsWith('Push sent')).length;
+
+      if (data?.queued) {
+        toast.success('Test notification queued — it should arrive in a moment');
+      } else if (delivered > 0) {
+        toast.success('Test notification sent to this device!');
+      } else if (results.length > 0) {
+        toast.error(`Push failed: ${results[0]}`);
+        console.error('Web push results:', results);
+      } else {
+        toast.error('Server delivered nothing — no saved subscription for this account, or VAPID keys are missing in Supabase secrets');
+      }
       return true;
     } catch (error) {
       console.error('Error triggering push:', error);
