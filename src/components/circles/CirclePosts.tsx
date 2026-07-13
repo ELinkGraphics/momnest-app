@@ -525,7 +525,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                           post.user_has_unlocked ? "bg-green-500 text-white" : "bg-gradient-secondary text-primary-foreground"
                         )}>
                           {post.user_has_unlocked ? <Check className="w-3 h-3" /> : <Crown className="w-3 h-3" />}
-                          {post.user_has_unlocked ? 'Paid' : 'Premium'}
+                          Premium
                         </span>
                       )}
                     </div>
@@ -545,7 +545,7 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
                             )}
                           </p>
                         )
-                      ) : 'Tap to unlock exclusive content with coins or subscribe for full access...'}
+                      ) : 'Premium content — unlock with coins or subscribe for full access...'}
                     </div>
 
                     {/* Row with social buttons including tip button */}

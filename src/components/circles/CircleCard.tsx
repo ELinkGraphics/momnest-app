@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Circle } from '@/hooks/useCircles';
-import { getCircleType } from '@/lib/circleTypes';
+import { getCircleType, displayCategory } from '@/lib/circleTypes';
 import { shareCircle } from '@/utils/shareUtils';
 
 interface CircleCardProps {
@@ -43,7 +43,7 @@ const CircleCard: React.FC<CircleCardProps> = ({ circle, onClick, showManageButt
 
   return (
     <Card
-      className="group cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] bg-card/50 backdrop-blur-sm border-border/50"
+      className="group w-full max-w-full overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] bg-card/50 backdrop-blur-sm border-border/50"
       onClick={onClick}
     >
       {/* Cover Image */}
@@ -73,7 +73,7 @@ const CircleCard: React.FC<CircleCardProps> = ({ circle, onClick, showManageButt
               Owner
             </Badge>
           )}
-          {circle.is_premium && (
+          {circle.subscription_enabled && (
             <Badge variant="default" className="bg-gradient-secondary text-primary-foreground shadow-glow">
               <Crown className="h-3 w-3 mr-1" />
               Premium
@@ -108,13 +108,13 @@ const CircleCard: React.FC<CircleCardProps> = ({ circle, onClick, showManageButt
             </h3>
             <div className="flex items-center gap-1">
               <p className="text-username text-muted-foreground">by {circle.creator?.name || 'Unknown'}</p>
-              {circle.is_premium && (
+              {circle.creator?.is_verified && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <BadgeCheck className="size-4 text-secondary animate-scale-in cursor-pointer" aria-label="Verified account" />
+                      <BadgeCheck className="size-4 text-secondary animate-scale-in cursor-pointer" aria-label="Verified Creator" />
                     </TooltipTrigger>
-                    <TooltipContent><p>Verified account</p></TooltipContent>
+                    <TooltipContent><p>Verified Creator</p></TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               )}
@@ -162,7 +162,7 @@ const CircleCard: React.FC<CircleCardProps> = ({ circle, onClick, showManageButt
               {typeConfig.label}
             </Badge>
             <Badge variant="outline" className="text-badge">
-              {circle.category}
+              {displayCategory(circle.category)}
             </Badge>
             {circle.subscription_enabled ? (
               <Badge variant="secondary" className="text-badge gap-1">
@@ -189,20 +189,26 @@ const CircleCard: React.FC<CircleCardProps> = ({ circle, onClick, showManageButt
             ) : circle.is_joined ? (
               <>
                 <Button variant="outline" size="sm" disabled className="bg-muted text-muted-foreground border-border cursor-not-allowed opacity-70 animate-scale-in">
-                  Joined
+                  {circle.subscription_enabled && circle.subscription_method === 'before_join' ? 'Subscribed' : 'Joined'}
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors" onClick={handleShare}>
                   <Share2 className="h-4 w-4" />
                 </Button>
               </>
             ) : (
+              // Subscribe is the primary action only when payment is required to
+              // join; paid circles that allow free joining still say Join
               <Button
                 size="sm"
                 onClick={handleJoinClick}
                 disabled={isJoining}
-                className={circle.is_premium ? "bg-gradient-primary text-primary-foreground hover:bg-gradient-primary/90 shadow-glow" : ""}
+                className={circle.subscription_enabled ? "bg-gradient-primary text-primary-foreground hover:bg-gradient-primary/90 shadow-glow" : ""}
               >
-                {isJoining ? 'Joining...' : circle.subscription_enabled ? 'Subscribe' : 'Join'}
+                {isJoining
+                  ? 'Joining...'
+                  : circle.subscription_enabled && circle.subscription_method === 'before_join'
+                    ? 'Subscribe'
+                    : 'Join'}
               </Button>
             )}
           </div>

@@ -76,7 +76,7 @@ export const SubscribeCircleModal: React.FC<SubscribeCircleModalProps> = ({
 
       toast({
         title: "Subscribed successfully!",
-        description: `${SUBSCRIPTION_COST} coins deducted. You now have access to premium content in ${circleName}`,
+        description: `${SUBSCRIPTION_COST} coins deducted. You now have access to Premium content in ${circleName}`,
       });
 
       onSubscribed();
@@ -98,7 +98,7 @@ export const SubscribeCircleModal: React.FC<SubscribeCircleModalProps> = ({
             Subscribe to {circleName}
           </DialogTitle>
           <DialogDescription>
-            Get access to premium content and exclusive posts
+            Get access to Premium content and exclusive posts
           </DialogDescription>
         </DialogHeader>
 
@@ -108,10 +108,10 @@ export const SubscribeCircleModal: React.FC<SubscribeCircleModalProps> = ({
             <h4 className="font-semibold text-sm">What you'll get:</h4>
             <ul className="space-y-2">
               {[
-                'Access to all premium posts',
-                'Exclusive content from circle owner',
+                'Access to all Premium posts',
+                'Exclusive content from the Circle creator',
                 'Early access to announcements',
-                'Support the circle community',
+                'Support the Circle and its creator',
               ].map((benefit, index) => (
                 <li key={index} className="flex items-center gap-2 text-sm">
                   <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">

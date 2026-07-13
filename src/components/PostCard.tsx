@@ -305,7 +305,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                 ) : (
                   <Crown className="size-2.5" />
                 )}
-                {post.userHasUnlocked ? 'Paid' : 'Premium'}
+                Premium
               </span>
             )}
             {post.sponsored && (

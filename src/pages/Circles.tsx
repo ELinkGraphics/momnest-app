@@ -12,7 +12,7 @@ import { useCircles, useMyCircles, useOwnedCircles, useSearchCircles, Circle } f
 import { useCircleMutations } from '@/hooks/useCircleMutations';
 import { useUser } from '@/contexts/UserContext';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CIRCLE_TYPES, CIRCLE_CATEGORIES } from '@/lib/circleTypes';
+import { CIRCLE_TYPES, CIRCLE_CATEGORIES, displayCategory } from '@/lib/circleTypes';
 import { type TabKey } from '@/hooks/useAppNav';
 
 interface CirclesProps {
@@ -62,10 +62,11 @@ const FilterChip: React.FC<FilterChipProps> = ({ active, onClick, children }) =>
   </button>
 );
 
-/** Staggered entrance for list items; delay is capped so long lists stay snappy. */
+/** Staggered entrance for list items; delay is capped so long lists stay snappy.
+ *  min-w-0 stops no-wrap card content from stretching the grid column. */
 const StaggerItem: React.FC<{ index: number; children: React.ReactNode }> = ({ index, children }) => (
   <div
-    className="animate-fade-in"
+    className="animate-fade-in min-w-0 max-w-full"
     style={{ animationDelay: `${Math.min(index, 5) * 60}ms`, animationFillMode: 'both' }}
   >
     {children}
@@ -84,7 +85,7 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
     return () => clearTimeout(handle);
   }, [searchQuery]);
 
-  const [circleTab, setCircleTab] = useState('browse');
+  const [circleTab, setCircleTab] = useState('discover');
   const [manageCircle, setManageCircle] = useState<Circle | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<CircleFilters>(DEFAULT_FILTERS);
@@ -123,7 +124,7 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
         circle.description.toLowerCase().includes(query) ||
         circle.category.toLowerCase().includes(query)
       )
-      .filter((circle) => filters.category === 'all' || circle.category === filters.category)
+      .filter((circle) => filters.category === 'all' || displayCategory(circle.category) === filters.category)
       .filter((circle) => filters.type === 'all' || circle.circle_type === filters.type)
       .filter((circle) =>
         filters.pricing === 'all' ||
@@ -160,7 +161,7 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
     setFilters((f) => ({ ...f, [key]: DEFAULT_FILTERS[key] }));
 
   const activeChips: { key: keyof CircleFilters; label: string }[] = [
-    ...(filters.pricing !== 'all' ? [{ key: 'pricing' as const, label: filters.pricing === 'free' ? 'Free' : 'Paid' }] : []),
+    ...(filters.pricing !== 'all' ? [{ key: 'pricing' as const, label: filters.pricing === 'free' ? 'Free' : 'Premium' }] : []),
     ...(filters.type !== 'all' ? [{ key: 'type' as const, label: CIRCLE_TYPES.find((t) => t.id === filters.type)?.label || filters.type }] : []),
     ...(filters.category !== 'all' ? [{ key: 'category' as const, label: filters.category }] : []),
     ...(filters.meeting !== 'all' ? [{ key: 'meeting' as const, label: filters.meeting === 'online' ? 'Online' : 'Local' }] : []),
@@ -231,13 +232,13 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
         <Tabs value={circleTab} onValueChange={setCircleTab} className="w-full">
           <div className="px-4 mt-3">
             <TabsList className="grid w-full grid-cols-3 h-9 max-w-full">
-              <TabsTrigger value="browse" className="text-xs px-1 min-w-0">Browse</TabsTrigger>
-              <TabsTrigger value="my-circles" className="text-xs px-1 min-w-0">My Circles</TabsTrigger>
-              <TabsTrigger value="my-communities" className="text-xs px-1 min-w-0">My Communities</TabsTrigger>
+              <TabsTrigger value="discover" className="text-xs px-1 min-w-0">Discover</TabsTrigger>
+              <TabsTrigger value="joined" className="text-xs px-1 min-w-0">Joined</TabsTrigger>
+              <TabsTrigger value="created" className="text-xs px-1 min-w-0">Created</TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="browse" className="mt-4">
+          <TabsContent value="discover" className="mt-4">
             <div className="px-4">
               <p className="text-xs text-muted-foreground mb-3">
                 {hasQueryOrFilters && !isLoadingAll
@@ -278,9 +279,9 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
             </div>
           </TabsContent>
 
-          <TabsContent value="my-circles" className="mt-4">
+          <TabsContent value="joined" className="mt-4">
             <div className="px-4">
-              <p className="text-xs text-muted-foreground mb-3">Circles you've joined</p>
+              <p className="text-xs text-muted-foreground mb-3">Circles you've joined or subscribed to</p>
               <div className="grid gap-4">
                 {isLoadingMy ? (
                   Array.from({ length: 3 }).map((_, i) => (
@@ -306,9 +307,9 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
             </div>
           </TabsContent>
 
-          <TabsContent value="my-communities" className="mt-4">
+          <TabsContent value="created" className="mt-4">
             <div className="px-4">
-              <p className="text-xs text-muted-foreground mb-3">Circles you own or admin</p>
+              <p className="text-xs text-muted-foreground mb-3">Circles you created or manage</p>
               <div className="grid gap-4">
                 {isLoadingOwned ? (
                   Array.from({ length: 3 }).map((_, i) => (
@@ -370,7 +371,7 @@ const Circles: React.FC<CirclesProps> = ({ activeTab, onTabSelect, onOpenCreate 
                     active={filters.pricing === option}
                     onClick={() => setFilters((f) => ({ ...f, pricing: option }))}
                   >
-                    {option === 'all' ? 'All' : option === 'free' ? 'Free' : 'Paid'}
+                    {option === 'all' ? 'All' : option === 'free' ? 'Free' : 'Premium'}
                   </FilterChip>
                 ))}
               </div>

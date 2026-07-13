@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PublicProfileModal from '@/components/PublicProfileModal';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, MapPin, Users, MessageCircle, Bell, MoreVertical, BadgeCheck, Pencil, Settings, Crown, Mail, BarChart3 } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Bell, MoreVertical, BadgeCheck, Pencil, Settings, Crown, Mail, ChevronDown, Share2, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -13,18 +13,17 @@ import FooterNav from '@/components/FooterNav';
 import CirclePosts from '@/components/circles/CirclePosts';
 import CircleServices from '@/components/circles/CircleServices';
 import CircleEvents from '@/components/circles/CircleEvents';
-import CircleResources from '@/components/circles/CircleResources';
+import CircleLearn from '@/components/circles/CircleLearn';
 import CircleMembers from '@/components/circles/CircleMembers';
 import CircleAbout from '@/components/circles/CircleAbout';
 import CircleMessages from '@/components/circles/CircleMessages';
-import CircleVideos from '@/components/circles/CircleVideos';
 import CircleActivityStrip from '@/components/circles/CircleActivityStrip';
 import CircleGettingStarted from '@/components/circles/CircleGettingStarted';
 import EditCircleModal from '@/components/circles/EditCircleModal';
 import CircleSettingsModal from '@/components/circles/CircleSettingsModal';
 import { useCircle } from '@/hooks/useCircles';
 import { useCircleMutations } from '@/hooks/useCircleMutations';
-import { getCircleTabs, getCircleType, getFeatureConfig } from '@/lib/circleTypes';
+import { getCircleNav, getCircleType, displayCategory, CIRCLE_NAV_LABELS, LEGACY_TAB_MAP } from '@/lib/circleTypes';
 import { useCircleSubscription } from '@/hooks/useCircleSubscription';
 import { SubscribeCircleModal } from '@/components/circles/SubscribeCircleModal';
 import { useUser } from '@/contexts/UserContext';
@@ -33,7 +32,6 @@ import { toast } from 'sonner';
 import { type TabKey } from '@/hooks/useAppNav';
 import { useQueryClient } from '@tanstack/react-query';
 import { shareCircle } from '@/utils/shareUtils';
-import { Share2 } from 'lucide-react';
 
 interface CircleDetailProps {
   activeTab: TabKey;
@@ -61,6 +59,7 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [bannerLoaded, setBannerLoaded] = useState(false);
   const [showMiniHeader, setShowMiniHeader] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
   const [profileModalUserId, setProfileModalUserId] = useState<string | null>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +69,7 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
     setCircleActiveTab(tab);
     setSearchParams({ tab }, { replace: true });
   };
-  
+
   const { data: circle, isLoading } = useCircle(id!, user?.id);
   const { joinCircle, leaveCircle, isJoining } = useCircleMutations();
   const { data: subscription } = useCircleSubscription(id);
@@ -135,24 +134,45 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
     }
   };
 
+  const handleCancelSubscription = async () => {
+    if (!user || !id) return;
+    const { error } = await supabase
+      .from('circle_subscriptions')
+      .update({ status: 'cancelled' })
+      .eq('circle_id', id)
+      .eq('user_id', user.id)
+      .eq('status', 'active');
+    if (!error) {
+      queryClient.invalidateQueries({ queryKey: ['circle-subscription', id] });
+      toast.success('Subscription cancelled');
+    } else {
+      toast.error('Failed to cancel subscription');
+    }
+  };
+
   const handleBack = () => {
     setActiveTab('circles');
     navigate('/', { replace: true });
   };
 
-  // Land on the first tab of the circle's type layout, and recover when the
-  // active tab points at a feature this circle has disabled
+  // Land on the Feed, recover when the active tab points at a hidden section,
+  // and translate old feature-id links (?tab=posts/videos/resources)
   useEffect(() => {
     if (!circle) return;
-    const tabs = getCircleTabs(circle);
-    const valid = [
-      ...tabs,
-      'about',
-      'members',
-      ...(circle.enabled_features.includes('messages') ? ['messages'] : []),
+    const canManageCircle = circle.is_owned || circle.is_admin || false;
+    const mapped = LEGACY_TAB_MAP[circleActiveTab] ?? circleActiveTab;
+    const chatEnabled = circle.enabled_features.includes('messages');
+    const valid: string[] = [
+      ...getCircleNav(circle, canManageCircle),
+      // Members management is owner/admin only; the messages chat room is also
+      // open to joined members via the header shortcut
+      ...(canManageCircle ? ['members'] : []),
+      ...(chatEnabled && (canManageCircle || circle.is_joined) ? ['messages'] : []),
     ];
-    if (!circleActiveTab || !valid.includes(circleActiveTab)) {
-      setCircleActiveTab(tabs[0] ?? 'about');
+    if (!mapped || !valid.includes(mapped)) {
+      setCircleActiveTab('feed');
+    } else if (mapped !== circleActiveTab) {
+      setCircleActiveTab(mapped);
     }
   }, [circle, circleActiveTab]);
 
@@ -172,19 +192,19 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
     return (
       <div className="min-h-[100dvh] w-full max-w-[480px] mx-auto bg-background text-foreground pb-20">
         <div className="relative">
-          <Skeleton className="w-full h-48" />
+          <Skeleton className="w-full h-28" />
           <div className="absolute top-4 left-4">
             <Button variant="ghost" size="icon" onClick={handleBack}>
               <ArrowLeft className="h-6 w-6" />
             </Button>
           </div>
         </div>
-        <div className="px-6 -mt-12 mb-4">
-          <Skeleton className="w-24 h-24 rounded-full" />
+        <div className="px-4 -mt-8 mb-3">
+          <Skeleton className="w-16 h-16 rounded-full" />
         </div>
-        <div className="px-6 space-y-4">
-          <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="h-20 w-full" />
+        <div className="px-4 space-y-3">
+          <Skeleton className="h-7 w-3/4" />
+          <Skeleton className="h-10 w-full" />
         </div>
       </div>
     );
@@ -204,13 +224,124 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
   const canManage = circle.is_owned || circle.is_admin || false;
   const typeConfig = getCircleType(circle.circle_type);
   const TypeIcon = typeConfig.icon;
-  const circleTabs = getCircleTabs(circle);
-  const mainTabs = circleTabs.slice(0, 4);
-  const overflowTabs = circleTabs.slice(4);
+  const navTabs = getCircleNav(circle, canManage);
+  const isPremiumCircle = !!circle.subscription_enabled;
+  const requiresSubscribeToJoin = isPremiumCircle && circle.subscription_method === 'before_join';
+  const isVerifiedCreator = !!circle.creator?.is_verified;
   const messagesEnabled = circle.enabled_features.includes('messages');
   const tabsGridClass =
-    ['grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4', 'grid-cols-5'][mainTabs.length] ??
+    ['grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4', 'grid-cols-5'][navTabs.length - 1] ??
     'grid-cols-5';
+
+  /** Owner/admin tools — Dashboard, Members, Messages, Settings — live here only. */
+  const manageMenu = (triggerClass = '') => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="sm" variant="outline" className={triggerClass}>
+          <Settings className="h-4 w-4 mr-1.5" />
+          Manage
+          <ChevronDown className="h-3.5 w-3.5 ml-1" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Manage Circle</DropdownMenuLabel>
+        <DropdownMenuItem onClick={() => navigate(`/circle/${circle.id}/dashboard`)}>
+          <LayoutDashboard className="h-4 w-4 mr-2" />
+          Dashboard
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => selectTab('members')}>
+          <Users className="h-4 w-4 mr-2" />
+          Members
+        </DropdownMenuItem>
+        {messagesEnabled && (
+          <DropdownMenuItem onClick={() => selectTab('messages')}>
+            <Mail className="h-4 w-4 mr-2" />
+            Messages
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => setEditModalOpen(true)}>
+          <Pencil className="h-4 w-4 mr-2" />
+          Edit Circle
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setSettingsModalOpen(true)}>
+          <Settings className="h-4 w-4 mr-2" />
+          Settings
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  /** Membership action following the product language: Join → Joined → Leave
+   *  Circle for free circles, Subscribe → Subscribed → Cancel Subscription
+   *  for paid ones. `withIcons` adds message + notification shortcuts next to
+   *  the status chip (main header only — the mini header stays compact). */
+  const membershipAction = (size: 'sm' | 'default' = 'sm', withIcons = false) => {
+    if (!circle.is_joined) {
+      if (circle.is_pending) {
+        return <Button size={size} variant="outline" disabled>Requested</Button>;
+      }
+      return (
+        <Button size={size} onClick={handleJoinCircle} disabled={isJoining}>
+          {requiresSubscribeToJoin && <Crown className="h-3.5 w-3.5 mr-1" />}
+          {isJoining ? 'Loading...' : requiresSubscribeToJoin ? 'Subscribe' : 'Join'}
+        </Button>
+      );
+    }
+    if (isPremiumCircle && !hasSubscription) {
+      return (
+        <Button size={size} onClick={() => setSubscribeModalOpen(true)}>
+          <Crown className="h-3.5 w-3.5 mr-1" />
+          Subscribe
+        </Button>
+      );
+    }
+    // Joined (and subscribed, for paid circles): status chip with exit actions
+    return (
+      <div className="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size={size} variant="outline">
+              {hasSubscription ? 'Subscribed' : 'Joined'}
+              <ChevronDown className="h-3.5 w-3.5 ml-1" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {hasSubscription && (
+              <DropdownMenuItem onClick={handleCancelSubscription} className="text-destructive">
+                Cancel Subscription
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={() => setLeaveConfirmOpen(true)} className="text-destructive">
+              Leave Circle
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {withIcons && messagesEnabled && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => selectTab('messages')}
+            aria-label="Circle messages"
+          >
+            <Mail className="h-4 w-4" />
+          </Button>
+        )}
+        {withIcons && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={toggleNotifications}
+            aria-label={notificationsEnabled ? 'Mute notifications' : 'Enable notifications'}
+          >
+            <Bell className={`h-4 w-4 ${notificationsEnabled ? 'fill-current' : ''}`} />
+          </Button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-[100dvh] w-full max-w-[480px] mx-auto bg-background text-foreground relative border-l border-r border-border pb-24">
@@ -229,30 +360,14 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
               )}
             </div>
             <p className="font-semibold text-sm truncate flex-1">{circle.name}</p>
-            {canManage ? (
-              <Button size="sm" variant="outline" onClick={() => navigate(`/circle/${circle.id}/dashboard`)} aria-label="Circle dashboard">
-                <BarChart3 className="h-4 w-4" />
-              </Button>
-            ) : !circle.is_joined ? (
-              circle.is_pending ? (
-                <Button size="sm" variant="outline" disabled>Requested</Button>
-              ) : (
-                <Button size="sm" onClick={handleJoinCircle} disabled={isJoining}>Join</Button>
-              )
-            ) : circle.subscription_enabled && !hasSubscription ? (
-              <Button size="sm" onClick={() => setSubscribeModalOpen(true)}>
-                <Crown className="h-3.5 w-3.5 mr-1" />
-                Subscribe
-              </Button>
-            ) : null}
+            {canManage ? manageMenu() : membershipAction()}
           </div>
         </div>
       )}
 
-      {/* Header with Banner and Profile */}
+      {/* Compact header: reduced banner + identity row */}
       <div className="relative">
-        {/* Banner Background */}
-        <div ref={bannerRef} className="h-48 overflow-hidden relative">
+        <div ref={bannerRef} className="h-28 overflow-hidden relative">
           {circle.cover_image_url ? (
             <img
               src={circle.cover_image_url}
@@ -263,77 +378,55 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-          
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+
           {/* Back Button */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleBack} 
-            className="absolute top-4 left-4 bg-black/20 backdrop-blur-sm text-white hover:bg-black/40 z-10"
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBack}
+            className="absolute top-3 left-3 h-8 w-8 bg-black/20 backdrop-blur-sm text-white hover:bg-black/40 z-10"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4" />
           </Button>
 
-          {/* More Options Button */}
+          {/* Secondary actions */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="absolute top-4 right-4 bg-black/20 backdrop-blur-sm text-white hover:bg-black/40 z-10">
-                <MoreVertical className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="absolute top-3 right-3 h-8 w-8 bg-black/20 backdrop-blur-sm text-white hover:bg-black/40 z-10">
+                <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {canManage ? (
-                // Owner options
-                circle.subscription_enabled ? (
+                isPremiumCircle ? (
                   <DropdownMenuItem onClick={() => setSettingsModalOpen(true)}>
                     <Users className="h-4 w-4 mr-2" />
-                    Check out your subscribers
+                    View your subscribers
                   </DropdownMenuItem>
                 ) : (
                   <DropdownMenuItem onClick={() => setSettingsModalOpen(true)}>
                     <Crown className="h-4 w-4 mr-2" />
-                    Make it paid
+                    Make it Premium
                   </DropdownMenuItem>
                 )
-              ) : !circle.is_joined ? (
-                // Non-member
-                circle.is_pending ? (
-                  <DropdownMenuItem disabled className="text-muted-foreground">
-                    Join request pending
+              ) : circle.is_joined ? (
+                <>
+                  {hasSubscription && (
+                    <DropdownMenuItem onClick={handleCancelSubscription} className="text-destructive">
+                      Cancel Subscription
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => setLeaveConfirmOpen(true)} className="text-destructive">
+                    Leave Circle
                   </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem onClick={handleJoinCircle}>
-                    Join the circle for more
-                  </DropdownMenuItem>
-                )
-              ) : hasSubscription ? (
-                <DropdownMenuItem 
-                  onClick={async () => {
-                    if (!user || !id) return;
-                    const { error } = await supabase
-                      .from('circle_subscriptions')
-                      .update({ status: 'cancelled' })
-                      .eq('circle_id', id)
-                      .eq('user_id', user.id)
-                      .eq('status', 'active');
-                    if (!error) {
-                      queryClient.invalidateQueries({ queryKey: ['circle-subscription', id] });
-                      toast.success('Subscription cancelled');
-                    } else {
-                      toast.error('Failed to cancel subscription');
-                    }
-                  }}
-                  className="text-destructive"
-                >
-                  Unsubscribe
-                </DropdownMenuItem>
+                </>
               ) : (
-                <DropdownMenuItem disabled className="text-muted-foreground">
-                  No subscription
+                <DropdownMenuItem onClick={handleJoinCircle} disabled={circle.is_pending}>
+                  {circle.is_pending ? 'Join request pending' : requiresSubscribeToJoin ? 'Subscribe' : 'Join'}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={() => circle && shareCircle(circle.id, circle.name)}>
+              <DropdownMenuItem onClick={() => shareCircle(circle.id, circle.name)}>
                 <Share2 className="h-4 w-4 mr-2" />
                 Share Circle
               </DropdownMenuItem>
@@ -341,178 +434,87 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
           </DropdownMenu>
         </div>
 
-        {/* Profile Image - Centered and Overlapping */}
-        <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 top-48">
-          <div className="h-24 w-24 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white text-2xl font-bold border-4 border-background shadow-lg">
-            {circle.avatar_url ? (
-              <img src={circle.avatar_url} alt={circle.name} className="w-full h-full rounded-full object-cover" />
-            ) : (
-              circle.name.slice(0, 2).toUpperCase()
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Profile Info Section */}
-      <div className="pt-14 px-6 pb-4 text-center">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <h1 className="text-2xl font-bold">{circle.name}</h1>
-          {circle.is_premium && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <BadgeCheck className="size-6 text-secondary animate-scale-in cursor-pointer" aria-label="Verified account" />
-                </TooltipTrigger>
-                <TooltipContent><p>Verified account</p></TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </div>
-        <p className="text-muted-foreground mb-3 leading-relaxed">{circle.description}</p>
-
-        {/* Type + pricing badges */}
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <Badge variant="outline" className="text-badge gap-1">
-            <TypeIcon className="h-3 w-3" />
-            {typeConfig.label}
-          </Badge>
-          {circle.subscription_enabled ? (
-            <Badge variant="secondary" className="text-badge gap-1">
-              <Crown className="h-3 w-3" />
-              Paid
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-badge">Free</Badge>
-          )}
-        </div>
-
-        <div className="flex items-center justify-center gap-6 text-sm mb-4">
-          <button
-            className="flex items-center gap-1 hover:text-primary transition-colors"
-            onClick={() => selectTab('members')}
-          >
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="font-semibold text-foreground">{circle.members_count?.toLocaleString() || 0} members</span>
-          </button>
-          {circle.location && (
-            <div className="flex items-center gap-1">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="font-semibold text-foreground">{circle.location}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Subscribe CTA — lives in the bio for joined members and hides once subscribed */}
-        {!canManage && circle.is_joined && circle.subscription_enabled && !hasSubscription && (
-          <Button
-            variant="default"
-            onClick={() => setSubscribeModalOpen(true)}
-            className="w-full"
-          >
-            <Crown className="h-4 w-4 mr-1.5" />
-            Subscribe
-          </Button>
-        )}
-      </div>
-
-      {/* Creator Section */}
-      <div className="px-6 py-4 border-t border-border">
-        <div className="flex items-center justify-between gap-3">
-          <button 
-            className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-80 transition-opacity"
-            onClick={() => setProfileModalUserId(circle.creator_id)}
-          >
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-              {circle.creator?.avatar_url ? (
-                <img src={circle.creator.avatar_url} alt={circle.creator.name} className="w-full h-full rounded-full object-cover" />
+        {/* Identity row: avatar + primary action, then name, creator, description.
+            Positioned above the banner so the overlapping avatar isn't painted under it. */}
+        <div className="relative z-10 px-4 pb-3">
+          <div className="flex items-end justify-between -mt-8 mb-2">
+            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white text-xl font-bold border-4 border-background shadow-lg overflow-hidden flex-shrink-0">
+              {circle.avatar_url ? (
+                <img src={circle.avatar_url} alt={circle.name} className="w-full h-full rounded-full object-cover" />
               ) : (
-                circle.creator?.name?.slice(0, 2).toUpperCase() || 'UN'
+                circle.name.slice(0, 2).toUpperCase()
               )}
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-medium text-foreground truncate text-sm sm:text-base">
-                {circle.creator?.name || 'Unknown'}
-              </p>
-              <p className="text-sm text-muted-foreground">Circle Creator</p>
+            <div className="mb-1">
+              {canManage ? manageMenu() : membershipAction('sm', true)}
             </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <h1 className="text-xl font-bold leading-tight">{circle.name}</h1>
+            {isPremiumCircle && (
+              <Badge variant="secondary" className="text-badge gap-1">
+                <Crown className="h-3 w-3" />
+                Premium Circle
+              </Badge>
+            )}
+          </div>
+
+          {/* Creator — verification is the platform's, never implied by premium */}
+          <button
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-1.5"
+            onClick={() => setProfileModalUserId(circle.creator_id)}
+          >
+            <span>by <span className="font-medium text-foreground">{circle.creator?.name || 'Unknown'}</span></span>
+            {isVerifiedCreator && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <BadgeCheck className="size-4 text-secondary cursor-pointer" aria-label="Verified Creator" />
+                  </TooltipTrigger>
+                  <TooltipContent><p>Verified Creator</p></TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </button>
-          
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            {canManage ? (
-              <>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => navigate(`/circle/${circle.id}/dashboard`)}
-                  aria-label="Circle dashboard"
+
+          {circle.description && (
+            <div className="mb-2">
+              <p className={`text-sm text-muted-foreground leading-relaxed ${descExpanded ? '' : 'line-clamp-2'}`}>
+                {circle.description}
+              </p>
+              {circle.description.length > 120 && (
+                <button
+                  className="text-xs font-medium text-primary hover:underline"
+                  onClick={() => setDescExpanded((v) => !v)}
                 >
-                  <BarChart3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setSettingsModalOpen(true)}
-                  aria-label="Circle settings"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setEditModalOpen(true)}
-                  aria-label="Edit circle"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </>
-            ) : (
-              <>
-                {circle.is_joined ? (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setLeaveConfirmOpen(true)}
-                      disabled={isJoining}
-                    >
-                      {isJoining ? 'Loading...' : 'Leave'}
-                    </Button>
-                  </>
-                ) : circle.is_pending ? (
-                  <Button size="sm" variant="outline" disabled>
-                    Requested
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={handleJoinCircle}
-                    disabled={isJoining}
-                  >
-                    {isJoining ? 'Loading...' : 'Join Circle'}
-                  </Button>
-                )}
-                
-                {circle.is_joined && (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={() => shareCircle(circle.id, circle.name)}
-                    >
-                      <Share2 className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={toggleNotifications}
-                    >
-                      <Bell className={`h-4 w-4 ${notificationsEnabled ? 'fill-current' : ''}`} />
-                    </Button>
-                  </>
-                )}
-              </>
+                  {descExpanded ? 'Show less' : 'Read more'}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Compact meta: type, pricing, members, location */}
+          <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-xs text-muted-foreground">
+            <Badge variant="outline" className="text-badge gap-1">
+              <TypeIcon className="h-3 w-3" />
+              {typeConfig.label}
+            </Badge>
+            <Badge variant="outline" className="text-badge">
+              {displayCategory(circle.category)}
+            </Badge>
+            {!isPremiumCircle && (
+              <Badge variant="outline" className="text-badge text-success border-success/30">Free</Badge>
+            )}
+            <span className="flex items-center gap-1">
+              <Users className="h-3.5 w-3.5" />
+              {circle.members_count?.toLocaleString() || 0} members
+            </span>
+            {circle.location && (
+              <span className="flex items-center gap-1 min-w-0">
+                <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate max-w-[120px]">{circle.location}</span>
+              </span>
             )}
           </div>
         </div>
@@ -531,84 +533,56 @@ const CircleDetail: React.FC<CircleDetailProps> = ({
       <CircleActivityStrip
         circle={circle}
         onOpenEvents={() => selectTab('events')}
-        onOpenMembers={() => selectTab('members')}
+        onOpenMembers={() => selectTab(canManage ? 'members' : 'about')}
       />
 
-      {/* Tabs Section — only the circle's enabled features, ordered by its type */}
+      {/* Public navigation: Feed | Learn | Events (| Services) | About */}
       <div className="border-t border-border">
         <Tabs value={circleActiveTab} onValueChange={selectTab} className="w-full">
-          <div className="px-4 pt-4 flex items-center justify-between">
-            <TabsList className={`grid ${tabsGridClass} h-9 flex-1 mr-2`}>
-              {mainTabs.map((feature) => (
-                <TabsTrigger key={feature} value={feature} className="text-xs px-1">
-                  {getFeatureConfig(feature)?.label}
+          <div className="px-4 pt-3">
+            <TabsList className={`grid ${tabsGridClass} h-9 w-full`}>
+              {navTabs.map((tab) => (
+                <TabsTrigger key={tab} value={tab} className="text-xs px-1">
+                  {CIRCLE_NAV_LABELS[tab]}
                 </TabsTrigger>
               ))}
-              <TabsTrigger value="about" className="text-xs px-1">About</TabsTrigger>
             </TabsList>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {messagesEnabled && circle.is_joined && (
-                  <DropdownMenuItem onClick={() => selectTab('messages')}>
-                    <Mail className="h-4 w-4 mr-2" />
-                    Messages
-                  </DropdownMenuItem>
-                )}
-                {overflowTabs.map((feature) => (
-                  <DropdownMenuItem key={feature} onClick={() => selectTab(feature)}>
-                    {getFeatureConfig(feature)?.label}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuItem onClick={() => selectTab('members')}>
-                  Members
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
 
           <div className="min-h-[400px]">
-            {messagesEnabled && (
-              <TabsContent value="messages" className="animate-fade-in">
-                <CircleMessages circle={circle} isOwner={canManage} />
+            <TabsContent value="feed" className="animate-fade-in">
+              <CirclePosts circle={circle} isOwner={canManage} />
+            </TabsContent>
+            {navTabs.includes('learn') && (
+              <TabsContent value="learn" className="animate-fade-in">
+                <CircleLearn circle={circle} isOwner={canManage} />
               </TabsContent>
             )}
-            {circleTabs.includes('posts') && (
-              <TabsContent value="posts" className="animate-fade-in">
-                <CirclePosts circle={circle} isOwner={canManage} />
-              </TabsContent>
-            )}
-            {circleTabs.includes('videos') && (
-              <TabsContent value="videos" className="animate-fade-in">
-                <CircleVideos circle={circle} isOwner={canManage} />
-              </TabsContent>
-            )}
-            {circleTabs.includes('services') && (
-              <TabsContent value="services" className="animate-fade-in">
-                <CircleServices circle={circle} isOwner={canManage} />
-              </TabsContent>
-            )}
-            {circleTabs.includes('events') && (
+            {navTabs.includes('events') && (
               <TabsContent value="events" className="animate-fade-in">
                 <CircleEvents circle={circle} isOwner={canManage} />
               </TabsContent>
             )}
-            {circleTabs.includes('resources') && (
-              <TabsContent value="resources" className="animate-fade-in">
-                <CircleResources circle={circle} isOwner={canManage} />
+            {navTabs.includes('services') && (
+              <TabsContent value="services" className="animate-fade-in">
+                <CircleServices circle={circle} isOwner={canManage} />
               </TabsContent>
             )}
-            <TabsContent value="members" className="animate-fade-in">
-              <CircleMembers circle={circle} isOwner={canManage} onViewProfile={(userId) => setProfileModalUserId(userId)} />
-            </TabsContent>
             <TabsContent value="about" className="animate-fade-in">
               <CircleAbout circle={circle} onViewCreatorProfile={(userId) => setProfileModalUserId(userId)} />
             </TabsContent>
+
+            {/* Manage Circle sections — owner/admin only, opened from the Manage menu */}
+            {canManage && (
+              <TabsContent value="members" className="animate-fade-in">
+                <CircleMembers circle={circle} isOwner={canManage} onViewProfile={(userId) => setProfileModalUserId(userId)} />
+              </TabsContent>
+            )}
+            {messagesEnabled && (canManage || circle.is_joined) && (
+              <TabsContent value="messages" className="animate-fade-in">
+                <CircleMessages circle={circle} isOwner={canManage} />
+              </TabsContent>
+            )}
           </div>
         </Tabs>
       </div>

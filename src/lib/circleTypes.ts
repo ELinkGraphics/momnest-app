@@ -44,9 +44,6 @@ export const CIRCLE_FEATURES: CircleFeatureConfig[] = [
 /** Every feature, in default order — used for existing circles with no explicit selection. */
 export const DEFAULT_FEATURES: CircleFeature[] = CIRCLE_FEATURES.map((f) => f.id);
 
-/** Content features that can appear as main tabs (messages stays in the overflow menu). */
-export const TAB_FEATURES: CircleFeature[] = ['posts', 'videos', 'services', 'events', 'resources'];
-
 export type CircleTypeId =
   | 'learning'
   | 'community'
@@ -64,8 +61,6 @@ export interface CircleTypeConfig {
   icon: LucideIcon;
   /** Features pre-enabled when a creator picks this type. */
   defaultFeatures: CircleFeature[];
-  /** Preferred order of the main tabs; enabled features missing here are appended. */
-  tabOrder: CircleFeature[];
 }
 
 export const CIRCLE_TYPES: CircleTypeConfig[] = [
@@ -75,15 +70,13 @@ export const CIRCLE_TYPES: CircleTypeConfig[] = [
     tagline: 'Teach with videos, resources and live classes',
     icon: GraduationCap,
     defaultFeatures: ['posts', 'videos', 'resources', 'events'],
-    tabOrder: ['videos', 'resources', 'events', 'posts', 'services'],
   },
   {
     id: 'community',
-    label: 'Community',
+    label: 'Social',
     tagline: 'Bring people together around a shared interest',
     icon: Users,
     defaultFeatures: ['posts', 'events', 'messages'],
-    tabOrder: ['posts', 'events', 'videos', 'resources', 'services'],
   },
   {
     id: 'consulting',
@@ -91,7 +84,6 @@ export const CIRCLE_TYPES: CircleTypeConfig[] = [
     tagline: 'Offer bookable sessions and expert advice',
     icon: Briefcase,
     defaultFeatures: ['posts', 'services', 'events', 'resources'],
-    tabOrder: ['services', 'posts', 'events', 'resources', 'videos'],
   },
   {
     id: 'business',
@@ -99,7 +91,6 @@ export const CIRCLE_TYPES: CircleTypeConfig[] = [
     tagline: 'Grow an audience around your brand',
     icon: Building2,
     defaultFeatures: ['posts', 'services', 'videos', 'events'],
-    tabOrder: ['posts', 'services', 'videos', 'events', 'resources'],
   },
   {
     id: 'news',
@@ -107,7 +98,6 @@ export const CIRCLE_TYPES: CircleTypeConfig[] = [
     tagline: 'Publish updates your members can follow',
     icon: Newspaper,
     defaultFeatures: ['posts', 'videos'],
-    tabOrder: ['posts', 'videos', 'resources', 'events', 'services'],
   },
   {
     id: 'support_group',
@@ -115,7 +105,6 @@ export const CIRCLE_TYPES: CircleTypeConfig[] = [
     tagline: 'A safe space for members to support each other',
     icon: HeartHandshake,
     defaultFeatures: ['posts', 'messages', 'events', 'resources'],
-    tabOrder: ['posts', 'events', 'resources', 'videos', 'services'],
   },
   {
     id: 'creator_club',
@@ -123,20 +112,18 @@ export const CIRCLE_TYPES: CircleTypeConfig[] = [
     tagline: 'Exclusive content for your fans and supporters',
     icon: Star,
     defaultFeatures: ['posts', 'videos', 'events', 'messages'],
-    tabOrder: ['posts', 'videos', 'events', 'resources', 'services'],
   },
   {
     id: 'local_community',
-    label: 'Local Community',
+    label: 'Local',
     tagline: 'Meet and organize with people near you',
     icon: MapPin,
     defaultFeatures: ['posts', 'events', 'messages'],
-    tabOrder: ['events', 'posts', 'resources', 'videos', 'services'],
   },
 ];
 
 export const CIRCLE_CATEGORIES = [
-  'Community',
+  'General',
   'Sports',
   'Education',
   'Technology',
@@ -156,6 +143,10 @@ export const getCircleType = (id?: string | null): CircleTypeConfig =>
 export const getFeatureConfig = (id: string): CircleFeatureConfig | undefined =>
   CIRCLE_FEATURES.find((f) => f.id === id);
 
+/** Circles created before the category rename still store 'Community'. */
+export const displayCategory = (category?: string | null): string =>
+  category === 'Community' ? 'General' : category ?? '';
+
 /** Normalize a stored feature list: known ids only, locked features always included. */
 export const normalizeFeatures = (features?: string[] | null): CircleFeature[] => {
   const valid = (features ?? DEFAULT_FEATURES).filter((f): f is CircleFeature =>
@@ -166,16 +157,42 @@ export const normalizeFeatures = (features?: string[] | null): CircleFeature[] =
 };
 
 /**
- * The main tabs for a circle: its enabled content features in the order its
- * type prefers. Messages/members/about are handled separately by the page.
+ * Public circle navigation: Feed | Learn | Events | About, with Services only
+ * when the circle actually offers at least one active service (owners/admins
+ * always see it so they can create the first one). Learn groups the videos
+ * and resources features. Members/messages live in the Manage Circle area.
  */
-export const getCircleTabs = (circle: {
-  circle_type?: string | null;
-  enabled_features?: string[] | null;
-}): CircleFeature[] => {
-  const type = getCircleType(circle.circle_type);
+export type CircleNavTab = 'feed' | 'learn' | 'events' | 'services' | 'about';
+
+export const CIRCLE_NAV_LABELS: Record<CircleNavTab, string> = {
+  feed: 'Feed',
+  learn: 'Learn',
+  events: 'Events',
+  services: 'Services',
+  about: 'About',
+};
+
+export const getCircleNav = (
+  circle: {
+    enabled_features?: string[] | null;
+    services_count?: number;
+  },
+  canManage = false
+): CircleNavTab[] => {
   const enabled = normalizeFeatures(circle.enabled_features);
-  const ordered = type.tabOrder.filter((f) => enabled.includes(f) && TAB_FEATURES.includes(f));
-  const missing = enabled.filter((f) => TAB_FEATURES.includes(f) && !ordered.includes(f));
-  return [...ordered, ...missing];
+  const tabs: CircleNavTab[] = ['feed'];
+  if (enabled.includes('videos') || enabled.includes('resources')) tabs.push('learn');
+  if (enabled.includes('events')) tabs.push('events');
+  if (enabled.includes('services') && ((circle.services_count ?? 0) > 0 || canManage)) {
+    tabs.push('services');
+  }
+  tabs.push('about');
+  return tabs;
+};
+
+/** Old shared links used feature ids as the ?tab= value; map them to the new nav. */
+export const LEGACY_TAB_MAP: Record<string, string> = {
+  posts: 'feed',
+  videos: 'learn',
+  resources: 'learn',
 };

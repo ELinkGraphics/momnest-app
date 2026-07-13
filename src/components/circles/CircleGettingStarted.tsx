@@ -28,7 +28,7 @@ const CircleGettingStarted: React.FC<CircleGettingStartedProps> = ({ circle, onE
       id: 'post',
       label: 'Write your first post',
       done: (circle.posts_count ?? 0) > 0,
-      onClick: () => onOpenTab('posts'),
+      onClick: () => onOpenTab('feed'),
     },
     {
       id: 'invite',
@@ -41,7 +41,7 @@ const CircleGettingStarted: React.FC<CircleGettingStartedProps> = ({ circle, onE
           id: 'video',
           label: 'Upload your first video',
           done: (circle.videos_count ?? 0) > 0,
-          onClick: () => onOpenTab('videos'),
+          onClick: () => onOpenTab('learn'),
         }]
       : []),
     ...(circle.enabled_features.includes('resources')
@@ -49,7 +49,7 @@ const CircleGettingStarted: React.FC<CircleGettingStartedProps> = ({ circle, onE
           id: 'resource',
           label: 'Share your first resource',
           done: (circle.resources_count ?? 0) > 0,
-          onClick: () => onOpenTab('resources'),
+          onClick: () => onOpenTab('learn'),
         }]
       : []),
   ];

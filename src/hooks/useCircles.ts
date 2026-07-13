@@ -45,6 +45,8 @@ export interface Circle {
     name: string;
     avatar_url: string | null;
     username: string;
+    /** Platform-confirmed creator verification — independent from premium status. */
+    is_verified: boolean;
   };
 }
 
@@ -103,6 +105,7 @@ const mapCircleRow = (
     name: circle.profiles?.name || 'Unknown',
     avatar_url: circle.profiles?.avatar_url || null,
     username: circle.profiles?.username || 'unknown',
+    is_verified: circle.profiles?.is_verified ?? false,
   },
 });
 
@@ -112,7 +115,8 @@ const CIRCLE_SELECT = `
   profiles!circles_creator_id_fkey (
     name,
     avatar_url,
-    username
+    username,
+    is_verified
   )
 `;
 

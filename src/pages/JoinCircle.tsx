@@ -7,6 +7,7 @@ import { Users } from 'lucide-react';
 import { VideoLoader } from '@/components/ui/VideoLoader';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { displayCategory } from '@/lib/circleTypes';
 
 const JoinCircle: React.FC = () => {
   const { inviteCode } = useParams<{ inviteCode: string }>();
@@ -124,7 +125,7 @@ const JoinCircle: React.FC = () => {
         <AvatarFallback className="text-2xl">{circle.name?.[0]}</AvatarFallback>
       </Avatar>
       <h1 className="text-xl font-bold mb-1">{circle.name}</h1>
-      <p className="text-sm text-muted-foreground mb-1">{circle.category}</p>
+      <p className="text-sm text-muted-foreground mb-1">{displayCategory(circle.category)}</p>
       <p className="text-sm text-muted-foreground mb-1">
         {(Array.isArray(circle.circle_stats)
           ? circle.circle_stats[0]?.members_count
@@ -134,7 +135,11 @@ const JoinCircle: React.FC = () => {
 
       {user ? (
         <Button onClick={handleJoin} disabled={joining} className="px-8">
-          {joining ? 'Joining...' : 'Join Circle'}
+          {joining
+            ? 'Joining...'
+            : circle.subscription_enabled && circle.subscription_method === 'before_join'
+              ? 'Subscribe'
+              : 'Join'}
         </Button>
       ) : (
         <div className="space-y-3">

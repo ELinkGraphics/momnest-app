@@ -358,7 +358,7 @@ const CirclePostDetail: React.FC = () => {
                 post.user_has_unlocked ? "bg-green-500 text-white" : "bg-gradient-secondary text-primary-foreground"
               )}>
                 {post.user_has_unlocked ? <Check className="w-3 h-3" /> : <Crown className="w-3 h-3" />}
-                {post.user_has_unlocked ? 'Paid' : 'Premium'}
+                Premium
               </span>
             )}
           </div>

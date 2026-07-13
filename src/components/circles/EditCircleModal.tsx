@@ -424,9 +424,9 @@ const EditCircleModal: React.FC<EditCircleModalProps> = ({
                 />
               </div>
 
-              {/* Community Guidelines */}
+              {/* Circle Guidelines */}
               <div>
-                <Label>Community Guidelines</Label>
+                <Label>Circle Guidelines</Label>
                 <div className="space-y-2 mt-2">
                   {guidelines.map((guideline, index) => (
                     <div key={index} className="flex gap-2">

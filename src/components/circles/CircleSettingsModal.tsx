@@ -26,7 +26,6 @@ const CircleSettingsModal: React.FC<CircleSettingsModalProps> = ({ open, onOpenC
   const [subscriptionEnabled, setSubscriptionEnabled] = useState(circle.subscription_enabled ?? false);
   const [subscriptionPrice, setSubscriptionPrice] = useState(circle.subscription_price ?? 10);
   const [subscriptionMethod, setSubscriptionMethod] = useState(circle.subscription_method ?? 'after_join');
-  const [isPremium, setIsPremium] = useState(circle.is_premium ?? false);
   const [isPrivate, setIsPrivate] = useState(circle.is_private ?? false);
   const [isSaving, setIsSaving] = useState(false);
   const [subscribers, setSubscribers] = useState<any[]>([]);
@@ -53,7 +52,6 @@ const CircleSettingsModal: React.FC<CircleSettingsModalProps> = ({ open, onOpenC
       setSubscriptionEnabled(circle.subscription_enabled ?? false);
       setSubscriptionPrice(circle.subscription_price ?? 10);
       setSubscriptionMethod(circle.subscription_method ?? 'after_join');
-      setIsPremium(circle.is_premium ?? false);
       setIsPrivate(circle.is_private ?? false);
       fetchSubscribers();
     }
@@ -92,7 +90,9 @@ const CircleSettingsModal: React.FC<CircleSettingsModalProps> = ({ open, onOpenC
           subscription_enabled: subscriptionEnabled,
           subscription_price: subscriptionPrice,
           subscription_method: subscriptionMethod,
-          is_premium: isPremium,
+          // Premium Circle status follows the subscription model — it is not a
+          // separate badge and never implies verification
+          is_premium: subscriptionEnabled,
           is_private: isPrivate,
         })
         .eq('id', circle.id)
@@ -174,14 +174,14 @@ const CircleSettingsModal: React.FC<CircleSettingsModalProps> = ({ open, onOpenC
           {/* Monetization Section */}
           <div className="space-y-4">
             <h3 className="font-semibold text-sm flex items-center gap-2">
-              <Coins className="w-4 h-4 text-yellow-500" />
-              Monetization
+              <Crown className="w-4 h-4 text-secondary" />
+              Premium Circle
             </h3>
 
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-sm font-medium">Enable Subscriptions</Label>
-                <p className="text-xs text-muted-foreground">Charge users to access premium posts</p>
+                <Label className="text-sm font-medium">Make this a Premium Circle</Label>
+                <p className="text-xs text-muted-foreground">Charge a subscription for access to Premium content</p>
               </div>
               <Switch checked={subscriptionEnabled} onCheckedChange={setSubscriptionEnabled} />
             </div>
@@ -220,8 +220,8 @@ const CircleSettingsModal: React.FC<CircleSettingsModalProps> = ({ open, onOpenC
                         className="mt-1"
                       />
                       <div>
-                        <p className="text-sm font-medium">Subscribe When Joined</p>
-                        <p className="text-xs text-muted-foreground">Users must pay before joining the circle</p>
+                        <p className="text-sm font-medium">Subscribe to join</p>
+                        <p className="text-xs text-muted-foreground">Members must subscribe before joining the Circle</p>
                       </div>
                     </label>
                     <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${subscriptionMethod === 'after_join' ? 'border-primary bg-primary/5' : 'border-border'}`}>
@@ -234,32 +234,14 @@ const CircleSettingsModal: React.FC<CircleSettingsModalProps> = ({ open, onOpenC
                         className="mt-1"
                       />
                       <div>
-                        <p className="text-sm font-medium">Subscribe After Joined</p>
-                        <p className="text-xs text-muted-foreground">Users join for free and can subscribe later for premium content</p>
+                        <p className="text-sm font-medium">Join free, subscribe for Premium</p>
+                        <p className="text-xs text-muted-foreground">Members join for free and subscribe later for Premium content</p>
                       </div>
                     </label>
                   </div>
                 </div>
               </div>
             )}
-          </div>
-
-          <Separator />
-
-          {/* Premium Badge */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-sm flex items-center gap-2">
-              <Crown className="w-4 h-4 text-secondary" />
-              Premium Status
-            </h3>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-sm font-medium">Premium Circle Badge</Label>
-                <p className="text-xs text-muted-foreground">Show verified premium badge</p>
-              </div>
-              <Switch checked={isPremium} onCheckedChange={setIsPremium} />
-            </div>
           </div>
 
           <Separator />

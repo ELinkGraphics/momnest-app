@@ -1,6 +1,6 @@
 import React from 'react';
 import { MapPin, Calendar, Users, Globe, Lock, Crown, Tag, ExternalLink, Target, Gift } from 'lucide-react';
-import { getCircleType } from '@/lib/circleTypes';
+import { getCircleType, displayCategory } from '@/lib/circleTypes';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { type Circle } from '@/hooks/useCircles';
@@ -36,7 +36,7 @@ const CircleAbout: React.FC<CircleAboutProps> = ({ circle, onViewCreatorProfile 
   const typeConfig = getCircleType(circle.circle_type);
   const tags = [
     typeConfig.label,
-    circle.category,
+    displayCategory(circle.category),
     ...(circle.primary_language ? [circle.primary_language] : []),
     circle.is_online === false ? 'Local' : 'Online',
   ];
@@ -186,23 +186,27 @@ const CircleAbout: React.FC<CircleAboutProps> = ({ circle, onViewCreatorProfile 
             </div>
           </div>
           
-          {circle.is_premium && (
+          {circle.subscription_enabled && (
             <div className="flex items-center gap-3">
               <Crown className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="font-medium">Membership</p>
-                <p className="text-sm text-muted-foreground">Premium circle - Subscription required</p>
+                <p className="text-sm text-muted-foreground">
+                  Premium Circle — {circle.subscription_method === 'before_join'
+                    ? 'subscription required to join'
+                    : 'subscribe for Premium content'}
+                </p>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Community Guidelines */}
+      {/* Circle Guidelines */}
       {displayGuidelines.length > 0 && (
         <Card className="mx-0">
           <CardHeader>
-            <CardTitle>Community Guidelines</CardTitle>
+            <CardTitle>Circle Guidelines</CardTitle>
           </CardHeader>
           <CardContent>
             <ol className="space-y-2">

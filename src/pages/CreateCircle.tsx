@@ -456,7 +456,7 @@ const CreateCircle: React.FC = () => {
                   <MapPin className="w-5 h-5" />
                   <div className="text-left">
                     <p className="font-medium">Local</p>
-                    <p className="text-xs text-muted-foreground">In-person community</p>
+                    <p className="text-xs text-muted-foreground">Meets in person</p>
                   </div>
                 </button>
               </div>
