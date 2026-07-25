@@ -14,6 +14,7 @@ interface StoryBottomBarProps {
   onReshare: () => void;
   onSendMessage: (msg: string) => void;
   onShowActivity: () => void;
+  onShare: () => void;
   onPause: (reason: PauseReason) => void;
   onResume: (reason: PauseReason) => void;
   storyMentions: StoryMention[];
@@ -31,6 +32,7 @@ export const StoryBottomBar: React.FC<StoryBottomBarProps> = ({
   onReshare,
   onSendMessage,
   onShowActivity,
+  onShare,
   onPause,
   onResume,
   storyMentions,
@@ -95,39 +97,7 @@ export const StoryBottomBar: React.FC<StoryBottomBarProps> = ({
       {/* Main Bottom Bar */}
       {!isOwnStory ? (
         <div className="absolute bottom-3 left-3 right-3 z-[50] flex items-center gap-2" data-story-controls>
-          {/* Like button */}
-          <button
-            onClick={onLikeToggle}
-            disabled={isLikeLoading}
-            className="story-action-btn shrink-0"
-            aria-label={isLiked ? "Unlike story" : "Like story"}
-          >
-            <Heart 
-              className={`size-6 transition-all duration-200 ${
-                isLiked 
-                  ? 'fill-red-500 text-red-500 scale-110' 
-                  : 'text-white'
-              }`}
-            />
-          </button>
-
-          {/* Reshare button */}
-          {isMentionedInStory && (
-            <button
-              onClick={onReshare}
-              disabled={isResharing}
-              className="story-action-btn shrink-0"
-              aria-label="Reshare to your story"
-            >
-              {isResharing ? (
-                <Loader2 className="size-5 text-white animate-spin" />
-              ) : (
-                <Repeat2 className="size-5 text-white" />
-              )}
-            </button>
-          )}
-
-          {/* Message input */}
+          {/* Reply input — primary, left (Instagram pattern) */}
           <div className="story-message-input flex-1">
             <EmojiPicker
               onEmojiSelect={(emoji) => setMessage(prev => prev + emoji)}
@@ -140,8 +110,8 @@ export const StoryBottomBar: React.FC<StoryBottomBarProps> = ({
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Send message..."
-              className="flex-1 bg-transparent text-white placeholder:text-white/50 outline-none text-sm"
+              placeholder="Send message"
+              className="flex-1 bg-transparent text-white placeholder:text-white/60 outline-none text-sm"
               onFocus={() => setInputFocused(true)}
               onBlur={() => setInputFocused(false)}
               onKeyDown={(e) => {
@@ -161,6 +131,47 @@ export const StoryBottomBar: React.FC<StoryBottomBarProps> = ({
               </button>
             )}
           </div>
+
+          {/* Reshare button (only when mentioned) */}
+          {isMentionedInStory && (
+            <button
+              onClick={onReshare}
+              disabled={isResharing}
+              className="story-action-btn shrink-0"
+              aria-label="Reshare to your story"
+            >
+              {isResharing ? (
+                <Loader2 className="size-5 text-white animate-spin" />
+              ) : (
+                <Repeat2 className="size-5 text-white" />
+              )}
+            </button>
+          )}
+
+          {/* Like button — right */}
+          <button
+            onClick={onLikeToggle}
+            disabled={isLikeLoading}
+            className="story-action-btn shrink-0"
+            aria-label={isLiked ? "Unlike story" : "Like story"}
+          >
+            <Heart
+              className={`size-6 transition-all duration-200 ${
+                isLiked
+                  ? 'fill-red-500 text-red-500 story-heart-pop'
+                  : 'text-white'
+              }`}
+            />
+          </button>
+
+          {/* Share button — right */}
+          <button
+            onClick={onShare}
+            className="story-action-btn shrink-0"
+            aria-label="Share story"
+          >
+            <Send className="size-5 text-white" />
+          </button>
         </div>
       ) : (
         /* Activity button - only for story owner */

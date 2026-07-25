@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { storyPreloader } from '@/lib/storyPreloader';
 import { storyService } from '@/services/storyService';
+import { shareStory } from '@/utils/shareUtils';
 import { StoryProgressBar } from './story/StoryProgressBar';
 import { StoryHeader } from './story/StoryHeader';
 import { StoryMediaRenderer } from './story/StoryMediaRenderer';
@@ -237,6 +238,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
     } finally {
       setIsLikeLoading(false);
     }
+  };
+
+  // Share the story author's profile (native share sheet with clipboard fallback)
+  const handleShareStory = () => {
+    if (!currentStory?.user) return;
+    const author = currentStory.user as any;
+    shareStory(author.username || author.id, author.name);
+    triggerHaptic('light');
   };
 
   // Preload image helper
@@ -826,6 +835,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
             setShowActivityModal(true);
             addPauseReason('activity');
           }}
+          onShare={handleShareStory}
           onPause={addPauseReason}
           onResume={removePauseReason}
           storyMentions={storyMentions}

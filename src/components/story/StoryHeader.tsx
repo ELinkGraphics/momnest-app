@@ -46,20 +46,10 @@ export const StoryHeader: React.FC<StoryHeaderProps> = ({
   return (
     <>
       <div className="absolute top-7 left-3 right-3 z-30 flex items-center gap-2">
-        {/* Menu button */}
-        <button
-          onClick={handleMenuClick}
-          className="story-icon-btn"
-          data-story-controls
-          aria-label="Story options"
-        >
-          <MoreVertical className="size-5" />
-        </button>
-
-        {/* User info */}
-        <div className="flex items-center gap-2 flex-1 min-w-0" data-story-controls>
-          <div 
-            className="size-8 rounded-full flex items-center justify-center text-white font-medium text-xs overflow-hidden shrink-0 ring-2 ring-white/30 cursor-pointer"
+        {/* User info — left, Instagram pattern */}
+        <div className="flex items-center gap-2.5 flex-1 min-w-0" data-story-controls>
+          <div
+            className="size-8 rounded-full flex items-center justify-center text-white font-semibold text-[11px] overflow-hidden shrink-0 ring-2 ring-white/40 cursor-pointer"
             style={{ backgroundColor: story.user.avatarColor }}
             onClick={handleProfileClick}
           >
@@ -69,44 +59,55 @@ export const StoryHeader: React.FC<StoryHeaderProps> = ({
               story.user.initials
             )}
           </div>
-          <div className="min-w-0">
-            <p 
-              className="text-white text-sm font-semibold truncate cursor-pointer hover:underline"
+          <div className="flex items-baseline gap-2 min-w-0">
+            <p
+              className="text-white text-sm font-semibold truncate cursor-pointer hover:underline leading-tight"
               onClick={handleProfileClick}
             >
               {story.user.name}
             </p>
-            <p className="text-white/60 text-[11px]">
+            <p className="text-white/70 text-xs font-normal shrink-0">
               {(() => {
                 const created = story.createdAt;
                 if (!created) return '';
                 const diff = Date.now() - new Date(created).getTime();
                 const hours = Math.floor(diff / (1000 * 60 * 60));
                 const minutes = Math.floor(diff / (1000 * 60));
-                if (hours > 0) return `${hours}h ago`;
-                if (minutes > 0) return `${minutes}m ago`;
-                return 'Just now';
+                if (hours >= 24) return `${Math.floor(hours / 24)}d`;
+                if (hours > 0) return `${hours}h`;
+                if (minutes > 0) return `${minutes}m`;
+                return 'now';
               })()}
             </p>
           </div>
         </div>
 
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="story-icon-btn"
-          data-story-controls
-          aria-label="Close story"
-        >
-          <X className="size-5" />
-        </button>
+        {/* Menu + Close — grouped right, Instagram pattern */}
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={handleMenuClick}
+            className="story-icon-btn"
+            data-story-controls
+            aria-label="Story options"
+          >
+            <MoreVertical className="size-5" />
+          </button>
+          <button
+            onClick={onClose}
+            className="story-icon-btn"
+            data-story-controls
+            aria-label="Close story"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
       </div>
 
-      {/* Story Menu Dropdown */}
+      {/* Story Menu Dropdown — aligned under the right-side menu button */}
       {showStoryMenu && (
         <>
           <div className="fixed inset-0 z-25" onPointerDown={(e) => { e.stopPropagation(); setShowStoryMenu(false); onResume('menu'); }} />
-          <div className="absolute top-14 left-3 z-30 story-dropdown" data-story-controls>
+          <div className="absolute top-16 right-3 z-30 story-dropdown" data-story-controls>
             {isOwnStory ? (
               <>
                 <button
