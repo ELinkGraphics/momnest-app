@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Users, Crown, Lock, BadgeCheck, Shield, Share2, Video, FolderOpen, CalendarDays } from 'lucide-react';
+import { MapPin, Users, Crown, Lock, BadgeCheck, Shield, Share2, Video, FolderOpen, CalendarDays, Check } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,31 @@ const CircleCard: React.FC<CircleCardProps> = ({ circle, onClick, showManageButt
   const isRecentlyActive = lastActive
     ? Date.now() - lastActive.getTime() < 7 * 24 * 60 * 60 * 1000
     : false;
+
+  // Distinct tags only: the type label and category can resolve to the same
+  // text (e.g. type "business" + category "Business"), so dedupe case-insensitively.
+  // Category may also hold comma-separated values — split those into separate tags.
+  const tags = (() => {
+    const seen = new Set<string>();
+    const result: string[] = [];
+    const add = (label?: string | null) => {
+      if (!label) return;
+      label
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .forEach((part) => {
+          const key = part.toLowerCase();
+          if (!seen.has(key)) {
+            seen.add(key);
+            result.push(part);
+          }
+        });
+    };
+    add(typeConfig.label);
+    add(displayCategory(circle.category));
+    return result;
+  })();
 
   const contentStats = [
     { icon: Video, count: circle.videos_count || 0, label: 'videos' },
@@ -158,12 +183,11 @@ const CircleCard: React.FC<CircleCardProps> = ({ circle, onClick, showManageButt
         {/* Type, category & pricing */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <Badge variant="outline" className="text-badge">
-              {typeConfig.label}
-            </Badge>
-            <Badge variant="outline" className="text-badge">
-              {displayCategory(circle.category)}
-            </Badge>
+            {tags.map((tag) => (
+              <Badge key={tag} variant="outline" className="text-badge">
+                {tag}
+              </Badge>
+            ))}
             {circle.subscription_enabled ? (
               <Badge variant="secondary" className="text-badge gap-1">
                 <Crown className="h-3 w-3" />
@@ -188,7 +212,12 @@ const CircleCard: React.FC<CircleCardProps> = ({ circle, onClick, showManageButt
               </Button>
             ) : circle.is_joined ? (
               <>
-                <Button variant="outline" size="sm" disabled className="bg-muted text-muted-foreground border-border cursor-not-allowed opacity-70 animate-scale-in">
+                <Button
+                  size="sm"
+                  disabled
+                  className="bg-success/15 text-success border border-success/40 hover:bg-success/15 cursor-default font-semibold disabled:opacity-100 animate-scale-in"
+                >
+                  <Check className="h-4 w-4 mr-1" />
                   {circle.subscription_enabled && circle.subscription_method === 'before_join' ? 'Subscribed' : 'Joined'}
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors" onClick={handleShare}>
