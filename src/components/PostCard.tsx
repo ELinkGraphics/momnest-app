@@ -378,10 +378,10 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       ) : post.media && post.media.urls && post.media.urls.length > 0 ? (
         <div className="relative">
           <Carousel className="w-full" setApi={setCarouselApi}>
-            <CarouselContent>
+            <CarouselContent className="items-center">
               {post.media.urls.map((url, index) => (
-                <CarouselItem key={index}>
-                  <div className="relative overflow-hidden cursor-pointer" onClick={handleOpenPost}>
+                <CarouselItem key={index} className="flex items-center justify-center">
+                  <div className="relative overflow-hidden cursor-pointer w-full" onClick={handleOpenPost}>
                     <MediaGuardItem 
                       src={url} 
                       type={/\.(mp4|webm|mov|ogg|m3u8)(\?|$)/i.test(url) ? 'video' : 'image'} 
