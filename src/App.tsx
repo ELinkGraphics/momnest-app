@@ -221,44 +221,81 @@ const AppRoutes = () => {
   );
 };
 
-// ─── Main App ───────────────────────────────────────────────────────
-const App = () => {
-  const [isLoading, setIsLoading] = useState(true);
+// ─── App Gate: single splash until app + auth + first page are ready ─
+const AppGate = () => {
+  const { isLoading: userLoading } = useUser();
+  const [appReady, setAppReady] = useState(false);
+  const [firstPageReady, setFirstPageReady] = useState(false);
+  const [fadeOut, setFadeOut] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // Request persistent storage so the OS doesn't evict our cache
         requestPersistentStorage();
-
         const versionChanged = cacheManager.checkVersion();
-        
         if (versionChanged) {
           console.log('App version changed, clearing caches...');
           queryClient.clear();
           cacheManager.updateVersion();
         }
-        
         await queryClient.invalidateQueries();
-        
         if (import.meta.env.PROD && !isFilePickerActive()) {
-          const hasUpdate = await cacheManager.checkForUpdates();
-          if (hasUpdate) {
-            console.log('Service worker update available');
-          }
+          await cacheManager.checkForUpdates();
         }
       } catch (error) {
         console.error('Error initializing app:', error);
+      } finally {
+        setAppReady(true);
       }
     };
 
     initializeApp();
   }, []);
 
-  if (isLoading) {
-    return <AppLoader onComplete={() => setIsLoading(false)} />;
+  // Preload the first-page components while the splash is visible so the
+  // Suspense fallback never flashes after the splash fades out.
+  useEffect(() => {
+    Promise.all([
+      import('./pages/Index'),
+      import('./pages/Login'),
+      import('./pages/Signup'),
+    ])
+      .catch((err) => console.error('Preload failed:', err))
+      .finally(() => setFirstPageReady(true));
+  }, []);
+
+  useEffect(() => {
+    if (appReady && !userLoading && firstPageReady) {
+      setFadeOut(true);
+      const timer = setTimeout(() => setShowSplash(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [appReady, userLoading, firstPageReady]);
+
+  if (showSplash) {
+    return <AppLoader fadeOut={fadeOut} />;
   }
 
+  return (
+    <>
+      <Toaster />
+      <UpdateNotifier />
+      <GlobalRealtimeListener />
+      <InstallPrompt />
+      <UploadProgressOverlay />
+      <ForceReinstallOverlay />
+      <NotificationPermissionPrompt />
+      <IncomingHelperRequestAlert />
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <AppRoutes />
+      </BrowserRouter>
+    </>
+  );
+};
+
+// ─── Main App ───────────────────────────────────────────────────────
+const App = () => {
   return (
     <GlobalErrorBoundary>
       <ThemeProvider>
@@ -277,17 +314,7 @@ const App = () => {
                   <CartProvider>
                     <TooltipProvider>
                       <NavigationProvider>
-                        <Toaster />
-                        <UpdateNotifier />
-                        <GlobalRealtimeListener />
-                        <InstallPrompt />
-                        <UploadProgressOverlay />
-                        <ForceReinstallOverlay />
-                        <NotificationPermissionPrompt />
-                        <IncomingHelperRequestAlert />
-                        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                          <AppRoutes />
-                        </BrowserRouter>
+                        <AppGate />
                       </NavigationProvider>
                     </TooltipProvider>
                   </CartProvider>
