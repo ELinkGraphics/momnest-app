@@ -13,6 +13,9 @@ interface CircleEmptyStateProps {
   isOwner: boolean;
   actionLabel?: string;
   onAction?: () => void;
+  /** Optional illustration shown above the text. Defaults to the shared circle empty-state image. */
+  imageSrc?: string;
+  imageAlt?: string;
 }
 
 /**
@@ -28,15 +31,21 @@ const CircleEmptyState: React.FC<CircleEmptyStateProps> = ({
   isOwner,
   actionLabel,
   onAction,
+  imageSrc = '/lovable-uploads/empty-circle-stats.svg',
+  imageAlt = 'Empty state illustration',
 }) => {
   const heading = isOwner && ownerTitle ? ownerTitle : title;
   const subtext = isOwner && ownerDescription ? ownerDescription : description;
 
   return (
     <div className="flex flex-col items-center justify-center py-16 px-6 text-center space-y-4">
-      <div className="p-4 rounded-full bg-primary/10">
-        <Icon className="size-8 text-primary" />
-      </div>
+      {imageSrc ? (
+        <img src={imageSrc} alt={imageAlt} className="w-32 h-32 sm:w-40 sm:h-40" />
+      ) : (
+        <div className="p-4 rounded-full bg-primary/10">
+          <Icon className="size-8 text-primary" />
+        </div>
+      )}
       <div className="space-y-1">
         <p className="font-semibold text-foreground">{heading}</p>
         {subtext && <p className="text-sm text-muted-foreground max-w-[260px]">{subtext}</p>}

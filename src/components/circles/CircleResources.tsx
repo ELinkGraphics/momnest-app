@@ -120,8 +120,8 @@ const CircleResources: React.FC<CircleResourcesProps> = ({ circle, isOwner }) =>
             {filteredResources.length === 0 ? (
               <CircleEmptyState
                 icon={FileText}
-                title="No resources yet"
-                description="The creator hasn't shared any files yet. Check back soon!"
+                title="No Resources Yet"
+                description="Share guides, templates, or files your members can download."
                 ownerTitle="Upload your first resource"
                 ownerDescription="Share guides, templates and files your members can download."
                 isOwner={isOwner}

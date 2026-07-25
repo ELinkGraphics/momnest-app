@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useBuyerOrders } from '@/hooks/useBuyerOrders';
 import { VideoLoader } from '@/components/ui/VideoLoader';
 import FooterNav from '@/components/FooterNav';
+import EmptyState from '@/components/ui/empty-state';
 import { format } from 'date-fns';
 
 const OrderHistory: React.FC = () => {
@@ -112,20 +113,12 @@ const OrderHistory: React.FC = () => {
 
         <TabsContent value={activeTab} className="space-y-3">
           {!filteredOrders || filteredOrders.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <Package className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="font-semibold mb-2">No Orders Found</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {searchQuery ? 'Try adjusting your search' : "You haven't placed any orders yet"}
-                </p>
-                {!searchQuery && (
-                  <Button onClick={() => navigate('/shop')}>
-                    Start Shopping
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+            <EmptyState
+              title="No Orders Found"
+              description={searchQuery ? 'Try adjusting your search.' : "You haven't placed any orders yet."}
+              actionLabel={searchQuery ? undefined : 'Start Shopping'}
+              onAction={searchQuery ? undefined : () => navigate('/shop')}
+            />
           ) : (
             filteredOrders.map((order) => (
               <Card

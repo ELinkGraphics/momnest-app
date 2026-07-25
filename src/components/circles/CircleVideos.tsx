@@ -194,8 +194,8 @@ const CircleVideos: React.FC<CircleVideosProps> = ({ circle, isOwner }) => {
             ) : (
               <CircleEmptyState
                 icon={Film}
-                title={activePlaylistId ? 'This playlist has no videos yet' : 'No videos yet'}
-                description={activePlaylistId ? 'Videos added to this playlist will show up here.' : "The creator hasn't uploaded any videos yet."}
+                title={activePlaylistId ? 'This playlist has no videos yet' : 'No Videos Yet'}
+                description={activePlaylistId ? 'Videos added to this playlist will show up here.' : 'Upload lessons or highlights for your members to watch.'}
                 ownerTitle={activePlaylistId ? 'This playlist has no videos yet' : 'Upload your first video'}
                 ownerDescription="Add lessons or highlights for your members to watch."
                 isOwner={isOwner}

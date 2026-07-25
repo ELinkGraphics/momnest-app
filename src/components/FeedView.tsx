@@ -4,6 +4,7 @@ import { Post } from '@/data/mock';
 import { supabase } from '@/integrations/supabase/client';
 import { VideoLoader } from '@/components/ui/VideoLoader';
 import { useUser } from '@/contexts/UserContext';
+import EmptyState from '@/components/ui/empty-state';
 
 const PostSkeleton = () => (
   <div className="bg-card rounded-2xl overflow-hidden border border-border/50 shadow-[var(--shadow-soft)] mb-3 animate-pulse">
@@ -183,15 +184,10 @@ export const FeedView: React.FC<FeedViewProps> = ({ onRefresh }) => {
           )}
         </>
       ) : (
-        <div className="rounded-2xl border border-dashed border-border p-8 text-center bg-card">
-          <div className="size-16 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
-            <svg className="size-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-            </svg>
-          </div>
-          <p className="text-base font-medium text-muted-foreground">No posts yet</p>
-          <p className="text-sm text-muted-foreground/80 mt-1">Be the first to share something amazing!</p>
-        </div>
+        <EmptyState
+          title="No Posts Yet"
+          description="Be the first to share something amazing."
+        />
       )}
     </section>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, UserPlus, Crown, Shield, MessageCircle, Loader2, Check, X } from 'lucide-react';
+import { Search, UserPlus, Crown, Shield, MessageCircle, Loader2, Check, X, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import InviteLinkModal from './InviteLinkModal';
+import CircleEmptyState from './CircleEmptyState';
 
 interface CircleMembersProps {
   circle: any;
@@ -289,9 +290,16 @@ const CircleMembers: React.FC<CircleMembersProps> = ({ circle, isOwner, onViewPr
           })}
         </div>
       ) : (
-        <div className="text-center py-8 text-muted-foreground">
-          {searchQuery ? 'No members match your search' : 'No members yet'}
-        </div>
+        <CircleEmptyState
+          icon={Users}
+          title={searchQuery ? 'No members match your search' : 'No Members Yet'}
+          description={searchQuery ? 'Try adjusting your search.' : 'Invite people to join your circle.'}
+          ownerTitle={searchQuery ? 'No members match your search' : 'No Members Yet'}
+          ownerDescription={searchQuery ? 'Try adjusting your search.' : 'Invite people to join your circle.'}
+          isOwner={isOwner}
+          actionLabel="Invite Member"
+          onAction={() => setInviteOpen(true)}
+        />
       )}
 
       {/* Invite Link Modal */}

@@ -108,8 +108,8 @@ const CircleServices: React.FC<CircleServicesProps> = ({ circle, isOwner }) => {
         ) : services.length === 0 ? (
           <CircleEmptyState
             icon={Calendar}
-            title="No services available yet"
-            description="Bookable sessions and services will appear here."
+            title="No Services Yet"
+            description="Offer coaching calls, consultations, or bookable sessions."
             ownerTitle="Create your first service"
             ownerDescription="Offer coaching calls, consultations or other bookable sessions."
             isOwner={isOwner}

@@ -4,6 +4,7 @@ import { Users, Pin, PinOff, MessageCircle, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Conversation, usePinnedConversations, useTogglePin } from '@/hooks/useConversations';
 import { Skeleton } from '@/components/ui/skeleton';
+import EmptyState from '@/components/ui/empty-state';
 import { usePresence } from '@/hooks/usePresence';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
 import { useGlobalTyping } from '@/hooks/useGlobalTyping';
@@ -118,13 +119,11 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
 
   if (conversations.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-center px-6 animate-fade-in">
-        <MessageCircle className="h-16 w-16 text-muted-foreground mb-4 opacity-50" />
-        <h3 className="text-base font-semibold text-foreground mb-2">No conversations yet</h3>
-        <p className="text-sm text-muted-foreground">
-          Start a conversation by messaging someone from their profile
-        </p>
-      </div>
+      <EmptyState
+        title="No Conversations Yet"
+        description="Start a conversation by messaging someone from their profile."
+        className="h-64 py-0"
+      />
     );
   }
 

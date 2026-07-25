@@ -406,8 +406,8 @@ const CirclePosts: React.FC<CirclePostsProps> = ({ circle, isOwner }) => {
         ) : posts.length === 0 ? (
           <CircleEmptyState
             icon={MessageCircle}
-            title="No posts yet"
-            description="Posts from the creator will show up here. Check back soon!"
+            title="No Posts Yet"
+            description="Share updates, photos, or questions with your circle."
             ownerTitle="Share your first post"
             ownerDescription="Welcome your members, pin an announcement or start a discussion using the composer above."
             isOwner={isOwner}

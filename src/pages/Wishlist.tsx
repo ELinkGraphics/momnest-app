@@ -1,9 +1,9 @@
 import Header from "@/components/Header";
 import FooterNav from "@/components/FooterNav";
 import { useSavedShopItems } from "@/hooks/useSavedShopItems";
-import { Heart } from "lucide-react";
 import { VideoLoader } from '@/components/ui/VideoLoader';
 import { useNavigate } from "react-router-dom";
+import EmptyState from '@/components/ui/empty-state';
 
 const Wishlist = () => {
   const { data: savedItems, isLoading } = useSavedShopItems();
@@ -23,15 +23,12 @@ const Wishlist = () => {
 
       <div className="container mx-auto px-4 py-6">
         {!savedItems || savedItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Heart className="w-20 h-20 text-muted-foreground mb-4" />
-            <h2 className="text-2xl font-semibold text-foreground mb-2">
-              Your Wishlist is Empty
-            </h2>
-            <p className="text-muted-foreground text-center max-w-md">
-              Save items you love to your wishlist and they'll appear here
-            </p>
-          </div>
+          <EmptyState
+            title="Your Wishlist Is Empty"
+            description="Save items you love to your wishlist and they'll appear here."
+            actionLabel="Browse Shop"
+            onAction={() => navigate('/shop')}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {savedItems.map((item) => (

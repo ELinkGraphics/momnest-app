@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/contexts/CartContext';
 import FooterNav from '@/components/FooterNav';
+import EmptyState from '@/components/ui/empty-state';
 
 const Cart: React.FC = () => {
   const navigate = useNavigate();
@@ -35,16 +36,13 @@ const Cart: React.FC = () => {
         </div>
 
         {/* Empty State */}
-        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-          <div className="text-center space-y-4">
-            <div className="text-6xl mb-4">🛒</div>
-            <h2 className="text-2xl font-semibold">Your cart is empty</h2>
-            <p className="text-muted-foreground">Add items to get started</p>
-            <Button onClick={() => navigate('/shop')} className="mt-6">
-              Browse Shop
-            </Button>
-          </div>
-        </div>
+        <EmptyState
+          title="Your Cart Is Empty"
+          description="Add items to get started."
+          actionLabel="Browse Shop"
+          onAction={() => navigate('/shop')}
+          className="min-h-[60vh] py-0"
+        />
 
         <FooterNav active="shop" onSelect={() => {}} onOpenCreate={() => {}} />
       </div>

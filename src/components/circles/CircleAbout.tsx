@@ -33,6 +33,12 @@ const CircleAbout: React.FC<CircleAboutProps> = ({ circle, onViewCreatorProfile 
     monthlyActivity: stats?.monthly_activity || 0,
   };
 
+  const hasAnyActivity =
+    circleStats.totalPosts > 0 ||
+    circleStats.totalEvents > 0 ||
+    circleStats.totalResources > 0 ||
+    circleStats.monthlyActivity > 0;
+
   const typeConfig = getCircleType(circle.circle_type);
   const tags = [
     typeConfig.label,
@@ -111,24 +117,38 @@ const CircleAbout: React.FC<CircleAboutProps> = ({ circle, onViewCreatorProfile 
           <CardTitle>Circle Statistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary">{circleStats.totalPosts}</p>
-              <p className="text-sm text-muted-foreground">Total Posts</p>
+          {hasAnyActivity ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-primary">{circleStats.totalPosts}</p>
+                <p className="text-sm text-muted-foreground">Total Posts</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-primary">{circleStats.totalEvents}</p>
+                <p className="text-sm text-muted-foreground">Events Hosted</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-primary">{circleStats.totalResources}</p>
+                <p className="text-sm text-muted-foreground">Resources Shared</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-primary">{circleStats.monthlyActivity}%</p>
+                <p className="text-sm text-muted-foreground">Monthly Activity</p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary">{circleStats.totalEvents}</p>
-              <p className="text-sm text-muted-foreground">Events Hosted</p>
+          ) : (
+            <div className="flex flex-col items-center text-center py-6">
+              <img
+                src="/lovable-uploads/empty-circle-stats.svg"
+                alt="Empty circle statistics"
+                className="w-40 h-40 mb-4"
+              />
+              <p className="text-lg font-semibold text-foreground">You're just getting started.</p>
+              <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+                No activity yet. Create your first post to engage your circle.
+              </p>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary">{circleStats.totalResources}</p>
-              <p className="text-sm text-muted-foreground">Resources Shared</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary">{circleStats.monthlyActivity}%</p>
-              <p className="text-sm text-muted-foreground">Monthly Activity</p>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 

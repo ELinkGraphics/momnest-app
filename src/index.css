@@ -792,4 +792,40 @@ body.modal-overlay-open {
   .story-progress-fill::after {
     display: none;
   }
-}
+}
+/* Serkle splash screen animations */
+@keyframes splashGradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes splashFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.splash-image {
+  animation: splashFadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.splash-loading-text {
+  background: linear-gradient(90deg, hsl(33 100% 87%), hsl(33 69% 59%), hsl(19 55% 28%), hsl(33 69% 59%), hsl(33 100% 87%));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: splashGradientShift 2.4s ease-in-out infinite;
+}

@@ -142,10 +142,10 @@ const CircleEvents: React.FC<CircleEventsProps> = ({ circle, isOwner }) => {
               {filteredEvents.length === 0 ? (
                 <CircleEmptyState
                   icon={Calendar}
-                  title="No upcoming events"
-                  description="Live classes and meetups will appear here."
+                  title="No Events Yet"
+                  description="Host workshops, Q&A sessions, or meetups."
                   ownerTitle="Host your first event"
-                  ownerDescription="Schedule a live class, Q&A or meetup for your members."
+                  ownerDescription="Schedule a workshop, Q&A or meetup for your members."
                   isOwner={isOwner}
                   actionLabel="Create Event"
                   onAction={() => setIsCreateModalOpen(true)}
@@ -247,11 +247,14 @@ const CircleEvents: React.FC<CircleEventsProps> = ({ circle, isOwner }) => {
 
             <TabsContent value="past" className="space-y-4 mt-4">
               {filteredEvents.length === 0 ? (
-                <Card className="mx-0">
-                  <CardContent className="p-6 text-center text-muted-foreground">
-                    No past events
-                  </CardContent>
-                </Card>
+                <CircleEmptyState
+                  icon={Calendar}
+                  title="No past events"
+                  description="Completed events and recordings will show up here."
+                  ownerTitle="No past events"
+                  ownerDescription="Completed events and recordings will show up here."
+                  isOwner={isOwner}
+                />
               ) : (
                 filteredEvents.map((event) => (
                   <Card key={event.id} className="opacity-75 mx-0">

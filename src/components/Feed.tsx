@@ -3,6 +3,7 @@ import PostCard from './PostCard';
 import { Post } from '@/data/mock';
 import { supabase } from '@/integrations/supabase/client';
 import { VideoLoader } from '@/components/ui/VideoLoader';
+import EmptyState from '@/components/ui/empty-state';
 
 const PostSkeleton = () => (
   <div className="bg-card rounded-2xl overflow-hidden border border-border/50 shadow-[var(--shadow-soft)] mb-3 animate-pulse">
@@ -181,9 +182,10 @@ const Feed: React.FC = () => {
           )}
         </>
       ) : (
-        <div className="rounded-2xl border border-dashed border-border p-5 text-center">
-          <p className="text-sm text-muted-foreground">No posts yet.</p>
-        </div>
+        <EmptyState
+          title="No Posts Yet"
+          description="Be the first to share something amazing."
+        />
       )}
     </section>
   );

@@ -13,6 +13,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useSwipeGestures } from '@/hooks/useSwipeGestures';
 import { toast } from 'sonner';
 
+import GenericEmptyState from '@/components/ui/empty-state';
+
 // ─── Notification type helpers ──────────────────────────────────────
 
 type NotifType =
@@ -543,24 +545,22 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
 // ─── Empty State ──────────────────────────────────────────────
 
 const EmptyState: React.FC<{ tab: string }> = ({ tab }) => {
-  const messages: Record<string, { icon: typeof Bell; title: string; desc: string }> = {
-    all: { icon: Bell, title: 'All caught up!', desc: 'No notifications yet. Interact with posts, join circles, and connect with others.' },
-    unread: { icon: CheckCheck, title: 'No unread notifications', desc: "You're all caught up! Great job staying on top of things." },
-    social: { icon: Heart, title: 'No social updates', desc: 'Like posts, follow people, and comment to start seeing social notifications.' },
-    circles: { icon: Users, title: 'No circle activity', desc: 'Join circles to receive updates about events, posts, and new members.' },
-    mentions: { icon: AtSign, title: 'No mentions yet', desc: 'When someone mentions you in a story or post, it will appear here.' },
+  const messages: Record<string, { title: string; desc: string }> = {
+    all: { title: 'All caught up!', desc: 'No notifications yet. Interact with posts, join circles, and connect with others.' },
+    unread: { title: 'No unread notifications', desc: "You're all caught up! Great job staying on top of things." },
+    social: { title: 'No social updates', desc: 'Like posts, follow people, and comment to start seeing social notifications.' },
+    circles: { title: 'No circle activity', desc: 'Join circles to receive updates about events, posts, and new members.' },
+    mentions: { title: 'No mentions yet', desc: 'When someone mentions you in a story or post, it will appear here.' },
   };
 
-  const { icon: Icon, title, desc } = messages[tab] || messages.all;
+  const { title, desc } = messages[tab] || messages.all;
 
   return (
-    <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-      <div className="size-16 rounded-full bg-muted flex items-center justify-center mb-4">
-        <Icon className="size-7 text-muted-foreground" />
-      </div>
-      <h3 className="text-base font-semibold text-foreground mb-1">{title}</h3>
-      <p className="text-sm text-muted-foreground max-w-[260px]">{desc}</p>
-    </div>
+    <GenericEmptyState
+      title={title}
+      description={desc}
+      className="py-20"
+    />
   );
 };
 
