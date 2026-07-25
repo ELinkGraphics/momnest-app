@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Calendar, Link as LinkIcon, Check, MessageCircle, ExternalLink, Lock, X, BadgeCheck, Play, FileText } from 'lucide-react';
+import { Calendar, Link as LinkIcon, MessageCircle, ExternalLink, Lock, X, Play, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +15,11 @@ import { toast } from 'sonner';
 import { BioRichTextRenderer } from '@/components/BioRichTextRenderer';
 import { useVideoViewTracker } from '@/hooks/useVideoViewTracker';
 import { formatCount } from '@/utils/formatters';
+import ProfileBadge from '@/components/profile/ProfileBadge';
+import FollowStats from '@/components/profile/FollowStats';
+import ProfileOverflowMenu from '@/components/profile/ProfileOverflowMenu';
+import CoverImage from '@/components/profile/CoverImage';
+import LocationDisplay from '@/components/profile/LocationDisplay';
 
 interface PublicUserProfileProps {
   userId: string;
@@ -462,26 +466,18 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
 
   return (
     <div className={`w-full pb-32 ${className}`}>
-      {/* Cover Image */}
-      <div className="relative h-48 bg-gradient-to-br from-primary/20 to-primary/5">
-        {user.coverImage && (
-          <img 
-            src={user.coverImage} 
-            alt="Cover" 
-            className="w-full h-full object-cover"
-          />
-        )}
-      </div>
+      {/* Cover Image with brand-gradient empty state */}
+      <CoverImage coverUrl={user.coverImage} avatarUrl={user.avatar} className="h-36" />
 
       {/* Profile Info */}
-      <div className="px-4 pb-4">
-        {/* Avatar */}
-        <div className="relative -mt-16 mb-4">
+      <div className="px-4 pb-3">
+        {/* Avatar — overlaps cover */}
+        <div className="relative -mt-12 mb-3">
           <button onClick={() => user.avatar && setShowAvatarFull(true)} className="block">
-            <Avatar className="h-32 w-32 border-4 border-background cursor-pointer hover:opacity-90 transition-opacity">
+            <Avatar className="h-24 w-24 border-4 border-background cursor-pointer hover:opacity-90 transition-opacity">
               <AvatarImage src={user.avatar} />
-              <AvatarFallback 
-                className="text-3xl font-bold text-white"
+              <AvatarFallback
+                className="text-2xl font-bold text-white"
                 style={{ backgroundColor: user.avatarColor }}
               >
                 {user.initials}
@@ -510,32 +506,33 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
           </div>
         )}
 
-        {/* Name and Actions */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold">{user.name}</h1>
-              {user.isVerified && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <BadgeCheck className="size-5 text-secondary cursor-pointer" aria-label="Verified account" />
-                    </TooltipTrigger>
-                    <TooltipContent><p>Verified account</p></TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </div>
-            <p className="text-muted-foreground">{user.username}</p>
+        {/* Name + Badge + username */}
+        <div className="mb-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <h1 className="text-xl font-bold truncate">{user.name}</h1>
+            {user.isVerified && <ProfileBadge type="verified" />}
           </div>
+          <p className="text-sm text-muted-foreground truncate">{user.username}</p>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 mb-4">
+        {/* Social proof — compact, tappable, high on the profile */}
+        {!user.hideFollowers && (
+          <FollowStats
+            userId={userId}
+            followers={user.stats.followers}
+            following={user.stats.following}
+            onProfileClick={onClose}
+            className="mb-3"
+          />
+        )}
+
+        {/* Primary actions + overflow */}
+        <div className="flex gap-2 mb-3">
           {currentUser?.id !== userId && (
             <Button
               variant={isFollowing ? "outline" : "default"}
-              className="flex-1"
+              size="sm"
+              className="flex-1 h-9"
               onClick={async () => {
                 if (!currentUser) {
                   toast.error('Please login to follow users');
@@ -549,11 +546,12 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
               {isFollowing ? 'Unfollow' : 'Follow'}
             </Button>
           )}
-          {(!user.allowMessagesFrom || user.allowMessagesFrom === 'everyone' || 
+          {(!user.allowMessagesFrom || user.allowMessagesFrom === 'everyone' ||
             (user.allowMessagesFrom === 'followers' && isFollowing)) && (
             <Button
               variant="outline"
-              className="flex-1"
+              size="sm"
+              className="flex-1 h-9"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -568,26 +566,15 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
               Message
             </Button>
           )}
+          {currentUser?.id !== userId && (
+            <ProfileOverflowMenu userId={userId} username={user.username} />
+          )}
         </div>
-
-        {/* Stats - respect hideFollowers */}
-        {!user.hideFollowers && (
-          <div className="flex gap-6 mb-4">
-            <div>
-              <div className="font-bold">{user.stats.followers}</div>
-              <div className="text-sm text-muted-foreground">Followers</div>
-            </div>
-            <div>
-              <div className="font-bold">{user.stats.following}</div>
-              <div className="text-sm text-muted-foreground">Following</div>
-            </div>
-          </div>
-        )}
 
         {/* Bio */}
         {user.bio && (
-          <div className="mb-4">
-            <p className="whitespace-pre-wrap break-words" dir="auto">
+          <div className="mb-2">
+            <p className="text-sm whitespace-pre-wrap break-words" dir="auto">
               <BioRichTextRenderer text={displayBio} />
               {shouldTruncateBio && (
                 <button
@@ -601,57 +588,52 @@ const PublicUserProfile: React.FC<PublicUserProfileProps> = ({
           </div>
         )}
 
-        {/* Location */}
-        {user.location && (
-          <div className="flex items-center gap-2 text-muted-foreground mb-2">
-            <MapPin className="h-4 w-4" />
-            <span>{user.location}</span>
-          </div>
-        )}
+        {/* Metadata: location, links, joined — single compact block */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
+          {user.location && <LocationDisplay location={user.location} />}
 
-        {/* Website */}
-        {websites.length > 0 && (
-          <div className="flex items-center gap-2 text-primary mb-2">
-            <LinkIcon className="h-4 w-4" />
-            {websites.length === 1 ? (
-              <a 
-                href={websites[0]} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:underline truncate"
-              >
-                {websites[0]}
-              </a>
-            ) : (
-              <button 
-                onClick={() => setShowLinksModal(true)}
-                className="hover:underline"
-              >
-                {websites.length} links
-              </button>
-            )}
-          </div>
-        )}
+          {websites.length > 0 && (
+            <div className="flex items-center gap-1.5 text-primary min-w-0">
+              <LinkIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              {websites.length === 1 ? (
+                <a
+                  href={websites[0]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline truncate"
+                >
+                  {websites[0].replace(/^https?:\/\//, '')}
+                </a>
+              ) : (
+                <button
+                  onClick={() => setShowLinksModal(true)}
+                  className="hover:underline"
+                >
+                  {websites.length} links
+                </button>
+              )}
+            </div>
+          )}
 
-        {/* Join Date */}
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Calendar className="h-4 w-4" />
-          <span>Joined {new Date(user.joinedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+          <div className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+            <span>Joined {new Date(user.joinedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+          </div>
         </div>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
-          <TabsTrigger 
+        <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-11">
+          <TabsTrigger
             value="posts"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+            className="rounded-none border-b-[3px] border-transparent text-muted-foreground font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:font-semibold transition-all"
           >
             Posts
           </TabsTrigger>
-          <TabsTrigger 
+          <TabsTrigger
             value="videos"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+            className="rounded-none border-b-[3px] border-transparent text-muted-foreground font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:font-semibold transition-all"
           >
             Videos
           </TabsTrigger>

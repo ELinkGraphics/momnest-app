@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { MoreHorizontal, MessageCircle, Heart, Share, Bookmark, Plus, Check, MapPin, Link as LinkIcon, Calendar, Users, Video as VideoIcon, ChevronDown, ChevronUp, Image, X, Pencil, Wallet, Play, Award, FileText } from 'lucide-react';
+import { MoreHorizontal, MessageCircle, Share, Bookmark, Link as LinkIcon, Calendar, Video as VideoIcon, Pencil, Wallet, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useUser } from '@/contexts/UserContext';
 import { ProfileHeaderSkeleton, PostCardSkeleton, VideoCardSkeleton, TabContentSkeleton } from '@/components/ui/loading-states';
@@ -17,6 +16,11 @@ import { useSavedPosts } from '@/hooks/useSavedPosts';
 import { supabase } from '@/integrations/supabase/client';
 import WalletModal from '@/components/wallet/WalletModal';
 import ExpertVerificationModal from '@/components/ExpertVerificationModal';
+import ProfileBadge from '@/components/profile/ProfileBadge';
+import FollowStats from '@/components/profile/FollowStats';
+import CoverImage from '@/components/profile/CoverImage';
+import LocationDisplay from '@/components/profile/LocationDisplay';
+import { toast } from 'sonner';
 
 interface UserProfileProps {
   className?: string;
@@ -324,46 +328,38 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
   return (
     <div className={`w-full ${className}`}>
-      {/* Cover Image */}
-      <div className="relative h-48 sm:h-56 md:h-64 overflow-hidden">
-        <div 
-          className="absolute inset-0 bg-cover bg-center blur-sm scale-110"
-          style={{
-            backgroundImage: `url('${user.coverImage || 'https://images.unsplash.com/photo-1579952363873-27d3bfad9c0d?auto=format&fit=crop&w=1200&q=80'}')`
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />
-        
+      {/* Cover Image with brand-gradient empty state */}
+      <CoverImage coverUrl={user.coverImage} avatarUrl={user.avatar} className="h-36">
         {/* Header controls */}
         {showHeader && (
           <div className="absolute top-4 right-4 flex gap-2 z-10">
-            <Button 
+            <Button
               variant="outline"
               size="icon"
               onClick={onMessageClick}
-              className="bg-background/80 backdrop-blur-sm border-border/50 hover:bg-background/90 min-h-[40px] min-w-[40px]"
+              className="bg-background/80 backdrop-blur-sm border-border/50 hover:bg-background/90 h-9 w-9"
             >
-              <MessageCircle className="h-5 w-5" />
+              <MessageCircle className="h-4 w-4" />
             </Button>
-            <Button 
+            <Button
               variant="outline"
               size="icon"
               onClick={onSettingsClick}
-              className="bg-background/80 backdrop-blur-sm border-border/50 hover:bg-background/90 min-h-[40px] min-w-[40px]"
+              className="bg-background/80 backdrop-blur-sm border-border/50 hover:bg-background/90 h-9 w-9"
             >
-              <MoreHorizontal className="h-5 w-5" />
+              <MoreHorizontal className="h-4 w-4" />
             </Button>
           </div>
         )}
-      </div>
+      </CoverImage>
 
       {/* Profile Content */}
       <div className="relative bg-background pb-32">
-        {/* Avatar */}
-        <div className="absolute -top-16 left-4 sm:left-6">
-          <Avatar className="h-32 w-32 ring-4 ring-background shadow-xl">
-            <AvatarImage 
-              src={user.avatar || "https://picsum.photos/200/200?random=profile"} 
+        {/* Avatar — overlaps cover */}
+        <div className="absolute -top-12 left-4 sm:left-6">
+          <Avatar className="h-24 w-24 ring-4 ring-background shadow-xl">
+            <AvatarImage
+              src={user.avatar || undefined}
               alt={user.name}
               className="object-cover"
             />
@@ -371,156 +367,169 @@ const UserProfile: React.FC<UserProfileProps> = ({
               {user.initials}
             </AvatarFallback>
           </Avatar>
-          
+
           {/* Online Status */}
           {user.isOnline && (
-            <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 border-3 border-background rounded-full">
-            </div>
+            <div className="absolute bottom-1.5 right-1.5 w-5 h-5 bg-green-500 border-[3px] border-background rounded-full" />
           )}
         </div>
 
-        <div className="pt-20 px-4 sm:px-6">
-          {/* Name and Username */}
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+        <div className="pt-14 px-4 sm:px-6">
+          {/* Name + Badge + edit */}
+          <div className="mb-0.5">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h1 className="text-xl font-bold text-foreground truncate">
                 {user.name}
               </h1>
-              {user.isVerified && (
-                <Badge variant="secondary" className="px-1.5 py-0.5 text-xs">
-                  <Check className="h-3 w-3" />
-                </Badge>
-              )}
+              {user.isVerified && <ProfileBadge type="verified" />}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowEditProfile(true)}
-                className="h-8 w-8 hover:bg-muted/50"
+                className="h-7 w-7 hover:bg-muted/50 flex-shrink-0"
+                aria-label="Edit profile"
               >
-                <Pencil className="h-4 w-4" />
+                <Pencil className="h-3.5 w-3.5" />
               </Button>
             </div>
-            <p className="text-muted-foreground mb-3">
-              <span className="font-bold text-foreground">{(realtimeStats?.followers ?? user.stats.followers).toLocaleString()}</span> followers • <span className="font-bold text-foreground">{(realtimeStats?.following ?? user.stats.following).toLocaleString()}</span> following
-            </p>
+            <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
+          </div>
+
+          {/* Social proof — compact, tappable */}
+          <FollowStats
+            userId={user.id}
+            followers={realtimeStats?.followers ?? user.stats.followers}
+            following={realtimeStats?.following ?? user.stats.following}
+            className="mb-3"
+          />
+
+          {/* Owner actions: Edit / Share / Wallet */}
+          <div className="flex gap-2 mb-3">
+            <Button
+              onClick={() => setShowEditProfile(true)}
+              variant="default"
+              size="sm"
+              className="flex-1 h-9 font-medium"
+            >
+              <Pencil className="w-4 h-4 mr-2" />
+              Edit Profile
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const url = `${window.location.origin}/profile/${user.username}`;
+                if (navigator.share) {
+                  try {
+                    await navigator.share({ title: `@${user.username} on Serkle`, url });
+                    return;
+                  } catch (err: any) {
+                    if (err?.name === 'AbortError') return;
+                  }
+                }
+                try {
+                  await navigator.clipboard.writeText(url);
+                  toast.success('Profile link copied');
+                } catch {
+                  toast.error('Could not copy link');
+                }
+              }}
+              className="flex-1 h-9 font-medium"
+            >
+              <Share className="w-4 h-4 mr-2" />
+              Share
+            </Button>
+            <Button
+              onClick={() => setShowWallet(true)}
+              variant="outline"
+              size="sm"
+              className="flex-1 h-9 font-medium"
+            >
+              <Wallet className="w-4 h-4 mr-2" />
+              Wallet
+            </Button>
           </div>
 
           {/* Bio */}
-          <div className="mb-6">
-            <p className="text-foreground leading-relaxed mb-2 whitespace-pre-wrap break-words" dir="auto">
-              <BioRichTextRenderer text={displayBio} />
-            </p>
-            {shouldTruncateBio && (
-              <button
-                onClick={() => setShowFullBio(!showFullBio)}
-                className="flex items-center gap-1 text-primary hover:text-primary/80 font-medium transition-colors duration-150 min-h-[40px] p-2 -m-2"
-              >
-                {showFullBio ? (
-                  <>
-                    Show less <ChevronUp className="h-4 w-4" />
-                  </>
-                ) : (
-                  <>
-                    Show more <ChevronDown className="h-4 w-4" />
-                  </>
+          {displayBio && (
+            <div className="mb-2">
+              <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words" dir="auto">
+                <BioRichTextRenderer text={displayBio} />
+                {shouldTruncateBio && (
+                  <button
+                    onClick={() => setShowFullBio(!showFullBio)}
+                    className="text-primary ml-1 hover:underline font-medium"
+                  >
+                    {showFullBio ? 'Show less' : 'Show more'}
+                  </button>
                 )}
-              </button>
-            )}
-          </div>
-
-          {/* Location, Join Date, and Links */}
-          <div className="space-y-3 mb-6 text-muted-foreground">
-            <div className="flex flex-wrap gap-4">
-              {user.location && (
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  <span>{user.location}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span>{formatJoinedDate(user.joinedDate)}</span>
-              </div>
+              </p>
             </div>
-            
-            {/* Links section on new line */}
+          )}
+
+          {/* Metadata: location, links, joined — compact single block */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground mb-1">
+            {user.location && <LocationDisplay location={user.location} />}
+
             {user.website && (
-              <div className="flex items-center gap-2">
-                <LinkIcon className="h-4 w-4" />
+              <div className="flex items-center gap-1.5 text-primary min-w-0">
+                <LinkIcon className="h-3.5 w-3.5 flex-shrink-0" />
                 {(() => {
-                  // Handle multiple links case - support both string and array
                   const links = Array.isArray(user.website) ? user.website : [user.website];
                   const firstLink = links[0];
-                  
                   if (!firstLink) return null;
-                  
                   const displayLink = firstLink.replace(/^https?:\/\//, '');
-                  
+
                   if (links.length === 1) {
                     return (
-                      <a 
-                        href={firstLink} 
-                        className="font-bold hover:text-primary transition-colors"
+                      <a
+                        href={firstLink}
+                        className="hover:underline truncate"
                         target="_blank"
                         rel="noopener noreferrer"
                       >
                         {displayLink}
                       </a>
                     );
-                  } else {
-                    return (
-                      <button
-                        onClick={() => setShowLinksModal(true)}
-                        className="font-bold hover:text-primary transition-colors text-left"
-                      >
-                        {displayLink}... and {links.length - 1} more
-                      </button>
-                    );
                   }
+                  return (
+                    <button
+                      onClick={() => setShowLinksModal(true)}
+                      className="hover:underline text-left"
+                    >
+                      {displayLink} +{links.length - 1} more
+                    </button>
+                  );
                 })()}
               </div>
             )}
-          </div>
 
-          {/* Wallet, Message, and Expert buttons */}
-          <div className="flex gap-3 mb-8">
-            <Button
-              onClick={() => setShowWallet(true)}
-              variant="default"
-              className="flex-1 h-12 font-medium transition-all duration-200"
-            >
-              <Wallet className="w-4 h-4 mr-2" />
-              Wallet
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={onMessageClick}
-              className="flex-1 h-12 font-medium"
-            >
-              <MessageCircle className="w-4 h-4 mr-2" />
-              Message
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+              <span>{formatJoinedDate(user.joinedDate)}</span>
+            </div>
           </div>
+        </div>
 
         {/* Clear Tabs: Posts | Videos | Saved */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="px-4 sm:px-6">
-            <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 rounded-xl mb-6 h-12">
-              <TabsTrigger 
-                value="posts" 
-                className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all font-medium min-h-[40px]"
+            <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 rounded-xl mb-4 h-10">
+              <TabsTrigger
+                value="posts"
+                className="rounded-lg text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:font-semibold data-[state=active]:shadow-sm transition-all font-medium min-h-[32px]"
               >
                 Posts
               </TabsTrigger>
-              <TabsTrigger 
-                value="videos" 
-                className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all font-medium min-h-[40px]"
+              <TabsTrigger
+                value="videos"
+                className="rounded-lg text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:font-semibold data-[state=active]:shadow-sm transition-all font-medium min-h-[32px]"
               >
                 Videos
               </TabsTrigger>
-              <TabsTrigger 
-                value="saved" 
-                className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all font-medium min-h-[40px]"
+              <TabsTrigger
+                value="saved"
+                className="rounded-lg text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:font-semibold data-[state=active]:shadow-sm transition-all font-medium min-h-[32px]"
               >
                 Saved
               </TabsTrigger>
@@ -588,8 +597,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-    
+
     {/* Links Modal */}
     <LinksModal />
     
