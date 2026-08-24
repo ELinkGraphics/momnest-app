@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollTriggeredAIInsight } from './ScrollTriggeredAIInsight';
 import { ExpertProfileModal } from './ExpertProfileModal';
+import { AnonymousAvatar } from './AnonymousAvatar';
 import { useQuestionVote, useUserVotes } from '@/hooks/useQuestions';
 import { useExpertProfiles } from '@/hooks/useExpertProfiles';
 import anonymousLogo from '@/assets/anonymous-logo.png';
@@ -107,10 +108,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onClick })
                     {question.expertProfile.initials}
                   </AvatarFallback>
                 </Avatar>
+              ) : question.anonymous_name ? (
+                <AnonymousAvatar pseudonym={question.anonymous_name} size={32} className="border-2 border-border rounded-full" />
               ) : (
                 <img 
                   src={anonymousLogo} 
-                  alt={question.is_anonymous ? "Anonymous Asker" : "User"} 
+                  alt="Anonymous Asker" 
                   className="w-8 h-8 rounded-full border-2 border-border"
                 />
               )}
@@ -130,7 +133,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onClick })
                     ? question.expertProfile.name
                     : question.is_anonymous 
                       ? (question.anonymous_name || 'Anonymous') 
-                      : 'User'}
+                      : 'Community Member'}
                 </span>
                 {question.isExpert && (
                   <div className="flex items-center gap-1">
@@ -206,7 +209,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onClick })
               
               <div className="flex items-center text-muted-foreground text-meta-info">
                 <MessageCircle className="w-4 h-4 mr-1" />
-                {question.answerCount} {question.answerCount === 1 ? 'opinion' : 'opinions'}
+                {question.answerCount} {question.answerCount === 1 ? 'answer' : 'answers'}
               </div>
             </div>
 

@@ -247,18 +247,21 @@ export type Database = {
           created_at: string | null
           id: string
           user_id: string
+          feedback_type: 'helpful' | 'not_helpful' | null
         }
         Insert: {
           answer_id: string
           created_at?: string | null
           id?: string
           user_id: string
+          feedback_type?: 'helpful' | 'not_helpful' | null
         }
         Update: {
           answer_id?: string
           created_at?: string | null
           id?: string
           user_id?: string
+          feedback_type?: 'helpful' | 'not_helpful' | null
         }
         Relationships: [
           {
@@ -276,6 +279,10 @@ export type Database = {
           created_at: string | null
           id: string
           is_helpful: boolean | null
+          helpful_count: number | null
+          not_helpful_count: number | null
+          total_feedback: number | null
+          helpful_percentage: number | null
           question_id: string
           updated_at: string | null
           user_id: string | null
@@ -285,6 +292,10 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_helpful?: boolean | null
+          helpful_count?: number | null
+          not_helpful_count?: number | null
+          total_feedback?: number | null
+          helpful_percentage?: number | null
           question_id: string
           updated_at?: string | null
           user_id?: string | null
@@ -294,6 +305,10 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_helpful?: boolean | null
+          helpful_count?: number | null
+          not_helpful_count?: number | null
+          total_feedback?: number | null
+          helpful_percentage?: number | null
           question_id?: string
           updated_at?: string | null
           user_id?: string | null
@@ -1707,6 +1722,16 @@ export type Database = {
           updated_at: string
           user_id: string
           years_experience: number | null
+          professional_category: string | null
+          full_legal_name: string | null
+          public_display_name: string | null
+          professional_title: string | null
+          qualification: string | null
+          institution: string | null
+          country: string | null
+          professional_organization: string | null
+          license_number: string | null
+          credential_documents: string[] | null
         }
         Insert: {
           admin_notes?: string | null
@@ -1722,6 +1747,16 @@ export type Database = {
           updated_at?: string
           user_id: string
           years_experience?: number | null
+          professional_category?: string | null
+          full_legal_name?: string | null
+          public_display_name?: string | null
+          professional_title?: string | null
+          qualification?: string | null
+          institution?: string | null
+          country?: string | null
+          professional_organization?: string | null
+          license_number?: string | null
+          credential_documents?: string[] | null
         }
         Update: {
           admin_notes?: string | null
@@ -1737,6 +1772,16 @@ export type Database = {
           updated_at?: string
           user_id?: string
           years_experience?: number | null
+          professional_category?: string | null
+          full_legal_name?: string | null
+          public_display_name?: string | null
+          professional_title?: string | null
+          qualification?: string | null
+          institution?: string | null
+          country?: string | null
+          professional_organization?: string | null
+          license_number?: string | null
+          credential_documents?: string[] | null
         }
         Relationships: []
       }

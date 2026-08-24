@@ -49,14 +49,14 @@ export const ExpertAnswersCarousel: React.FC<ExpertAnswersCarouselProps> = ({ on
 
   if (isLoading && visibleExperts.length === 0) {
     return (
-      <div className="px-4 py-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <BadgeCheck className="w-5 h-5 text-primary" />
+      <div className="px-4 py-3">
+        <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
+          <BadgeCheck className="w-4 h-4 text-primary" />
           Verified Experts
         </h2>
-        <div className="space-y-3">
-          {[1, 2].map((i) => (
-            <div key={i} className="h-40 bg-muted/50 rounded-xl animate-pulse" />
+        <div className="flex gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 w-32 bg-muted/50 rounded-lg animate-pulse flex-shrink-0" />
           ))}
         </div>
       </div>
@@ -68,28 +68,28 @@ export const ExpertAnswersCarousel: React.FC<ExpertAnswersCarouselProps> = ({ on
   }
 
   return (
-    <div className="px-4 pt-4 pb-2">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <BadgeCheck className="w-5 h-5 text-primary" />
+    <div className="px-4 pt-3 pb-2">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-base font-semibold flex items-center gap-2">
+          <BadgeCheck className="w-4 h-4 text-primary" />
           Verified Experts
         </h2>
         <Button
           variant="ghost"
           size="sm"
-          className="text-primary text-sm font-medium"
+          className="text-primary text-xs font-medium h-7"
           onClick={() => setShowAllExperts(true)}
         >
-          View All
+          View All →
         </Button>
       </div>
 
       <Carousel className="w-full">
         <CarouselContent className="-ml-2">
           {visibleExperts.map((expert: any) => (
-            <CarouselItem key={expert.id} className="pl-2 basis-[85%]">
+            <CarouselItem key={expert.id} className="pl-2 basis-[70%] sm:basis-[55%]">
               <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-background to-muted/30">
-                <CardContent className="p-4 space-y-3">
+                <CardContent className="p-3 space-y-2">
                   <div className="flex items-start gap-3">
                     <Avatar
                       className="w-12 h-12 border-2 border-primary/20 cursor-pointer"

@@ -10,6 +10,7 @@ import { useThreadUpdates, useCreateThreadUpdate, useUpdateThreadUpdate, useDele
 import { useIsQuestionBookmarked, useToggleQuestionBookmark } from '@/hooks/useQuestionBookmarks';
 import { supabase } from '@/integrations/supabase/client';
 import anonymousLogo from '@/assets/anonymous-logo.png';
+import { AnonymousAvatar } from '@/components/ask/AnonymousAvatar';
 import { 
   ThumbsUp, 
   MessageCircle, 
@@ -22,7 +23,9 @@ import {
   CheckCircle2,
   BadgeCheck,
   Pencil,
-  Trash2
+  Trash2,
+  Heart,
+  Check
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -527,6 +530,8 @@ export default function QuestionDetail() {
                   questionAuthorProfile.initials
                 )}
               </div>
+            ) : question.anonymous_name ? (
+              <AnonymousAvatar pseudonym={question.anonymous_name} size={40} className="border-2 border-border" />
             ) : (
               <img 
                 src={anonymousLogo} 
@@ -541,7 +546,7 @@ export default function QuestionDetail() {
                     ? questionAuthorProfile.name
                     : question.is_anonymous 
                       ? (question.anonymous_name || 'Anonymous') 
-                      : 'User'}
+                      : 'Community Member'}
                 </span>
                 {questionAuthorIsExpert && (
                   <BadgeCheck className="w-4 h-4 text-primary" />
@@ -552,6 +557,13 @@ export default function QuestionDetail() {
               </span>
             </div>
           </div>
+          
+          {/* Anonymous identity helper text */}
+          {question.is_anonymous && question.anonymous_name && (
+            <p className="text-xs text-muted-foreground/60 flex items-center gap-1">
+              <span>🔒</span> Your anonymous identity is unique to this story.
+            </p>
+          )}
 
           {isEditingQuestion ? (
             <div className="space-y-2">
@@ -615,7 +627,7 @@ export default function QuestionDetail() {
             </Button>
             <div className="flex items-center gap-1 text-muted-foreground">
               <MessageCircle className="w-4 h-4" />
-              {answers?.length || 0} opinions
+              {answers?.length || 0} answers
             </div>
           </div>
         </div>
@@ -761,8 +773,8 @@ export default function QuestionDetail() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">
             {!answers || answers.length === 0 
-              ? 'No opinions yet' 
-              : `${answers.length} Opinion${answers.length === 1 ? '' : 's'}`}
+              ? 'No answers yet' 
+              : `${answers.length} Answer${answers.length === 1 ? '' : 's'}`}
           </h2>
 
           {answersLoading && (
@@ -793,14 +805,19 @@ export default function QuestionDetail() {
             const voteCount = answerVoteCounts[answer.id] || 0;
 
             return (
-              <div key={answer.id} className="p-4 bg-muted/30 rounded-lg space-y-3">
+              <div key={answer.id} className={`p-4 rounded-lg space-y-3 relative overflow-hidden ${answer.isExpert ? 'bg-primary/5 border border-primary/20 shadow-sm' : 'bg-muted/30'}`}>
+                {answer.isExpert && (
+                  <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+                )}
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div 
                       className="size-10 rounded-full grid place-items-center text-xs font-medium text-white overflow-hidden flex-shrink-0"
                       style={{ backgroundColor: answerColor }}
                     >
-                      {showAnonymousName ? (
+                    {showAnonymousName && question.anonymous_name ? (
+                        <AnonymousAvatar pseudonym={question.anonymous_name} size={40} />
+                      ) : showAnonymousName ? (
                         <img src={anonymousLogo} alt="Anonymous" className="w-full h-full object-cover" />
                       ) : answer.profile?.avatar_url ? (
                         <img src={answer.profile.avatar_url} alt={answerDisplayName} className="w-full h-full object-cover" />
@@ -809,59 +826,85 @@ export default function QuestionDetail() {
                       )}
                     </div>
                     <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-medium">
-                          {answerDisplayName}
-                          {showAnonymousName && ' (OP)'}
-                        </span>
-                        {answer.isExpert && (
-                          <div className="flex items-center gap-1">
+                      {answer.isExpert ? (
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-foreground">
+                            {answerDisplayName}
+                          </span>
+                          {answer.expertProfile?.specialty && (
+                            <span className="text-xs font-medium text-primary mt-0.5">
+                              {answer.expertProfile.specialty}
+                            </span>
+                          )}
+                          <div className="flex items-center gap-1 mt-1">
                             <BadgeCheck className="w-3.5 h-3.5 text-primary" />
-                            <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
-                              Expert
-                            </Badge>
+                            <span className="text-xs text-muted-foreground font-medium">Verified Professional</span>
+                            <span className="text-xs text-muted-foreground ml-1">
+                              • {formatDistanceToNow(new Date(answer.created_at), { addSuffix: true })}
+                            </span>
                           </div>
-                        )}
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(answer.created_at), { addSuffix: true })}
-                      </span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium">
+                              {answerDisplayName}
+                              {showAnonymousName && ' (OP)'}
+                            </span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(answer.created_at), { addSuffix: true })}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className={`${hasVotedAnswer ? 'text-primary' : 'text-muted-foreground'} hover:text-primary`}
-                      onClick={() => handleAnswerVote(answer.id)}
-                    >
-                      <ThumbsUp className={`w-4 h-4 mr-1 ${hasVotedAnswer ? 'fill-current' : ''}`} />
-                      {voteCount}
-                    </Button>
+                  <div className="flex flex-col gap-1 items-end">
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className={`${hasVotedAnswer ? 'text-primary bg-primary/10 hover:bg-primary/20' : 'text-muted-foreground'} hover:text-primary transition-all`}
+                        onClick={() => handleAnswerVote(answer.id)}
+                      >
+                        {hasVotedAnswer ? (
+                          <Check className="w-4 h-4 mr-1.5" />
+                        ) : (
+                          <Heart className="w-4 h-4 mr-1.5" />
+                        )}
+                        Helpful {voteCount > 0 ? voteCount : ''}
+                      </Button>
 
-                    {answer.user_id === currentUser?.id && editingAnswerId !== answer.id && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 px-2"
-                          onClick={() => {
-                            setEditingAnswerId(answer.id);
-                            setEditedAnswerText(answer.answer || '');
-                          }}
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 px-2"
-                          onClick={() => handleDeleteAnswer(answer.id)}
-                          disabled={deleteAnswer.isPending}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </>
+                      {answer.user_id === currentUser?.id && editingAnswerId !== answer.id && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2"
+                            onClick={() => {
+                              setEditingAnswerId(answer.id);
+                              setEditedAnswerText(answer.answer || '');
+                            }}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2"
+                            onClick={() => handleDeleteAnswer(answer.id)}
+                            disabled={deleteAnswer.isPending}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    {/* Display helpful percentage if there's enough feedback (e.g., > 3 total votes) */}
+                    {(answer.total_feedback || voteCount) > 3 && (
+                      <span className="text-[10px] text-muted-foreground px-2">
+                        {answer.helpful_percentage || 100}% found this helpful
+                      </span>
                     )}
                   </div>
                 </div>
@@ -924,7 +967,7 @@ export default function QuestionDetail() {
       {/* Persistent Comment Composer */}
       <PersistentCommentComposer
         onSubmit={handleSubmitAnswer}
-        placeholder="Share your opinion..."
+        placeholder="Share your advice..."
         displayName={displayName}
         displayAvatar={displayAvatar}
         displayColor={displayColor}

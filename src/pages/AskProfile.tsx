@@ -10,6 +10,7 @@ import { ArrowLeft, MessageSquare, ThumbsUp, CheckCircle, Bookmark, Award, Badge
 import { useUserQuestions, useUserAnswers, useAskStatistics } from '@/hooks/useAskHistory';
 import { useQuestionBookmarks } from '@/hooks/useQuestionBookmarks';
 import { useIsExpert } from '@/hooks/useExpertProfiles';
+import { AnonymousAvatar } from '@/components/ask/AnonymousAvatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
@@ -156,11 +157,7 @@ const AskProfile: React.FC = () => {
                 >
                   {question.is_anonymous && question.anonymous_name && (
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="h-6 w-6 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-                        <span className="text-xs text-white font-medium">
-                          {question.anonymous_name.charAt(0)}
-                        </span>
-                      </div>
+                      <AnonymousAvatar pseudonym={question.anonymous_name} size={24} />
                       <span className="text-sm font-medium text-muted-foreground">
                         {question.anonymous_name}
                       </span>
