@@ -25,6 +25,9 @@ export const useExpertProfiles = (limit = 5) => {
       // Fetch profiles separately to avoid PostgREST FK cache issues
       const userIds = data.map((e: any) => e.user_id).filter(Boolean);
       let profilesMap: Record<string, any> = {};
+      let followersMap: Record<string, number> = {};
+      let answersStatsMap: Record<string, { total: number, helpful: number }> = {};
+      
       if (userIds.length > 0) {
         const { data: profiles, error: profilesError } = await sb
           .from('profiles')
@@ -36,6 +39,36 @@ export const useExpertProfiles = (limit = 5) => {
         }
         if (profiles) {
           profiles.forEach((p: any) => { profilesMap[p.id] = p; });
+        }
+        
+        // Fetch followers
+        const { data: statsData, error: statsError } = await sb
+          .from('profile_stats')
+          .select('user_id, followers_count')
+          .in('user_id', userIds);
+
+        if (!statsError && statsData) {
+          statsData.forEach((s: any) => { followersMap[s.user_id] = s.followers_count || 0; });
+        }
+        
+        // Fetch all answers for these users to calculate stats
+        const { data: answersData, error: answersError } = await sb
+          .from('answers')
+          .select('user_id, is_helpful')
+          .in('user_id', userIds);
+          
+        if (!answersError && answersData) {
+          answersData.forEach((a: any) => {
+            if (a.user_id) {
+              if (!answersStatsMap[a.user_id]) {
+                answersStatsMap[a.user_id] = { total: 0, helpful: 0 };
+              }
+              answersStatsMap[a.user_id].total++;
+              if (a.is_helpful) {
+                answersStatsMap[a.user_id].helpful++;
+              }
+            }
+          });
         }
       }
 
@@ -111,9 +144,18 @@ export const useExpertProfiles = (limit = 5) => {
         const featuredAnswer = expert.featured_answer_id ? (answersMap[expert.featured_answer_id] || null) : null;
         const answerLikes = expert.featured_answer_id ? (voteCounts[expert.featured_answer_id] || 0) : 0;
         const recencySource = featuredAnswer?.created_at || expert.updated_at || expert.created_at || null;
+        
+        const followers = followersMap[expert.user_id] || 0;
+        const answersStats = answersStatsMap[expert.user_id] || { total: 0, helpful: 0 };
+        const helpfulPercentage = answersStats.total > 0 
+           ? Math.round((answersStats.helpful / answersStats.total) * 100) 
+           : 0;
 
         return {
           ...expert,
+          followers_count: followers,
+          answers_count: answersStats.total,
+          helpful_percentage: helpfulPercentage,
           featured_answer: featuredAnswer,
           answer_likes: answerLikes,
           recency_score: recencySource ? new Date(recencySource).getTime() : 0,

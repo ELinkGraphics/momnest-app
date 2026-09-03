@@ -50,6 +50,28 @@ interface Answer {
   isHelpful: boolean;
 }
 
+const formatCompactTime = (dateStr?: string) => {
+  if (!dateStr) return '';
+  try {
+    const distance = formatDistanceToNow(new Date(dateStr), { addSuffix: false });
+    return distance
+      .replace('about ', '')
+      .replace('less than a minute', 'just now')
+      .replace(' minutes', 'm')
+      .replace(' minute', 'm')
+      .replace(' hours', 'h')
+      .replace(' hour', 'h')
+      .replace(' days', 'd')
+      .replace(' day', 'd')
+      .replace(' months', 'mo')
+      .replace(' month', 'mo')
+      .replace(' years', 'y')
+      .replace(' year', 'y');
+  } catch {
+    return '';
+  }
+};
+
 interface QuestionFeedProps {
   filter: 'recent' | 'trending' | 'unanswered' | 'expert';
   searchQuery?: string;
@@ -86,24 +108,29 @@ export const QuestionFeed: React.FC<QuestionFeedProps> = ({ filter, searchQuery,
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {questions.map((q: any) => {
         const formattedQuestion: Question = {
           id: q.id,
           question: q.question,
           category: q.category,
           tags: q.tags || [],
-          timestamp: formatDistanceToNow(new Date(q.created_at), { addSuffix: true }),
+          timestamp: formatCompactTime(q.created_at),
           answerCount: q.answerCount || 0,
+          expertAnswerCount: q.expertAnswerCount || 0,
+          helpfulCount: q.helpfulCount ?? (q.voteCount || 0),
           upvotes: q.voteCount || 0,
           isUrgent: false,
-          hasExpertAnswer: !!q.ai_response,
+          hasExpertAnswer: !!q.ai_response || (q.expertAnswerCount > 0),
           aiResponse: q.ai_response,
           is_anonymous: q.isExpert ? false : q.is_anonymous, // Experts are never anonymous
           anonymous_name: q.anonymous_name,
           user_id: q.user_id,
           created_at: q.created_at,
           isThread: q.is_thread || false,
+          threadUpdates: q.threadUpdatesCount || 0,
+          isUpdatedToday: q.isUpdatedToday || false,
+          lastUpdate: q.latestUpdateDate ? formatDistanceToNow(new Date(q.latestUpdateDate), { addSuffix: true }) : undefined,
           isExpert: q.isExpert || false,
           expertProfile: q.expertProfile || null,
           expertUserId: q.isExpert ? q.user_id : undefined,

@@ -7,11 +7,11 @@ ADD COLUMN IF NOT EXISTS total_feedback INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS helpful_percentage NUMERIC DEFAULT 0;
 
 -- Create an enum for feedback types
-DO \$\$ BEGIN
+DO $$ BEGIN
     CREATE TYPE feedback_type AS ENUM ('helpful', 'not_helpful');
 EXCEPTION
     WHEN duplicate_object THEN null;
-END \$\$;
+END $$;
 
 -- Add feedback_type to answer_votes if it doesn't exist, default to 'helpful'
 ALTER TABLE answer_votes
@@ -26,7 +26,7 @@ ADD CONSTRAINT answer_votes_user_id_answer_id_key UNIQUE (user_id, answer_id);
 
 -- Create a function to update answer helpfulness metrics
 CREATE OR REPLACE FUNCTION update_answer_helpfulness()
-RETURNS TRIGGER AS \$\$
+RETURNS TRIGGER AS $$
 BEGIN
   -- If inserting a new vote or changing a vote
   IF (TG_OP = 'INSERT' OR TG_OP = 'UPDATE') THEN
@@ -57,7 +57,7 @@ BEGIN
   
   RETURN NULL;
 END;
-\$\$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Create trigger on answer_votes
 DROP TRIGGER IF EXISTS answer_votes_helpfulness_trigger ON answer_votes;

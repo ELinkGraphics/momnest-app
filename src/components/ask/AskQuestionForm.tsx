@@ -5,8 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Lock, Send, X, Plus, Sparkles, BadgeCheck } from 'lucide-react';
+import { Lock, Send, X, Plus, Sparkles, BadgeCheck, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCreateQuestion } from '@/hooks/useQuestions';
 import { useIsExpert } from '@/hooks/useExpertProfiles';
@@ -50,8 +49,50 @@ const TAG_KEYWORDS: Record<string, string[]> = {
   'discipline': ['discipline', 'behavior', 'tantrum', 'punishment', 'rules', 'boundaries'],
   'teenager': ['teenager', 'teen', 'adolescent', 'puberty', 'rebellion'],
   'nutrition': ['food', 'eating', 'diet', 'nutrition', 'weight', 'feeding', 'breastfeeding'],
-  'friendship': ['friend', 'friends', 'friendship', 'social', 'toxic'],
+  'friendship': ['friend', 'friends', 'friendship', 'social', 'toxic']
 };
+
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  'parenting': ['baby', 'toddler', 'child', 'children', 'kid', 'infant', 'potty', 'tantrum', 'sleep train', 'daycare', 'preschool', 'parent', 'parenting', 'teething', 'weaning'],
+  'relationships': ['husband', 'wife', 'married', 'marriage', 'spouse', 'partner', 'dating', 'boyfriend', 'girlfriend', 'in-law', 'in-laws', 'divorce', 'fighting', 'cheating', 'ex-husband', 'ex-wife'],
+  'health': ['doctor', 'pediatrician', 'sick', 'fever', 'cough', 'hospital', 'medicine', 'symptom', 'pain', 'vomit', 'rash', 'allergy', 'pregnant', 'pregnancy', 'postpartum', 'breastfeeding'],
+  'mental-health': ['anxious', 'anxiety', 'depressed', 'depression', 'burnout', 'overwhelmed', 'crying', 'lonely', 'stress', 'therapy', 'therapist', 'panic', 'mental health'],
+  'education': ['school', 'teacher', 'homework', 'grades', 'reading', 'math', 'kindergarten', 'learning', 'adhd', 'tutor'],
+  'career': ['work', 'job', 'boss', 'coworker', 'career', 'maternity leave', 'paternity leave', 'promotion', 'salary', 'resume', 'quit', 'office'],
+  'family': ['family', 'mother', 'father', 'sister', 'brother', 'grandparent', 'household', 'chores', 'co-parenting'],
+  'lifestyle': ['routine', 'meal', 'cooking', 'travel', 'budget', 'spending', 'savings', 'moving', 'home']
+};
+
+function suggestCategory(questionText: string): string | null {
+  const lower = questionText.toLowerCase();
+  let bestCategory: string | null = null;
+  let maxMatches = 0;
+
+  for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    let matches = 0;
+    for (const kw of keywords) {
+      if (lower.includes(kw)) {
+        matches++;
+      }
+    }
+    if (matches > maxMatches) {
+      maxMatches = matches;
+      bestCategory = cat;
+    }
+  }
+
+  return maxMatches >= 1 ? bestCategory : null;
+}
+
+const CRISIS_KEYWORDS = [
+  'suicide', 'kill myself', 'end my life', 'hurt myself', 'cutting myself', 
+  'self harm', 'self-harm', 'overdose', 'abusive partner', 'domestic violence', 'beat me'
+];
+
+function checkCrisisContent(text: string): boolean {
+  const lower = text.toLowerCase();
+  return CRISIS_KEYWORDS.some(kw => lower.includes(kw));
+}
 
 function suggestTags(questionText: string): string[] {
   const lowerText = questionText.toLowerCase();
@@ -85,7 +126,9 @@ export const AskQuestionForm: React.FC<AskQuestionFormProps> = ({
   const [identityMode, setIdentityMode] = useState<'anonymous' | 'profile'>('anonymous');
   const [anonymousName, setAnonymousName] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [hasSuggestedTags, setHasSuggestedTags] = useState(false);
+  const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
+  const [isCrisisDetected, setIsCrisisDetected] = useState(false);
+  const [similarQuestions, setSimilarQuestions] = useState<any[]>([]);
   const { toast } = useToast();
   const createQuestion = useCreateQuestion();
   const { data: isExpert } = useIsExpert();
@@ -102,22 +145,56 @@ export const AskQuestionForm: React.FC<AskQuestionFormProps> = ({
     }
   }, [identityMode, isAuthenticated]);
 
-  // Generate tag suggestions when question text changes (debounced)
+  // Generate tag suggestions, category suggestion, similar questions, and safety checks (debounced)
   useEffect(() => {
-    if (question.trim().length < 15) {
+    if (question.trim().length < 10) {
       setSuggestedTags([]);
       setHasSuggestedTags(false);
+      setSuggestedCategory(null);
+      setIsCrisisDetected(false);
+      setSimilarQuestions([]);
       return;
     }
 
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
+      // 1. Tag suggestions
       const suggestions = suggestTags(question);
       setSuggestedTags(suggestions);
       if (suggestions.length > 0 && !hasSuggestedTags) {
         setTags(suggestions);
         setHasSuggestedTags(true);
       }
-    }, 600);
+
+      // 2. Category suggestions
+      const cat = suggestCategory(question);
+      setSuggestedCategory(cat);
+
+      // 3. Crisis & safety detection
+      setIsCrisisDetected(checkCrisisContent(question));
+
+      // 4. Similar existing questions
+      if (question.trim().length >= 18) {
+        const words = question
+          .toLowerCase()
+          .replace(/[^a-z0-9 ]/g, '')
+          .split(' ')
+          .filter(w => w.length >= 4)
+          .slice(0, 3);
+
+        if (words.length > 0) {
+          try {
+            const { data } = await supabase
+              .from('questions')
+              .select('id, question, category, answers(count)')
+              .or(words.map(w => `question.ilike.%${w}%`).join(','))
+              .limit(2);
+            setSimilarQuestions(data || []);
+          } catch (err) {
+            console.warn('Error fetching similar questions:', err);
+          }
+        }
+      }
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [question]);
@@ -220,32 +297,100 @@ export const AskQuestionForm: React.FC<AskQuestionFormProps> = ({
             <p className="text-xs text-muted-foreground text-right">
               {question.length}/1000
             </p>
+
+            {/* Crisis & Safety Support Banner */}
+            {isCrisisDetected && (
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs space-y-1.5 animate-in fade-in duration-200">
+                <div className="font-semibold flex items-center gap-1.5 text-[13px]">
+                  <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
+                  Immediate Support & Crisis Resources
+                </div>
+                <p className="leading-relaxed text-destructive/90">
+                  If you or someone in your home is in crisis or danger, please connect directly with immediate support:
+                  Call or text <strong className="underline">988</strong> (Suicide & Crisis Lifeline) or your local emergency services (<strong>911</strong>). Community forums cannot substitute for urgent crisis care.
+                </p>
+              </div>
+            )}
+
+            {/* Similar Questions Recommendation */}
+            {similarQuestions.length > 0 && (
+              <div className="p-3 rounded-lg bg-primary/[0.04] border border-primary/20 space-y-2 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+                  <span className="flex items-center gap-1.5 text-primary">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Similar questions already answered by community:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSimilarQuestions([])}
+                    className="text-muted-foreground hover:text-foreground text-[11px]"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  {similarQuestions.map((sq: any) => (
+                    <a
+                      key={sq.id}
+                      href={`/ask/question/${sq.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-between text-xs text-foreground/90 hover:text-primary transition-colors py-1 px-2 rounded hover:bg-background/80"
+                    >
+                      <span className="truncate pr-2">“{sq.question}”</span>
+                      <span className="text-[11px] text-muted-foreground flex-shrink-0 flex items-center gap-1">
+                        {sq.answers?.[0]?.count || 0} answers
+                        <ExternalLink className="w-3 h-3" />
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* STEP 2 — Category (required) */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              Category <span className="text-destructive">*</span>
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">
+                Category <span className="text-destructive">*</span>
+              </Label>
+              {suggestedCategory && category !== suggestedCategory && (
+                <button
+                  type="button"
+                  onClick={() => setCategory(suggestedCategory)}
+                  className="inline-flex items-center gap-1 text-xs text-primary font-medium hover:underline"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  Apply suggested: {CATEGORIES.find(c => c.value === suggestedCategory)?.label.split(' & ')[0]}
+                </button>
+              )}
+            </div>
             <div className="grid grid-cols-3 gap-2">
               {CATEGORIES.map((cat) => {
                 const isActive = category === cat.value;
+                const isSuggested = suggestedCategory === cat.value;
                 return (
                   <button
                     key={cat.value}
                     type="button"
                     onClick={() => setCategory(cat.value)}
                     className={`
-                      flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium
+                      relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium
                       transition-all duration-150 border text-left
                       ${isActive
                         ? 'bg-primary/10 text-primary border-primary ring-1 ring-primary/30'
-                        : 'bg-muted/40 text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                        : isSuggested
+                          ? 'bg-primary/5 text-primary/80 border-primary/30 hover:bg-primary/10'
+                          : 'bg-muted/40 text-muted-foreground border-border hover:bg-muted hover:text-foreground'
                       }
                     `}
                   >
                     <span>{cat.icon}</span>
                     <span className="truncate">{cat.label.split(' & ')[0]}</span>
+                    {isSuggested && !isActive && (
+                      <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" />
+                    )}
                   </button>
                 );
               })}

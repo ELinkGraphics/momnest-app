@@ -27,6 +27,8 @@ export const useCreateThreadUpdate = () => {
     mutationFn: async (updateData: {
       questionId: string;
       content: string;
+      title?: string;
+      mediaUrl?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
@@ -43,12 +45,16 @@ export const useCreateThreadUpdate = () => {
         throw new Error('Question not found');
       }
 
-      if (!question.is_thread) {
-        throw new Error('This is not a thread story');
-      }
-
       if (question?.user_id !== user.id) {
         throw new Error('Only the original poster can add thread updates');
+      }
+
+      // If not marked as thread yet, automatically mark as thread story
+      if (!question.is_thread) {
+        await sb
+          .from('questions')
+          .update({ is_thread: true, updated_at: new Date().toISOString() })
+          .eq('id', updateData.questionId);
       }
 
       // Get the next update number
@@ -66,7 +72,9 @@ export const useCreateThreadUpdate = () => {
         .insert({
           question_id: updateData.questionId,
           user_id: user.id,
-          update_text: updateData.content,
+          title: updateData.title?.trim() || null,
+          update_text: updateData.content.trim(),
+          media_url: updateData.mediaUrl || null,
           update_number: nextUpdateNumber,
         })
         .select()
@@ -78,11 +86,12 @@ export const useCreateThreadUpdate = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['threadUpdates', variables.questionId] });
       queryClient.invalidateQueries({ queryKey: ['question', variables.questionId] });
-      toast.success('Update posted successfully!');
+      queryClient.invalidateQueries({ queryKey: ['questions'] });
+      toast.success('Story update posted successfully!');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error creating thread update:', error);
-      toast.error('Failed to post update');
+      toast.error(error.message || 'Failed to post update');
     },
   });
 };
@@ -91,14 +100,30 @@ export const useUpdateThreadUpdate = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ updateId, questionId, content }: { updateId: string; questionId: string; content: string }) => {
+    mutationFn: async ({ 
+      updateId, 
+      questionId, 
+      content,
+      title,
+      mediaUrl
+    }: { 
+      updateId: string; 
+      questionId: string; 
+      content: string;
+      title?: string;
+      mediaUrl?: string;
+    }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       const sb = supabase as any;
+      const updatePayload: Record<string, any> = { update_text: content.trim() };
+      if (title !== undefined) updatePayload.title = title.trim() || null;
+      if (mediaUrl !== undefined) updatePayload.media_url = mediaUrl || null;
+
       const { error } = await sb
         .from('thread_updates')
-        .update({ update_text: content })
+        .update(updatePayload)
         .eq('id', updateId)
         .eq('user_id', user.id)
         .eq('question_id', questionId);
@@ -107,11 +132,13 @@ export const useUpdateThreadUpdate = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['threadUpdates', variables.questionId] });
+      queryClient.invalidateQueries({ queryKey: ['question', variables.questionId] });
+      queryClient.invalidateQueries({ queryKey: ['questions'] });
       toast.success('Story update edited');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error updating thread update:', error);
-      toast.error('Failed to edit story update');
+      toast.error(error.message || 'Failed to edit story update');
     },
   });
 };

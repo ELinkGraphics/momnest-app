@@ -1664,7 +1664,10 @@ export type Database = {
           created_at: string | null
           featured_answer_id: string | null
           id: string
+          institution: string | null
           is_verified: boolean | null
+          professional_title: string | null
+          qualification: string | null
           specialty: string
           updated_at: string | null
           user_id: string
@@ -1677,7 +1680,10 @@ export type Database = {
           created_at?: string | null
           featured_answer_id?: string | null
           id?: string
+          institution?: string | null
           is_verified?: boolean | null
+          professional_title?: string | null
+          qualification?: string | null
           specialty: string
           updated_at?: string | null
           user_id: string
@@ -1690,7 +1696,10 @@ export type Database = {
           created_at?: string | null
           featured_answer_id?: string | null
           id?: string
+          institution?: string | null
           is_verified?: boolean | null
+          professional_title?: string | null
+          qualification?: string | null
           specialty?: string
           updated_at?: string | null
           user_id?: string
@@ -3147,6 +3156,7 @@ export type Database = {
       }
       questions: {
         Row: {
+          ai_discussion_summary: Json | null
           ai_response: string | null
           anonymous_name: string | null
           category: string
@@ -3161,6 +3171,7 @@ export type Database = {
           views: number | null
         }
         Insert: {
+          ai_discussion_summary?: Json | null
           ai_response?: string | null
           anonymous_name?: string | null
           category: string
@@ -3175,6 +3186,7 @@ export type Database = {
           views?: number | null
         }
         Update: {
+          ai_discussion_summary?: Json | null
           ai_response?: string | null
           anonymous_name?: string | null
           category?: string
@@ -4339,6 +4351,42 @@ export type Database = {
           },
         ]
       }
+      story_followers: {
+        Row: {
+          created_at: string | null
+          id: string
+          question_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          question_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          question_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_followers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_followers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       thread_update_votes: {
         Row: {
           created_at: string | null
@@ -4372,7 +4420,9 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          media_url: string | null
           question_id: string
+          title: string | null
           update_number: number
           update_text: string
           user_id: string | null
@@ -4380,7 +4430,9 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          media_url?: string | null
           question_id: string
+          title?: string | null
           update_number?: number
           update_text: string
           user_id?: string | null
@@ -4388,7 +4440,9 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          media_url?: string | null
           question_id?: string
+          title?: string | null
           update_number?: number
           update_text?: string
           user_id?: string | null

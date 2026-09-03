@@ -10,13 +10,14 @@ export const useQuestions = (filter: QuestionFilter = 'recent', page = 0, pageSi
     queryFn: async () => {
       const sb = supabase as any;
       
-      // Get questions with answer counts
+      // Get questions with answer counts and thread updates
       let query = sb
         .from('questions')
         .select(`
           *,
-          answer_count:answers(count),
-          vote_count:question_votes(count)
+          answers(id, user_id, is_helpful),
+          vote_count:question_votes(count),
+          thread_updates(id, created_at)
         `)
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
@@ -76,14 +77,39 @@ export const useQuestions = (filter: QuestionFilter = 'recent', page = 0, pageSi
         }, {});
       }
       
-      // Process answer counts from the aggregated query
-      const processedData = data?.map((q: any) => ({
-        ...q,
-        answerCount: q.answer_count?.[0]?.count || 0,
-        voteCount: q.vote_count?.[0]?.count || 0,
-        isExpert: q.user_id ? expertUserIds.has(q.user_id) : false,
-        expertProfile: q.user_id ? expertProfiles[q.user_id] || null : null,
-      })) || [];
+      // Process answer counts and thread update stats from the aggregated query
+      const todayStr = new Date().toDateString();
+      const processedData = data?.map((q: any) => {
+        const updates = q.thread_updates || [];
+        const threadUpdatesCount = updates.length;
+        let latestUpdateDate: Date | null = null;
+        if (updates.length > 0) {
+          const sorted = [...updates].sort((a: any, b: any) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+          latestUpdateDate = new Date(sorted[0].created_at);
+        }
+        const isUpdatedToday = latestUpdateDate ? (latestUpdateDate.toDateString() === todayStr) : false;
+
+        const answersList = q.answers || [];
+        const answerCount = answersList.length;
+        const expertAnswerCount = answersList.filter((a: any) => expertUserIds.has(a.user_id)).length;
+        const helpfulCount = (q.vote_count?.[0]?.count || 0) + answersList.filter((a: any) => a.is_helpful).length;
+
+        return {
+          ...q,
+          answerCount,
+          expertAnswerCount,
+          helpfulCount,
+          voteCount: q.vote_count?.[0]?.count || 0,
+          isExpert: q.user_id ? expertUserIds.has(q.user_id) : false,
+          expertProfile: q.user_id ? expertProfiles[q.user_id] || null : null,
+          threadUpdatesCount,
+          latestUpdateDate: latestUpdateDate ? latestUpdateDate.toISOString() : null,
+          isUpdatedToday,
+          is_thread: q.is_thread || threadUpdatesCount > 0,
+        };
+      }) || [];
 
       // Filter unanswered questions
       if (filter === 'unanswered') {
@@ -173,17 +199,6 @@ export const useCreateQuestion = () => {
 
       if (error) throw error;
 
-      // Trigger AI insight generation asynchronously (not for threads)
-      if (!questionData.isThread) {
-        supabase.functions.invoke('generate-ai-insight', {
-          body: {
-            questionId: data.id,
-            question: questionData.question,
-            category: questionData.category,
-          }
-        }).catch(err => console.error('AI insight generation failed:', err));
-      }
-
       return data;
     },
     onSuccess: () => {
@@ -194,6 +209,34 @@ export const useCreateQuestion = () => {
       console.error('Error creating question:', error);
       toast.error('Failed to post question');
     },
+  });
+};
+
+export const useGenerateDiscussionSummary = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      questionId,
+      question,
+      category,
+      answers
+    }: {
+      questionId: string;
+      question: string;
+      category?: string;
+      answers: Array<{ id: string; answer: string; isExpert?: boolean; isHelpful?: boolean; authorName?: string }>;
+    }) => {
+      const { data, error } = await supabase.functions.invoke('generate-ai-insight', {
+        body: { questionId, question, category, answers }
+      });
+      if (error) throw error;
+      return data?.summary;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['question', variables.questionId] });
+      queryClient.invalidateQueries({ queryKey: ['questions'] });
+    }
   });
 };
 

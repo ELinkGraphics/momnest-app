@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BadgeCheck, MessageCircle, Award, Clock, ArrowLeft, FileText, MessageSquare, Heart, MessageCircleMore } from 'lucide-react';
+import { BadgeCheck, MessageCircle, ArrowLeft, MessageSquare, ThumbsUp, Users, Info, GraduationCap, CheckCircle2 } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { useCreateConversation } from '@/hooks/useConversations';
 import { usePresence } from '@/hooks/usePresence';
@@ -13,6 +13,7 @@ import { useUserPosts } from '@/hooks/useUserPosts';
 import { useExpertAnswers } from '@/hooks/useExpertAnswers';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ExpertProfileModalProps {
   open: boolean;
@@ -23,6 +24,9 @@ interface ExpertProfileModalProps {
     bio?: string | null;
     years_experience?: number | null;
     certifications?: string[] | null;
+    professional_title?: string | null;
+    qualification?: string | null;
+    institution?: string | null;
     profiles?: {
       name?: string;
       username?: string;
@@ -30,6 +34,9 @@ interface ExpertProfileModalProps {
       initials?: string;
       avatar_color?: string;
     } | null;
+    answers_count?: number;
+    helpful_percentage?: number;
+    followers_count?: number;
     answer_likes?: number;
   } | null;
 }
@@ -105,61 +112,64 @@ export const ExpertProfileModal: React.FC<ExpertProfileModalProps> = ({ open, on
           </div>
 
           {/* Name + badge */}
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <div className="flex items-center justify-center gap-1.5">
               <h2 className="text-xl font-bold text-foreground">{profile?.name || profile?.username || 'Expert'}</h2>
-              <BadgeCheck className="w-5 h-5 text-primary" />
             </div>
-            <Badge className="text-xs bg-primary/15 text-primary border-primary/25 backdrop-blur-sm">
-              Verified Expert
-            </Badge>
-            <p className="text-xs text-muted-foreground">{isOnline ? '🟢 Online now' : 'Offline'}</p>
+            {expert.professional_title && (
+              <p className="text-sm font-medium text-muted-foreground">{expert.professional_title}</p>
+            )}
+            
+            <div className="pt-1 flex items-center justify-center">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge className="text-xs bg-primary/10 text-primary border-primary/20 flex items-center gap-1 cursor-help hover:bg-primary/20">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Verified by Serkle
+                      <Info className="w-3 h-3 ml-0.5 opacity-70" />
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Serkle reviewed this professional's submitted credentials.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <p className="text-xs text-muted-foreground pt-1">{isOnline ? '🟢 Online now' : 'Offline'}</p>
           </div>
 
-          {/* Stats cards */}
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col items-center px-4 py-2.5 rounded-xl bg-card/50 backdrop-blur-sm border border-border/30">
-              <Award className="w-4 h-4 text-primary mb-1" />
-              <span className="text-xs font-semibold text-foreground">{expert.specialty}</span>
-              <span className="text-[10px] text-muted-foreground">Specialty</span>
+          {/* Details */}
+          <div className="flex flex-col items-center gap-1 mt-2">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground font-medium">Specialty:</span>
+              <span className="font-semibold text-foreground">{expert.specialty}</span>
             </div>
             {expert.years_experience && (
-              <div className="flex flex-col items-center px-4 py-2.5 rounded-xl bg-card/50 backdrop-blur-sm border border-border/30">
-                <Clock className="w-4 h-4 text-primary mb-1" />
-                <span className="text-xs font-semibold text-foreground">{expert.years_experience}y</span>
-                <span className="text-[10px] text-muted-foreground">Experience</span>
-              </div>
-            )}
-            {(expert.answer_likes ?? 0) > 0 && (
-              <div className="flex flex-col items-center px-4 py-2.5 rounded-xl bg-card/50 backdrop-blur-sm border border-border/30">
-                <span className="text-sm mb-1">👍</span>
-                <span className="text-xs font-semibold text-foreground">{expert.answer_likes}</span>
-                <span className="text-[10px] text-muted-foreground">Likes</span>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground font-medium">Experience:</span>
+                <span className="font-semibold text-foreground">{expert.years_experience} years</span>
               </div>
             )}
           </div>
 
-          {/* About section */}
-          {expert.bio && (
-            <div className="w-full text-left rounded-xl bg-card/40 backdrop-blur-sm border border-border/30 p-3.5 space-y-1">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">About</h3>
-              <p className="text-sm leading-relaxed text-foreground">{expert.bio}</p>
+          {/* Trust Signals */}
+          <div className="flex items-center gap-4 py-2">
+            <div className="flex flex-col items-center px-4 py-2.5 rounded-xl bg-card/50 backdrop-blur-sm border border-border/30">
+              <span className="text-sm font-bold text-foreground">{expert.answers_count || 0}</span>
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5"><MessageSquare className="w-3 h-3" /> Answers</span>
             </div>
-          )}
+            <div className="flex flex-col items-center px-4 py-2.5 rounded-xl bg-card/50 backdrop-blur-sm border border-border/30">
+              <span className="text-sm font-bold text-foreground">{expert.helpful_percentage || 0}%</span>
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5"><ThumbsUp className="w-3 h-3" /> Helpful</span>
+            </div>
+            <div className="flex flex-col items-center px-4 py-2.5 rounded-xl bg-card/50 backdrop-blur-sm border border-border/30">
+              <span className="text-sm font-bold text-foreground">{(expert.followers_count ?? 0) >= 1000 ? ((expert.followers_count ?? 0) / 1000).toFixed(1) + 'K' : (expert.followers_count || 0)}</span>
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5"><Users className="w-3 h-3" /> Followers</span>
+            </div>
+          </div>
 
-          {/* Certifications */}
-          {expert.certifications && expert.certifications.length > 0 && (
-            <div className="w-full text-left space-y-1.5">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Certifications</h3>
-              <div className="flex flex-wrap gap-1.5">
-                {expert.certifications.map((cert, i) => (
-                  <Badge key={i} variant="outline" className="text-xs bg-card/40 backdrop-blur-sm border-border/40">
-                    {cert}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
+
 
           {/* DM button */}
           <Button
@@ -175,60 +185,94 @@ export const ExpertProfileModal: React.FC<ExpertProfileModalProps> = ({ open, on
 
         {/* Tabs section */}
         <div className="px-4 pb-8">
-          <Tabs defaultValue="posts" className="w-full">
-            <TabsList className="w-full grid grid-cols-2 bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl">
-              <TabsTrigger value="posts" className="gap-1.5 rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary">
-                <FileText className="w-3.5 h-3.5" />
-                Posts
+          <Tabs defaultValue="about" className="w-full">
+            <TabsList className="w-full flex overflow-x-auto no-scrollbar bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl justify-start p-1 h-auto">
+              <TabsTrigger value="about" className="flex-1 whitespace-nowrap min-w-[80px] gap-1.5 rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary py-2 text-xs">
+                About
               </TabsTrigger>
-              <TabsTrigger value="answers" className="gap-1.5 rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary">
-                <MessageSquare className="w-3.5 h-3.5" />
-                Answers
+              <TabsTrigger value="answers" className="flex-1 whitespace-nowrap min-w-[110px] gap-1.5 rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary py-2 text-xs">
+                Expert Answers
+              </TabsTrigger>
+              <TabsTrigger value="credentials" className="flex-1 whitespace-nowrap min-w-[100px] gap-1.5 rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary py-2 text-xs">
+                Credentials
+              </TabsTrigger>
+              <TabsTrigger value="topics" className="flex-1 whitespace-nowrap min-w-[80px] gap-1.5 rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary py-2 text-xs">
+                Topics
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="posts" className="mt-3 space-y-3">
-              {postsLoading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="rounded-xl bg-card/40 backdrop-blur-sm border border-border/30 p-4 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-full" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                ))
-              ) : posts.length === 0 ? (
-                <div className="text-center py-10 text-muted-foreground text-sm">
-                  <FileText className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                  No posts yet
+            <TabsContent value="about" className="mt-4 space-y-4">
+              {expert.bio ? (
+                <div className="rounded-xl bg-card/40 backdrop-blur-sm border border-border/30 p-4">
+                  <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">{expert.bio}</p>
                 </div>
               ) : (
-                posts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="rounded-xl bg-card/40 backdrop-blur-sm border border-border/30 p-4 space-y-2 transition-colors hover:bg-card/60"
-                    onClick={() => {
-                      onClose();
-                      navigate(`/post/${post.id}`);
-                    }}
-                  >
-                    <p className="text-sm text-foreground line-clamp-3">{post.content}</p>
-                    {post.media_url && (
-                      <img src={post.media_url} alt="" className="rounded-lg w-full max-h-40 object-cover" />
-                    )}
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
-                      <span className="flex items-center gap-1">
-                        <Heart className="w-3 h-3" /> {post.likes_count}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MessageCircleMore className="w-3 h-3" /> {post.comments_count}
-                      </span>
-                      <span className="ml-auto">
-                        {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                      </span>
+                <div className="text-center py-10 text-muted-foreground text-sm">
+                  No about information provided
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="credentials" className="mt-4 space-y-4">
+              <div className="rounded-xl bg-card/40 backdrop-blur-sm border border-border/30 p-4 space-y-4">
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-primary" />
+                    Education & Qualifications
+                  </h3>
+                  {expert.qualification || expert.institution ? (
+                    <ul className="space-y-1.5 mt-2">
+                      {expert.qualification && (
+                        <li className="text-sm text-foreground flex items-start gap-2">
+                          <span className="text-muted-foreground w-20 flex-shrink-0">Degree:</span>
+                          <span className="font-medium">{expert.qualification}</span>
+                        </li>
+                      )}
+                      {expert.institution && (
+                        <li className="text-sm text-foreground flex items-start gap-2">
+                          <span className="text-muted-foreground w-20 flex-shrink-0">Institution:</span>
+                          <span className="font-medium">{expert.institution}</span>
+                        </li>
+                      )}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No specific qualifications listed.</p>
+                  )}
+                </div>
+
+                {expert.certifications && expert.certifications.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-border/40">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <BadgeCheck className="w-4 h-4 text-primary" />
+                      Certifications
+                    </h3>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {expert.certifications.map((cert, i) => (
+                        <Badge key={i} variant="outline" className="text-xs font-medium bg-background/50">
+                          {cert}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
-                ))
-              )}
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="topics" className="mt-4 space-y-4">
+              <div className="rounded-xl bg-card/40 backdrop-blur-sm border border-border/30 p-4">
+                <h3 className="text-sm font-semibold mb-3">Expertise Areas</h3>
+                {answers && answers.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {Array.from(new Set(answers.map((a: any) => a.questions?.category).filter(Boolean))).map((category: any, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs">
+                        {category}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No topics active yet.</p>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="answers" className="mt-3 space-y-3">

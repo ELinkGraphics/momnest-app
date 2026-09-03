@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BadgeCheck, ThumbsUp } from 'lucide-react';
+import { BadgeCheck, ThumbsUp, MessageSquare, Users, CheckCircle2 } from 'lucide-react';
 import { useExpertProfiles } from '@/hooks/useExpertProfiles';
 import { VideoLoader } from '@/components/ui/VideoLoader';
 import { ExpertProfileModal } from './ExpertProfileModal';
@@ -55,31 +55,52 @@ export const AllExpertsModal: React.FC<AllExpertsModalProps> = ({ open, onClose 
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3
-                            className="text-sm font-semibold truncate cursor-pointer hover:text-primary transition-colors"
-                            onClick={() => setSelectedExpert(expert)}
-                          >
-                            {expert.profiles?.name || expert.profiles?.username}
-                          </h3>
-                          <BadgeCheck className="w-4 h-4 text-primary flex-shrink-0" />
-                          <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20">
-                            Expert
-                          </Badge>
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <h3
+                              className="text-sm font-semibold truncate cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => setSelectedExpert(expert)}
+                            >
+                              {expert.profiles?.name || expert.profiles?.username}
+                            </h3>
+                            <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Verified Professional
+                            </Badge>
+                          </div>
+                          {expert.professional_title && (
+                            <p className="text-xs font-medium text-muted-foreground">{expert.professional_title}</p>
+                          )}
                         </div>
-                        <p className="text-xs text-muted-foreground">{expert.specialty}</p>
-                        {expert.years_experience && (
-                          <p className="text-xs text-muted-foreground">
-                            {expert.years_experience} years experience
-                          </p>
-                        )}
+                        <div className="mt-2 space-y-0.5">
+                          <div className="flex items-center gap-1 text-xs">
+                            <span className="text-muted-foreground w-16">Specialty:</span>
+                            <span className="font-medium">{expert.specialty}</span>
+                          </div>
+                          {expert.years_experience && (
+                            <div className="flex items-center gap-1 text-xs">
+                              <span className="text-muted-foreground w-16">Experience:</span>
+                              <span className="font-medium">{expert.years_experience} years</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      {expert.answer_likes > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <ThumbsUp className="w-3 h-3" />
-                          {expert.answer_likes}
-                        </div>
-                      )}
+                    </div>
+
+                    {/* Trust Signals */}
+                    <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-3 px-1">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span className="font-medium text-foreground">{expert.answers_count || 0}</span> Answers
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                        <span className="font-medium text-foreground">{expert.helpful_percentage || 0}%</span> Helpful
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Users className="w-3.5 h-3.5" />
+                        <span className="font-medium text-foreground">{expert.followers_count >= 1000 ? (expert.followers_count / 1000).toFixed(1) + 'K' : expert.followers_count || 0}</span> Followers
+                      </div>
                     </div>
 
                     {expert.bio && (
