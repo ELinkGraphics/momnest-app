@@ -106,7 +106,7 @@ export const StoryHeader: React.FC<StoryHeaderProps> = ({
       {/* Story Menu Dropdown — aligned under the right-side menu button */}
       {showStoryMenu && (
         <>
-          <div className="fixed inset-0 z-25" onPointerDown={(e) => { e.stopPropagation(); setShowStoryMenu(false); onResume('menu'); }} />
+          <div className="fixed inset-0 z-[25]" onPointerDown={(e) => { e.stopPropagation(); setShowStoryMenu(false); onResume('menu'); }} />
           <div className="absolute top-16 right-3 z-30 story-dropdown" data-story-controls>
             {isOwnStory ? (
               <>

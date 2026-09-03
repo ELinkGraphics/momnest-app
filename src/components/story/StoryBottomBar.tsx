@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Heart, Send, BarChart3, Repeat2, Loader2, ChevronUp } from 'lucide-react';
 import EmojiPicker from '@/components/EmojiPicker';
 import { StoryMention, PauseReason } from '@/types/storyTypes';
@@ -41,6 +41,7 @@ export const StoryBottomBar: React.FC<StoryBottomBarProps> = ({
   const [message, setMessage] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // The reply box is "engaged" while the user is focused on it, the emoji picker
   // is open, or there's a draft message. Playback stays paused for that whole
@@ -69,6 +70,7 @@ export const StoryBottomBar: React.FC<StoryBottomBarProps> = ({
     setMessage('');
     setInputFocused(false);
     setEmojiOpen(false);
+    inputRef.current?.blur(); // dismiss mobile keyboard after send
   };
 
   return (
@@ -107,6 +109,7 @@ export const StoryBottomBar: React.FC<StoryBottomBarProps> = ({
               className="z-[200]"
             />
             <input
+              ref={inputRef}
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}

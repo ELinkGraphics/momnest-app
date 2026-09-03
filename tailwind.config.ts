@@ -213,6 +213,13 @@ export default {
 						filter: 'grayscale(0%) brightness(1)',
 						transform: 'scale(1)'
 					}
+				},
+				'shake': {
+					'0%, 100%': { transform: 'translateX(0)' },
+					'20%': { transform: 'translateX(-8px)' },
+					'40%': { transform: 'translateX(8px)' },
+					'60%': { transform: 'translateX(-5px)' },
+					'80%': { transform: 'translateX(5px)' },
 				}
 			},
 			padding: {
@@ -227,7 +234,8 @@ export default {
 				'swipe-up': 'swipe-up 0.3s ease-out',
 				'bounce-in': 'bounce-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
 				'double-tap-heart': 'double-tap-heart 0.9s ease-out forwards',
-				'color-reveal': 'color-reveal 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards'
+				'color-reveal': 'color-reveal 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+				'shake': 'shake 0.35s ease both',
 			}
 		}
 	},

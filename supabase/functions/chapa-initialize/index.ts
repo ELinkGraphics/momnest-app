@@ -50,17 +50,22 @@ serve(async (req) => {
     // Resolve email: request body → auth user → profiles table → reject
     let resolvedEmail = (email || user.email || "").trim();
 
-    // If still no email, try fetching from profiles table (where WalletModal saves it)
-    if (!resolvedEmail || !resolvedEmail.includes("@")) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("email")
-        .eq("id", user.id)
-        .single();
+    // Try fetching email and phone from profiles table if missing
+    let resolvedPhone = phoneNumber;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("email, phone")
+      .eq("id", user.id)
+      .maybeSingle();
 
+    if (!resolvedEmail || !resolvedEmail.includes("@")) {
       if (profile?.email) {
         resolvedEmail = profile.email.trim();
       }
+    }
+
+    if (!resolvedPhone && profile?.phone) {
+      resolvedPhone = profile.phone;
     }
 
     // Final validation — don't send garbage to Chapa
@@ -68,28 +73,26 @@ serve(async (req) => {
       throw new Error("A valid email address is required. Please update your profile with an email first.");
     }
 
-    // Fallback for return_url (dynamic is better for local testing/iframe handshake)
+    // Fallback for return_url
     const finalReturnUrl = returnUrl || `https://momnest-app.vercel.app/verify`;
 
-    const payload = {
+    const payload: Record<string, any> = {
       amount: amount.toString(),
       currency: "ETB",
       email: resolvedEmail,
-      first_name: firstName || user.user_metadata?.name?.split(' ')[0] || "MomNest",
+      first_name: firstName || user.user_metadata?.name?.split(' ')[0] || "Serkle",
       last_name: lastName || user.user_metadata?.name?.split(' ').slice(1).join(' ') || "User",
-      phone_number: phoneNumber || undefined,
       tx_ref: txRef,
-      // After payment, Chapa will redirect user to this URL (/verify path)
       return_url: finalReturnUrl,
       customization: {
-        title: "Wallet Top-Up",
-        description: `Add ${amount} ETB to your MomNest wallet`,
-      },
-      meta: {
-        userId: user.id,
-        type: "wallet_topup",
-      },
+        title: "Serkle Wallet",
+        description: `Top up ${amount} ETB`,
+      }
     };
+
+    if (resolvedPhone && typeof resolvedPhone === "string" && resolvedPhone.trim().length >= 9) {
+      payload.phone_number = resolvedPhone.trim();
+    }
 
     console.log("Initializing Chapa payment for user:", user.id);
     console.log("Email being sent to Chapa:", payload.email);

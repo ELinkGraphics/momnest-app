@@ -89,32 +89,38 @@ const StoriesBar: React.FC = () => {
               >
                 <div className="relative">
                   {isOwn && !hasStories ? (
-                    /* Own story — dashed border */
-                    <div className="size-14 rounded-full border-2 border-dashed border-muted-foreground/40 flex items-center justify-center bg-background">
-                      <Avatar className="size-12">
-                        <AvatarImage src={user?.avatar} alt={user?.name} />
-                        <AvatarFallback
-                          className="text-xs font-medium text-white"
-                          style={{ backgroundColor: user?.avatarColor || '#E08ED1' }}
+                    <>
+                      {/* Own story — dashed border */}
+                      <div className="size-[66px] rounded-full border-2 border-dashed border-muted-foreground/40 flex items-center justify-center bg-background">
+                        <Avatar className="size-14">
+                          <AvatarImage src={user?.avatar} alt={user?.name} />
+                          <AvatarFallback
+                            className="text-xs font-medium text-white"
+                            style={{ backgroundColor: user?.avatarColor || '#E08ED1' }}
+                          >
+                            {user?.initials || 'YS'}
+                          </AvatarFallback>
+                        </Avatar>
+                        {/* Plus badge */}
+                        <div
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            setIsCreateStoryOpen(true); 
+                            pushModalState('create-story', () => setIsCreateStoryOpen(false));
+                          }}
+                          className="absolute bottom-0 right-0 size-5 bg-primary rounded-full flex items-center justify-center border-2 border-background cursor-pointer"
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Add story"
                         >
-                          {user?.initials || 'YS'}
-                        </AvatarFallback>
-                      </Avatar>
-                      {/* Plus badge */}
-                      <div
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          setIsCreateStoryOpen(true); 
-                          pushModalState('create-story', () => setIsCreateStoryOpen(false));
-                        }}
-                        className="absolute bottom-0 right-0 size-5 bg-primary rounded-full flex items-center justify-center border-2 border-background cursor-pointer"
-                        role="button"
-                        tabIndex={0}
-                        aria-label="Add story"
-                      >
-                        <Plus className="size-3 text-white" />
+                          <Plus className="size-3 text-white" />
+                        </div>
                       </div>
-                    </div>
+                      {/* First-time hint for users with no stories */}
+                      <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] text-primary font-semibold whitespace-nowrap animate-pulse select-none pointer-events-none">
+                        Add story
+                      </span>
+                    </>
                   ) : (
                     /* Other stories — segmented gradient ring */
                     <div className="relative">
@@ -208,7 +214,7 @@ const StoriesBar: React.FC = () => {
                 </div>
 
                 <span className="text-[11px] font-medium text-muted-foreground max-w-[64px] truncate text-center leading-tight">
-                  {isOwn ? "Your Nest" : getFirstName(story.user.name)}
+                  {isOwn && isLive ? "LIVE" : isOwn ? "Your Nest" : getFirstName(story.user.name)}
                 </span>
               </div>
             );

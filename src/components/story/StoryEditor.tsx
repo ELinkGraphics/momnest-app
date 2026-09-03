@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Type, Sticker, Sparkles, PenTool, Trash2, Eye, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { X, Type, Sticker, Sparkles, PenTool, Trash2, Eye, ChevronRight, Image as ImageIcon, Undo2 } from 'lucide-react';
 import { StoryState, StoryElement, DrawingPath, EditorExtraData } from '@/types/storyTypes';
 import { StoryCanvas, CANVAS_W, CANVAS_H } from './StoryCanvas';
 import { StoryDrawingOverlay } from './StoryDrawingOverlay';
@@ -38,6 +38,24 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  // Undo stack
+  const [undoStack, setUndoStack] = useState<StoryState[]>([]);
+
+  const pushUndo = useCallback((snapshot?: StoryState) => {
+    const toPush = snapshot || stateRef.current;
+    setUndoStack(prev => [...prev.slice(-14), toPush]);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    setUndoStack(prev => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      setState(last);
+      setSelectedId(null);
+      return prev.slice(0, -1);
+    });
+  }, []);
 
   // Multi-touch gesture tracking
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -248,7 +266,12 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
     // Mark the gesture as a real move (vs. a tap) once it travels past a threshold.
     if (g.gestureStartCenter) {
       const moved = Math.hypot(pts[0].x - g.gestureStartCenter.x, pts[0].y - g.gestureStartCenter.y);
-      if (moved > 6) gestureMovedRef.current = true;
+      if (moved > 6) {
+        if (!gestureMovedRef.current) {
+          pushUndo(stateRef.current);
+        }
+        gestureMovedRef.current = true;
+      }
     }
 
     if (!canvasRef.current) return;
@@ -402,6 +425,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
   }, []);
 
   const handleAddText = (overlay: any) => {
+    pushUndo();
     const newElement: StoryElement = {
       id: Math.random().toString(36).substr(2, 9),
       type: 'text',
@@ -422,6 +446,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
   };
 
   const handleAddSticker = (sticker: any) => {
+    pushUndo();
     const newElement: StoryElement = {
       id: Math.random().toString(36).substr(2, 9),
       type: sticker.type === 'emoji' ? 'emoji' : 'info',
@@ -437,6 +462,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
   };
 
   const handleAddImageSticker = (file: File | Blob) => {
+    pushUndo();
     const url = URL.createObjectURL(file);
     const newElement: StoryElement = {
       id: Math.random().toString(36).substr(2, 9),
@@ -499,9 +525,22 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
           <X className="w-6 h-6" />
         </button>
         <span className="text-white font-semibold drop-shadow-md">Your story</span>
-        <button onClick={() => setIsPreviewMode(true)} className="p-2 rounded-full bg-white/10 text-white backdrop-blur-md hover:bg-white/20 transition-colors">
-          <Eye className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleUndo}
+            disabled={undoStack.length === 0}
+            className={`p-2 rounded-full bg-white/10 text-white backdrop-blur-md transition-all ${
+              undoStack.length === 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-white/20 active:scale-95'
+            }`}
+            title="Undo"
+            aria-label="Undo last action"
+          >
+            <Undo2 className="w-6 h-6" />
+          </button>
+          <button onClick={() => setIsPreviewMode(true)} className="p-2 rounded-full bg-white/10 text-white backdrop-blur-md hover:bg-white/20 transition-colors">
+            <Eye className="w-6 h-6" />
+          </button>
+        </div>
       </div>
 
       {/* Canvas Area — all pointer events are captured here */}
@@ -613,6 +652,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
             previewUrl={previewUrl}
             selectedId={state.background.filterCss || 'none'} 
             onSelect={(id, css) => {
+              pushUndo(stateRef.current);
               setState(prev => ({ ...prev, background: { ...prev.background, filterCss: css } }));
             }} 
             onClose={() => setActiveTool(null)} 
@@ -625,6 +665,7 @@ export function StoryEditor({ previewUrl, mediaType = 'image', initialPostElemen
         isActive={activeTool === 'draw'} 
         initialPaths={state.drawingPaths}
         onDone={(paths) => {
+          pushUndo(stateRef.current);
           setState(prev => ({ ...prev, drawingPaths: paths }));
           setActiveTool(null);
         }}

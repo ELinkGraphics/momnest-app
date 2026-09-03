@@ -43,6 +43,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   const [transitionDirection, setTransitionDirection] = useState<'next' | 'prev'>('next');
   const [nextStoryIndex, setNextStoryIndex] = useState<number | null>(null);
   const [isImagePreloaded, setIsImagePreloaded] = useState(false);
+  const [shakeLeft, setShakeLeft] = useState(false); // visual feedback at first story
   
   // BUG-9 FIX: Pause reason tracking instead of boolean
   const pauseReasons = useRef(new Set<PauseReason>());
@@ -103,7 +104,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
   const nextStory = nextStoryIndex !== null ? stories[nextStoryIndex] : null;
 
   const isCurrentVideo = currentStory?.mediaType === 'video';
-  const STORY_DURATION = isCurrentVideo && videoDuration ? videoDuration * 1000 : 5000;
+  const MAX_VIDEO_STORY_MS = 15_000;
+  const STORY_DURATION = isCurrentVideo && videoDuration
+    ? Math.min(videoDuration * 1000, MAX_VIDEO_STORY_MS)
+    : 5000;
 
   const isOwnStory = currentStory?.user?.id === user?.id;
   const currentStoryDbId = typeof currentStory?.id === 'string' ? currentStory.id : null;
@@ -425,6 +429,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         transitionTimeouts.current.push(t2);
       }, 200);
       transitionTimeouts.current.push(t1);
+    } else {
+      triggerHaptic('warning');
+      setShakeLeft(true);
+      setTimeout(() => setShakeLeft(false), 350);
     }
   }, [currentIndex, stories, userGroups, triggerHaptic, preloadImage, currentUserContext, clearTransitionTimeouts]);
 
@@ -742,6 +750,16 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] animate-in fade-in duration-200">
+      {/* Screen-reader announcement when story changes */}
+      <div
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {currentStory
+          ? `Story by ${currentStory.user.name}, ${currentUserContext.storyIndex + 1} of ${currentUserContext.userStories.length}`
+          : ''}
+      </div>
       <StoryMediaRenderer 
         story={currentStory} 
         videoRef={videoRef} 
@@ -788,7 +806,11 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
         isSwipingDown={isSwipingDown}
         swipeDownY={swipeDownY}
       >
-        <StoryProgressBar config={progressBarConfig} progress={progress} />
+        <StoryProgressBar
+          config={progressBarConfig}
+          progress={progress}
+          className={shakeLeft ? 'animate-shake' : ''}
+        />
         
         <StoryHeader
           story={currentStory}
