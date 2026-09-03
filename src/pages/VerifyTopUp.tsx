@@ -14,14 +14,36 @@ const VerifyTopUp = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const isIframe = window !== window.parent;
-  const txRef = searchParams.get('tx_ref') || searchParams.get('verify_topup');
+  const txRef = searchParams.get('tx_ref') || searchParams.get('verify_topup') || localStorage.getItem('chapa_pending_txref');
 
   useEffect(() => {
-    if (!txRef || !user) return;
+    let isMounted = true;
+    
+    // If we don't have a user yet, just wait (could be restoring session)
+    if (!user) return;
+
+    if (!txRef) {
+      if (isMounted) {
+        setStatus('error');
+        setErrorMsg('Transaction reference is missing. Could not verify payment.');
+      }
+      return;
+    }
 
     const verify = async () => {
       try {
-        const result = await verifyTopUp.mutateAsync({ txRef });
+        // Timeout promise to prevent infinite hanging
+        const timeoutPromise = new Promise<any>((_, reject) => 
+          setTimeout(() => reject(new Error('Verification request timed out. Please try again later.')), 30000)
+        );
+        
+        const result = await Promise.race([
+          verifyTopUp.mutateAsync({ txRef }),
+          timeoutPromise
+        ]);
+
+        if (!isMounted) return;
+
         if (result?.status === 'success' || result?.status === 'already_credited') {
           setStatus('success');
           if (isIframe) {
@@ -33,7 +55,7 @@ const VerifyTopUp = () => {
           }
         } else {
           setStatus('error');
-          const msg = result?.message || 'Verification failed.';
+          const msg = result?.message || 'Verification failed. Payment not completed.';
           setErrorMsg(msg);
           if (isIframe) {
             window.parent.postMessage({ 
@@ -45,6 +67,7 @@ const VerifyTopUp = () => {
           }
         }
       } catch (err: any) {
+        if (!isMounted) return;
         setStatus('error');
         const msg = err.message || 'Something went wrong during verification.';
         setErrorMsg(msg);
@@ -60,6 +83,10 @@ const VerifyTopUp = () => {
     };
 
     verify();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [txRef, user]);
 
   const handleGoHome = () => {
