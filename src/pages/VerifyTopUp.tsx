@@ -14,7 +14,11 @@ const VerifyTopUp = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const isIframe = window !== window.parent;
-  const txRef = searchParams.get('tx_ref') || searchParams.get('verify_topup') || localStorage.getItem('chapa_pending_txref');
+  const [initialTxRef] = useState(() => 
+    searchParams.get('tx_ref') || searchParams.get('verify_topup') || localStorage.getItem('chapa_pending_txref')
+  );
+  
+  const txRef = initialTxRef;
 
   useEffect(() => {
     let isMounted = true;
