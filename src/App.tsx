@@ -57,6 +57,7 @@ const ShippingAddresses = React.lazy(() => import("./pages/ShippingAddresses"));
 const Profile = React.lazy(() => import("./pages/Profile"));
 const Login = React.lazy(() => import("./pages/Login"));
 const Signup = React.lazy(() => import("./pages/Signup"));
+const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 const VideoDetail = React.lazy(() => import("./pages/VideoDetail"));
 const JoinCircle = React.lazy(() => import("./pages/JoinCircle"));
@@ -149,6 +150,7 @@ const AppRoutes = () => {
       <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
       <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
@@ -260,6 +262,7 @@ const AppGate = () => {
       import('./pages/Index'),
       import('./pages/Login'),
       import('./pages/Signup'),
+      import('./pages/ResetPassword'),
     ])
       .catch((err) => console.error('Preload failed:', err))
       .finally(() => setFirstPageReady(true));

@@ -130,6 +130,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         return;
       }
 
+      if (event === 'PASSWORD_RECOVERY') {
+        if (window.location.pathname !== '/reset-password') {
+          window.location.href = '/reset-password';
+        }
+        return;
+      }
+
       setSession(session);
       if (session?.access_token) {
         chatDb.initEncryption(session.access_token);
@@ -236,9 +243,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         if (error.code === 'PGRST116') {
           const { data: { user: authUser } } = await supabase.auth.getUser();
           if (authUser) {
-            const name = authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User';
-            const username = authUser.user_metadata?.username || authUser.email?.split('@')[0] || 'user';
+            const name = authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User';
+            const baseUsername = authUser.user_metadata?.username || authUser.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9_]/g, '') || 'user';
+            const username = `${baseUsername}_${authUser.id.substring(0, 4)}`;
             const initials = name.substring(0, 2).toUpperCase();
+            const avatarUrl = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null;
 
             // Insert the profile row so foreign keys work
             const { error: insertError } = await supabase.from('profiles').insert({
@@ -247,7 +256,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
               username,
               email: authUser.email || '',
               initials,
-              avatar_url: authUser.user_metadata?.avatar_url || null,
+              avatar_url: avatarUrl,
               avatar_color: '#4B164C',
             });
 
@@ -261,7 +270,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
               username,
               email: authUser.email || '',
               initials,
-              avatar: authUser.user_metadata?.avatar_url || '',
+              avatar: avatarUrl || '',
               avatarColor: '#4B164C',
               coverImage: '',
               bio: '',
@@ -291,13 +300,23 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
 
       if (profile) {
+        let avatarUrl = profile.avatar_url || '';
+        if (!avatarUrl) {
+          const { data: { user: authUser } } = await supabase.auth.getUser();
+          const oauthAvatar = authUser?.user_metadata?.avatar_url || authUser?.user_metadata?.picture;
+          if (oauthAvatar) {
+            avatarUrl = oauthAvatar;
+            supabase.from('profiles').update({ avatar_url: oauthAvatar }).eq('id', userId).then();
+          }
+        }
+
         const userProfile: UserProfile = {
           id: profile.id,
           name: profile.name,
           username: profile.username,
           email: profile.email,
           initials: profile.initials,
-          avatar: profile.avatar_url || '',
+          avatar: avatarUrl,
           avatarColor: profile.avatar_color || '#4B164C',
           coverImage: profile.cover_image_url || '',
           bio: profile.bio || '',

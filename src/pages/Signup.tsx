@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { toast } from "@/hooks/use-toast";
 
 type InputMode = "email" | "phone";
@@ -27,8 +26,11 @@ export default function Signup() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/`,
+        },
       });
       if (error) {
         toast({
@@ -37,10 +39,10 @@ export default function Signup() {
           variant: "destructive",
         });
       }
-    } catch {
+    } catch (err: any) {
       toast({
         title: "Google sign-in failed",
-        description: "An unexpected error occurred.",
+        description: err?.message || "An unexpected error occurred.",
         variant: "destructive",
       });
     } finally {

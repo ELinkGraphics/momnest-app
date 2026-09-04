@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { toast } from "@/hooks/use-toast";
 
 type InputMode = "email" | "phone";
@@ -24,14 +23,17 @@ export default function Login() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/`,
+        },
       });
       if (error) {
         toast({ title: "Google sign-in failed", description: error.message, variant: "destructive" });
       }
-    } catch {
-      toast({ title: "Google sign-in failed", description: "An unexpected error occurred.", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Google sign-in failed", description: err?.message || "An unexpected error occurred.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +69,7 @@ export default function Login() {
     }
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) {
         toast({ title: "Reset failed", description: error.message, variant: "destructive" });
@@ -255,6 +257,18 @@ export default function Login() {
                   >
                     Send Reset Link
                   </Button>
+                </div>
+                <div className="pt-2 text-center border-t border-border/60">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      navigate('/reset-password');
+                    }}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Have a 6-digit code or link? Open Reset Page →
+                  </button>
                 </div>
               </div>
             </div>
