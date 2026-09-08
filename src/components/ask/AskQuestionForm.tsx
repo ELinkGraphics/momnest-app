@@ -121,6 +121,7 @@ export const AskQuestionForm: React.FC<AskQuestionFormProps> = ({
   const [category, setCategory] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
+  const [hasSuggestedTags, setHasSuggestedTags] = useState(false);
   const [customTagInput, setCustomTagInput] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [identityMode, setIdentityMode] = useState<'anonymous' | 'profile'>('anonymous');
@@ -197,7 +198,7 @@ export const AskQuestionForm: React.FC<AskQuestionFormProps> = ({
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [question]);
+  }, [question, hasSuggestedTags]);
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
