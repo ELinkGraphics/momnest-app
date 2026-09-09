@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Home, Users, Plus, Camera, UserPlus, Radio, HeartHandshake, Edit3, Video, Mail, MessagesSquare } from 'lucide-react';
+import { Camera, UserPlus, Radio, Edit3, Video, MessagesSquare } from 'lucide-react';
+import { HomeIcon, CirclesIcon, CreateIcon, AskIcon, MessagesIcon } from '@/components/icons/FooterIcons';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useAppNav, type TabKey } from '@/hooks/useAppNav';
@@ -18,11 +19,11 @@ interface FooterNavProps {
 }
 
 const TABS = [
-  { key: "home" as const, label: "Home", icon: Home },
-  { key: "circles" as const, label: "Circles", icon: Users },
-  { key: "add" as const, label: "Add", icon: Plus, center: true },
-  { key: "ask" as const, label: "Ask Anonymously", icon: HeartHandshake },
-  { key: "messages" as const, label: "Messages", icon: Mail },
+  { key: "home" as const, label: "Home", icon: HomeIcon },
+  { key: "circles" as const, label: "Circles", icon: CirclesIcon },
+  { key: "add" as const, label: "Add", icon: CreateIcon, center: true },
+  { key: "ask" as const, label: "Ask Anonymously", icon: AskIcon },
+  { key: "messages" as const, label: "Messages", icon: MessagesIcon },
 ];
 
 const CREATE_OPTIONS = [
@@ -100,36 +101,38 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
             title="Home"
             aria-label="Home"
           >
-            <Home className={`size-6 ${active === "home" ? 'text-primary' : 'text-muted-foreground'}`} />
+            <HomeIcon active={active === "home"} className="size-6" />
           </button>
 
           <button
             type="button"
             role="tab"
             aria-selected={active === "circles"}
-            className="grid place-items-center size-10 rounded-full hover:bg-card/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
+            className={`grid place-items-center size-10 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors ${
+              active === "circles" ? 'bg-card/20' : 'hover:bg-card/10'
+            }`}
             onClick={() => handleTabClick("circles")}
             title="Circles"
             aria-label="Circles"
           >
-            <Users className={`size-6 ${active === "circles" ? 'text-primary' : 'text-muted-foreground'}`} />
+            <CirclesIcon active={active === "circles"} className="size-6" />
           </button>
 
-            <div className="relative">
+          <div className="relative">
             <button
               type="button"
               role="tab"
               aria-selected={active === "add"}
               className="grid place-items-center size-10 rounded-full bg-secondary hover:bg-secondary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-all"
               onClick={handleCreateClick}
-                title={active === 'ask' ? 'Share Story' : 'Create'}
-                aria-label={active === 'ask' ? 'Share Story' : 'Create'}
+              title={active === 'ask' ? 'Share Story' : 'Create'}
+              aria-label={active === 'ask' ? 'Share Story' : 'Create'}
             >
-                {active === 'ask' ? (
-                  <Edit3 className="size-6 text-white" />
-                ) : (
-                  <Plus className="size-6 text-white" />
-                )}
+              {active === 'ask' ? (
+                <Edit3 className="size-6 text-white" />
+              ) : (
+                <CreateIcon fillMode="current" className="size-6 text-white" />
+              )}
             </button>
             
             {showCreatePopup && active !== 'ask' && (
@@ -159,24 +162,28 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
             type="button"
             role="tab"
             aria-selected={active === "ask"}
-            className="grid place-items-center size-10 rounded-full hover:bg-card/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
+            className={`grid place-items-center size-10 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors ${
+              active === "ask" ? 'bg-card/20' : 'hover:bg-card/10'
+            }`}
             onClick={() => handleTabClick("ask")}
             title="Ask Anonymously"
             aria-label="Ask Anonymously"
           >
-            <HeartHandshake className={`size-6 ${active === "ask" ? 'text-primary' : 'text-muted-foreground'}`} />
+            <AskIcon active={active === "ask"} className="size-6" />
           </button>
 
           <button
             type="button"
             role="tab"
-            aria-selected={false}
-            className="relative grid place-items-center size-10 rounded-full hover:bg-card/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
+            aria-selected={active === "messages"}
+            className={`relative grid place-items-center size-10 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors ${
+              active === "messages" ? 'bg-card/20' : 'hover:bg-card/10'
+            }`}
             onClick={() => handleTabClick("messages")}
             title="Messages"
             aria-label="Messages"
           >
-            <Mail className="size-6 text-muted-foreground" />
+            <MessagesIcon active={active === "messages"} className="size-6" />
             {totalUnreadMessages > 0 && (
               <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] grid place-items-center bg-destructive text-white font-medium">
                 {formatBadge(totalUnreadMessages)}
@@ -213,20 +220,22 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
               aria-label="Home"
               data-testid="nav-home"
             >
-              <Home className={`size-6 ${active === "home" ? 'text-primary' : 'text-muted-foreground'}`} />
+              <HomeIcon active={active === "home"} className="size-6" />
             </button>
 
             <button
               type="button"
               role="tab"
               aria-selected={active === "circles"}
-              className="grid place-items-center size-10 rounded-full hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
+              className={`grid place-items-center size-10 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors ${
+                active === "circles" ? 'bg-tertiary' : 'hover:bg-muted/30'
+              }`}
               onClick={() => handleTabClick("circles")}
               title="Circles"
               aria-label="Circles"
               data-testid="nav-circles"
             >
-              <Users className={`size-6 ${active === "circles" ? 'text-primary' : 'text-muted-foreground'}`} />
+              <CirclesIcon active={active === "circles"} className="size-6" />
             </button>
 
             <div className="relative">
@@ -243,7 +252,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
                 {active === 'ask' ? (
                   <Edit3 className="size-6 text-white" />
                 ) : (
-                  <Plus className="size-6 text-white" />
+                  <CreateIcon fillMode="current" className="size-6 text-white" />
                 )}
               </button>
               
@@ -275,26 +284,30 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
               type="button"
               role="tab"
               aria-selected={active === "ask"}
-              className="grid place-items-center size-10 rounded-full hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
+              className={`grid place-items-center size-10 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors ${
+                active === "ask" ? 'bg-tertiary' : 'hover:bg-muted/30'
+              }`}
               onClick={() => handleTabClick("ask")}
               title="Ask Anonymously"
               aria-label="Ask Anonymously"
               data-testid="nav-ask"
             >
-              <HeartHandshake className={`size-6 ${active === "ask" ? 'text-primary' : 'text-muted-foreground'}`} />
+              <AskIcon active={active === "ask"} className="size-6" />
             </button>
 
             <button
               type="button"
               role="tab"
-              aria-selected={false}
-              className="relative grid place-items-center size-10 rounded-full hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors"
+              aria-selected={active === "messages"}
+              className={`relative grid place-items-center size-10 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary transition-colors ${
+                active === "messages" ? 'bg-tertiary' : 'hover:bg-muted/30'
+              }`}
               onClick={() => handleTabClick("messages")}
               title="Messages"
               aria-label="Messages"
               data-testid="nav-messages"
             >
-              <Mail className="size-6 text-muted-foreground" />
+              <MessagesIcon active={active === "messages"} className="size-6" />
               {totalUnreadMessages > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] grid place-items-center bg-destructive text-white font-medium">
                   {formatBadge(totalUnreadMessages)}
