@@ -101,7 +101,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
             title="Home"
             aria-label="Home"
           >
-            <HomeIcon active={active === "home"} className="size-6" />
+            <HomeIcon active={active === "home"} className="size-7" />
           </button>
 
           <button
@@ -115,7 +115,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
             title="Circles"
             aria-label="Circles"
           >
-            <CirclesIcon active={active === "circles"} className="size-6" />
+            <CirclesIcon active={active === "circles"} className="size-7" />
           </button>
 
           <div className="relative">
@@ -131,7 +131,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
               {active === 'ask' ? (
                 <Edit3 className="size-6 text-white" />
               ) : (
-                <CreateIcon fillMode="current" className="size-6 text-white" />
+                <CreateIcon fillMode="current" className="size-7 text-white" />
               )}
             </button>
             
@@ -169,7 +169,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
             title="Ask Anonymously"
             aria-label="Ask Anonymously"
           >
-            <AskIcon active={active === "ask"} className="size-6" />
+            <AskIcon active={active === "ask"} className="size-7" />
           </button>
 
           <button
@@ -183,7 +183,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
             title="Messages"
             aria-label="Messages"
           >
-            <MessagesIcon active={active === "messages"} className="size-6" />
+            <MessagesIcon active={active === "messages"} className="size-7" />
             {totalUnreadMessages > 0 && (
               <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] grid place-items-center bg-destructive text-white font-medium">
                 {formatBadge(totalUnreadMessages)}
@@ -220,7 +220,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
               aria-label="Home"
               data-testid="nav-home"
             >
-              <HomeIcon active={active === "home"} className="size-6" />
+              <HomeIcon active={active === "home"} className="size-7" />
             </button>
 
             <button
@@ -235,7 +235,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
               aria-label="Circles"
               data-testid="nav-circles"
             >
-              <CirclesIcon active={active === "circles"} className="size-6" />
+              <CirclesIcon active={active === "circles"} className="size-7" />
             </button>
 
             <div className="relative">
@@ -252,7 +252,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
                 {active === 'ask' ? (
                   <Edit3 className="size-6 text-white" />
                 ) : (
-                  <CreateIcon fillMode="current" className="size-6 text-white" />
+                  <CreateIcon fillMode="current" className="size-7 text-white" />
                 )}
               </button>
               
@@ -292,7 +292,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
               aria-label="Ask Anonymously"
               data-testid="nav-ask"
             >
-              <AskIcon active={active === "ask"} className="size-6" />
+              <AskIcon active={active === "ask"} className="size-7" />
             </button>
 
             <button
@@ -307,7 +307,7 @@ const FooterNav: React.FC<FooterNavProps> = ({ active, onSelect, onOpenCreate, o
               aria-label="Messages"
               data-testid="nav-messages"
             >
-              <MessagesIcon active={active === "messages"} className="size-6" />
+              <MessagesIcon active={active === "messages"} className="size-7" />
               {totalUnreadMessages > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] grid place-items-center bg-destructive text-white font-medium">
                   {formatBadge(totalUnreadMessages)}

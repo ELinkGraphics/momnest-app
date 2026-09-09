@@ -11,13 +11,21 @@ export interface FooterIconProps extends React.SVGProps<SVGSVGElement> {
  */
 export const HomeIcon: React.FC<FooterIconProps> = ({
   active = false,
-  className = 'size-6',
+  className = 'size-7',
   fillMode = 'gradient',
   ...props
 }) => {
-  const isCurrent = fillMode === 'current';
-  const fill1 = isCurrent ? 'currentColor' : 'url(#home-gradient-1)';
-  const fill2 = isCurrent ? 'currentColor' : 'url(#home-gradient-2)';
+  const isCurrent = fillMode === 'current' || (className && className.includes('text-white'));
+  const fill1 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#home-gradient-1)'
+    : 'url(#home-inactive-1)';
+  const fill2 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#home-gradient-2)'
+    : 'url(#home-inactive-2)';
 
   return (
     <svg
@@ -27,11 +35,12 @@ export const HomeIcon: React.FC<FooterIconProps> = ({
       className={`transition-all duration-200 ${
         active
           ? 'opacity-100 scale-105 drop-shadow-sm'
-          : 'opacity-40 grayscale hover:opacity-75 hover:grayscale-0'
+          : 'opacity-85 hover:opacity-100'
       } ${className}`}
       {...props}
     >
       <defs>
+        {/* Active Serkle Brand Gradients */}
         <linearGradient
           id="home-gradient-1"
           x1="55.17"
@@ -54,6 +63,30 @@ export const HomeIcon: React.FC<FooterIconProps> = ({
           <stop offset="0" stopColor="#693403" />
           <stop offset="1" stopColor="#dd9a43" />
         </linearGradient>
+
+        {/* Inactive Bold Slate-Grey Gradients */}
+        <linearGradient
+          id="home-inactive-1"
+          x1="55.17"
+          y1="53.92"
+          x2="95.94"
+          y2="53.92"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#404040" />
+          <stop offset="1" stopColor="#666666" />
+        </linearGradient>
+        <linearGradient
+          id="home-inactive-2"
+          x1="4.06"
+          y1="50.01"
+          x2="69.06"
+          y2="50.01"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#484848" />
+          <stop offset="1" stopColor="#6e6e6e" />
+        </linearGradient>
       </defs>
       <path
         fill={fill1}
@@ -72,14 +105,26 @@ export const HomeIcon: React.FC<FooterIconProps> = ({
  */
 export const CirclesIcon: React.FC<FooterIconProps> = ({
   active = false,
-  className = 'size-6',
+  className = 'size-7',
   fillMode = 'gradient',
   ...props
 }) => {
-  const isCurrent = fillMode === 'current';
-  const fill1 = isCurrent ? 'currentColor' : 'url(#circle-gradient-1)';
-  const fill2 = isCurrent ? 'currentColor' : 'url(#circle-gradient-2)';
-  const fill3 = isCurrent ? 'currentColor' : 'url(#circle-gradient-3)';
+  const isCurrent = fillMode === 'current' || (className && className.includes('text-white'));
+  const fill1 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#circle-gradient-1)'
+    : 'url(#circle-inactive-1)';
+  const fill2 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#circle-gradient-2)'
+    : 'url(#circle-inactive-2)';
+  const fill3 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#circle-gradient-3)'
+    : 'url(#circle-inactive-3)';
 
   return (
     <svg
@@ -89,11 +134,12 @@ export const CirclesIcon: React.FC<FooterIconProps> = ({
       className={`transition-all duration-200 ${
         active
           ? 'opacity-100 scale-105 drop-shadow-sm'
-          : 'opacity-40 grayscale hover:opacity-75 hover:grayscale-0'
+          : 'opacity-85 hover:opacity-100'
       } ${className}`}
       {...props}
     >
       <defs>
+        {/* Active Serkle Brand Gradients */}
         <linearGradient
           id="circle-gradient-1"
           x1="58.2"
@@ -127,6 +173,41 @@ export const CirclesIcon: React.FC<FooterIconProps> = ({
           <stop offset="0" stopColor="#693403" />
           <stop offset="1" stopColor="#dd9a43" />
         </linearGradient>
+
+        {/* Inactive Bold Slate-Grey Gradients */}
+        <linearGradient
+          id="circle-inactive-1"
+          x1="58.2"
+          y1="28.77"
+          x2="81.12"
+          y2="28.77"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#404040" />
+          <stop offset="1" stopColor="#666666" />
+        </linearGradient>
+        <linearGradient
+          id="circle-inactive-2"
+          x1="11.82"
+          y1="62.27"
+          x2="88.18"
+          y2="62.27"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#484848" />
+          <stop offset="1" stopColor="#6e6e6e" />
+        </linearGradient>
+        <linearGradient
+          id="circle-inactive-3"
+          x1="17.64"
+          y1="28.77"
+          x2="40.56"
+          y2="28.77"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#404040" />
+          <stop offset="1" stopColor="#666666" />
+        </linearGradient>
       </defs>
       <path
         fill={fill1}
@@ -149,13 +230,21 @@ export const CirclesIcon: React.FC<FooterIconProps> = ({
  */
 export const CreateIcon: React.FC<FooterIconProps> = ({
   active = false,
-  className = 'size-6',
+  className = 'size-7',
   fillMode = 'gradient',
   ...props
 }) => {
-  const isCurrent = fillMode === 'current';
-  const fill1 = isCurrent ? 'currentColor' : 'url(#create-gradient-1)';
-  const fill2 = isCurrent ? 'currentColor' : 'url(#create-gradient-2)';
+  const isCurrent = fillMode === 'current' || (className && className.includes('text-white'));
+  const fill1 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#create-gradient-1)'
+    : 'url(#create-inactive-1)';
+  const fill2 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#create-gradient-2)'
+    : 'url(#create-inactive-2)';
 
   return (
     <svg
@@ -166,6 +255,7 @@ export const CreateIcon: React.FC<FooterIconProps> = ({
       {...props}
     >
       <defs>
+        {/* Active Serkle Brand Gradients */}
         <linearGradient
           id="create-gradient-1"
           x1="8.77"
@@ -188,6 +278,30 @@ export const CreateIcon: React.FC<FooterIconProps> = ({
           <stop offset="0" stopColor="#693403" />
           <stop offset="1" stopColor="#dd9a43" />
         </linearGradient>
+
+        {/* Inactive Bold Slate-Grey Gradients */}
+        <linearGradient
+          id="create-inactive-1"
+          x1="8.77"
+          y1="50"
+          x2="91.23"
+          y2="50"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#404040" />
+          <stop offset="1" stopColor="#666666" />
+        </linearGradient>
+        <linearGradient
+          id="create-inactive-2"
+          x1="26.6"
+          y1="50"
+          x2="59.86"
+          y2="50"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#484848" />
+          <stop offset="1" stopColor="#6e6e6e" />
+        </linearGradient>
       </defs>
       <path
         fill={fill1}
@@ -206,14 +320,26 @@ export const CreateIcon: React.FC<FooterIconProps> = ({
  */
 export const AskIcon: React.FC<FooterIconProps> = ({
   active = false,
-  className = 'size-6',
+  className = 'size-7',
   fillMode = 'gradient',
   ...props
 }) => {
-  const isCurrent = fillMode === 'current';
-  const fill1 = isCurrent ? 'currentColor' : 'url(#ask-gradient-1)';
-  const fill2 = isCurrent ? 'currentColor' : 'url(#ask-gradient-2)';
-  const fill3 = isCurrent ? 'currentColor' : 'url(#ask-gradient-3)';
+  const isCurrent = fillMode === 'current' || (className && className.includes('text-white'));
+  const fill1 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#ask-gradient-1)'
+    : 'url(#ask-inactive-1)';
+  const fill2 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#ask-gradient-2)'
+    : 'url(#ask-inactive-2)';
+  const fill3 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#ask-gradient-3)'
+    : 'url(#ask-inactive-3)';
 
   return (
     <svg
@@ -223,11 +349,12 @@ export const AskIcon: React.FC<FooterIconProps> = ({
       className={`transition-all duration-200 ${
         active
           ? 'opacity-100 scale-105 drop-shadow-sm'
-          : 'opacity-40 grayscale hover:opacity-75 hover:grayscale-0'
+          : 'opacity-85 hover:opacity-100'
       } ${className}`}
       {...props}
     >
       <defs>
+        {/* Active Serkle Brand Gradients */}
         <linearGradient
           id="ask-gradient-1"
           x1="59.72"
@@ -261,6 +388,41 @@ export const AskIcon: React.FC<FooterIconProps> = ({
           <stop offset="0" stopColor="#693403" />
           <stop offset="1" stopColor="#dd9a43" />
         </linearGradient>
+
+        {/* Inactive Bold Slate-Grey Gradients */}
+        <linearGradient
+          id="ask-inactive-1"
+          x1="59.72"
+          y1="50.46"
+          x2="93.39"
+          y2="50.46"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#404040" />
+          <stop offset="1" stopColor="#666666" />
+        </linearGradient>
+        <linearGradient
+          id="ask-inactive-2"
+          x1="6.61"
+          y1="50"
+          x2="73.22"
+          y2="50"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#484848" />
+          <stop offset="1" stopColor="#6e6e6e" />
+        </linearGradient>
+        <linearGradient
+          id="ask-inactive-3"
+          x1="26.61"
+          y1="51.02"
+          x2="53.58"
+          y2="51.02"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#404040" />
+          <stop offset="1" stopColor="#666666" />
+        </linearGradient>
       </defs>
       <path
         fill={fill1}
@@ -283,16 +445,36 @@ export const AskIcon: React.FC<FooterIconProps> = ({
  */
 export const MessagesIcon: React.FC<FooterIconProps> = ({
   active = false,
-  className = 'size-6',
+  className = 'size-7',
   fillMode = 'gradient',
   ...props
 }) => {
-  const isCurrent = fillMode === 'current';
-  const fill1 = isCurrent ? 'currentColor' : 'url(#msg-gradient-1)';
-  const fill2 = isCurrent ? 'currentColor' : 'url(#msg-gradient-2)';
-  const fill3 = isCurrent ? 'currentColor' : 'url(#msg-gradient-3)';
-  const fill4 = isCurrent ? 'currentColor' : 'url(#msg-gradient-4)';
-  const fill5 = isCurrent ? 'currentColor' : 'url(#msg-gradient-5)';
+  const isCurrent = fillMode === 'current' || (className && className.includes('text-white'));
+  const fill1 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#msg-gradient-1)'
+    : 'url(#msg-inactive-1)';
+  const fill2 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#msg-gradient-2)'
+    : 'url(#msg-inactive-2)';
+  const fill3 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#msg-gradient-3)'
+    : 'url(#msg-inactive-3)';
+  const fill4 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#msg-gradient-4)'
+    : 'url(#msg-inactive-4)';
+  const fill5 = isCurrent
+    ? 'currentColor'
+    : active
+    ? 'url(#msg-gradient-5)'
+    : 'url(#msg-inactive-5)';
 
   return (
     <svg
@@ -302,11 +484,12 @@ export const MessagesIcon: React.FC<FooterIconProps> = ({
       className={`transition-all duration-200 ${
         active
           ? 'opacity-100 scale-105 drop-shadow-sm'
-          : 'opacity-40 grayscale hover:opacity-75 hover:grayscale-0'
+          : 'opacity-85 hover:opacity-100'
       } ${className}`}
       {...props}
     >
       <defs>
+        {/* Active Serkle Brand Gradients */}
         <linearGradient
           id="msg-gradient-1"
           x1="59.72"
@@ -361,6 +544,63 @@ export const MessagesIcon: React.FC<FooterIconProps> = ({
         >
           <stop offset="0" stopColor="#693403" />
           <stop offset="1" stopColor="#dd9a43" />
+        </linearGradient>
+
+        {/* Inactive Bold Slate-Grey Gradients */}
+        <linearGradient
+          id="msg-inactive-1"
+          x1="59.72"
+          y1="50.46"
+          x2="93.39"
+          y2="50.46"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#404040" />
+          <stop offset="1" stopColor="#666666" />
+        </linearGradient>
+        <linearGradient
+          id="msg-inactive-2"
+          x1="6.61"
+          y1="50"
+          x2="73.22"
+          y2="50"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#484848" />
+          <stop offset="1" stopColor="#6e6e6e" />
+        </linearGradient>
+        <linearGradient
+          id="msg-inactive-3"
+          x1="24.18"
+          y1="44.85"
+          x2="57.8"
+          y2="50.89"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#404040" />
+          <stop offset="1" stopColor="#666666" />
+        </linearGradient>
+        <linearGradient
+          id="msg-inactive-4"
+          x1="23.78"
+          y1="47.1"
+          x2="57.4"
+          y2="53.14"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#404040" />
+          <stop offset="1" stopColor="#666666" />
+        </linearGradient>
+        <linearGradient
+          id="msg-inactive-5"
+          x1="23.37"
+          y1="49.35"
+          x2="56.99"
+          y2="55.39"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#404040" />
+          <stop offset="1" stopColor="#666666" />
         </linearGradient>
       </defs>
       <path
