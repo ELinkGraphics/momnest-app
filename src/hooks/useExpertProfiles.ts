@@ -183,11 +183,15 @@ export const useIsExpert = (userId?: string) => {
       if (!uid) return false;
 
       const sb = supabase as any;
-      const { data } = await sb
+      const { data, error } = await sb
         .from('expert_profiles')
         .select('is_verified')
         .eq('user_id', uid)
-        .single();
+        .maybeSingle();
+
+      if (error) {
+        return false;
+      }
 
       return data?.is_verified || false;
     },

@@ -426,14 +426,18 @@ export function registerSyncListeners() {
   // Try to register Background Sync API if supported by Service Worker
   if ('serviceWorker' in navigator) {
     if ('SyncManager' in window) {
-      navigator.serviceWorker.ready.then(registration => {
+      navigator.serviceWorker.ready.then(async (registration: any) => {
         try {
-          // @ts-ignore - sync is valid in browsers supporting Background Sync
-          registration.sync.register('chat-sync');
-          console.log('[Background Sync] Registered "chat-sync".');
+          if (registration?.sync) {
+            await registration.sync.register('chat-sync');
+            console.log('[Background Sync] Registered "chat-sync".');
+          }
         } catch (e) {
-          console.warn('[Background Sync] Registration failed.', e);
+          // Expected when background sync is restricted or permission denied by the browser
+          console.warn('[Background Sync] Registration failed or not permitted.', e);
         }
+      }).catch((err) => {
+        console.warn('[Background Sync] Service worker ready error:', err);
       });
     }
 

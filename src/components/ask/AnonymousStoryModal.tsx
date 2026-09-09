@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -86,6 +86,9 @@ export const AnonymousStoryModal: React.FC<AnonymousStoryModalProps> = ({
             <Pin className="w-5 h-5 text-primary" />
             Share Your Story Anonymously
           </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Share your experience or advice with the community.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto flex-1 px-1">

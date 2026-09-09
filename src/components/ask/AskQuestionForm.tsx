@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Lock, Send, X, Plus, Sparkles, BadgeCheck, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCreateQuestion } from '@/hooks/useQuestions';
@@ -278,6 +279,9 @@ export const AskQuestionForm: React.FC<AskQuestionFormProps> = ({
           <DialogTitle className="text-lg font-semibold text-foreground">
             Ask the Community
           </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground mt-1">
+            Ask a question anonymously or with your profile.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="px-5 pb-5 space-y-5">

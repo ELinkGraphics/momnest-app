@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,9 @@ export const AllExpertsModal: React.FC<AllExpertsModalProps> = ({ open, onClose 
               <BadgeCheck className="w-5 h-5 text-primary" />
               Verified Experts
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Browse verified community experts and their answers.
+            </DialogDescription>
           </DialogHeader>
 
           {isLoading ? (
